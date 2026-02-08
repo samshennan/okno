@@ -28,11 +28,14 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Hitting `/api/photo/random` returns a working photo URL that displays a real image (baseUrl is fresh, not expired)
   4. The backend is running on the VPS behind nginx with HTTPS, auto-restarts after crash via PM2, and survives server reboot
   5. Hitting `/api/health` returns token status, cache size, last API call timestamp, and uptime
-**Plans**: TBD
+**Plans**: 5 plans
 
 Plans:
-- [ ] 01-01: TBD
-- [ ] 01-02: TBD
+- [ ] 01-01-PLAN.md — Project setup + OAuth authentication with token persistence
+- [ ] 01-02-PLAN.md — Picker API integration + photo cache with baseUrl refresh
+- [ ] 01-03-PLAN.md — Random photo serving (image proxy) + health diagnostics
+- [ ] 01-04-PLAN.md — VPS deployment with nginx/PM2/SSL/1Password secrets
+- [ ] 01-05-PLAN.md — Human verification of all Phase 1 success criteria
 
 ### Phase 2: Slideshow + PWA
 **Goal**: iPad displays a beautiful, hands-off slideshow that runs indefinitely without interaction, loading flicker, or screen dimming
@@ -70,6 +73,6 @@ Phases execute in numeric order: 1 -> 2 -> 3
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Backend + Deployment | 0/TBD | Not started | - |
+| 1. Backend + Deployment | 0/5 | Ready to execute | - |
 | 2. Slideshow + PWA | 0/TBD | Not started | - |
 | 3. Advanced Features | 0/TBD | Not started | - |
