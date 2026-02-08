@@ -1,0 +1,15 @@
+{
+  "mode": "yolo",
+  "depth": "quick",
+  "parallelization": true,
+  "commit_docs": true,
+  "model_profile": "quality",
+  "workflow": {
+    "research": true,
+    "plan_check": true,
+    "verifier": true
+  },
+  "security": {
+    "note": "API keys in .env (never committed), .gitignore for secrets, private repo until ready to share"
+  }
+}

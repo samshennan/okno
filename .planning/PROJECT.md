@@ -78,7 +78,8 @@ Display random photos from Google Photos library on an iPad in a beautiful, hand
 - **Platform**: iPad Pro 1st Gen running iOS 16.x in Safari (PWA mode)
 - **Timeline**: Weekend MVP — ship fast, iterate on polish later
 - **Budget**: $0 — existing VPS, free Google APIs, no App Store ($100 developer fee avoided)
-- **Security**: Home network only, single user (Sam), iPad locked in Guided Access kiosk mode
+- **Security (access)**: Home network only, single user (Sam), iPad locked in Guided Access kiosk mode
+- **Security (secrets)**: API keys and OAuth credentials in .env file (never committed), .gitignore configured, private GitHub repo until ready to share
 - **Safari compatibility**: Must work on iOS 16.x Safari (Wake Lock API may need NoSleep.js fallback)
 
 ## Key Decisions
@@ -91,6 +92,7 @@ Display random photos from Google Photos library on an iPad in a beautiful, hand
 | Single device for MVP | Simplify scope, multi-device (wife's iPad) can be added later with minimal changes | — Pending |
 | VPS hosting instead of serverless | Existing infrastructure, full control, PM2 for reliability, fits portfolio narrative | — Pending |
 | Vanilla JS instead of React/framework | No build step, works on old Safari, faster development for simple UI, lower complexity | — Pending |
+| Environment variables for secrets | API keys, OAuth credentials, tokens in .env file (gitignored), never hardcoded or committed | — Pending |
 
 ---
 *Last updated: 2026-02-08 after initialization*
