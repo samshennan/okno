@@ -22,10 +22,10 @@
 - [ ] **AUTH-04**: Backend automatically refreshes baseUrls every 50 minutes (before 60-min expiry) to prevent broken images
 
 **Traceability:**
-- AUTH-01 → Phase TBD
-- AUTH-02 → Phase TBD
-- AUTH-03 → Phase TBD
-- AUTH-04 → Phase TBD
+- AUTH-01 -> Phase 1: Backend + Deployment
+- AUTH-02 -> Phase 1: Backend + Deployment
+- AUTH-03 -> Phase 1: Backend + Deployment
+- AUTH-04 -> Phase 1: Backend + Deployment
 
 ---
 
@@ -39,12 +39,12 @@
 - [ ] **DISP-06**: Frontend uses two-image A/B swap pattern (alternating `<img>` elements) to prevent JavaScript memory leaks in long-running slideshow
 
 **Traceability:**
-- DISP-01 → Phase TBD
-- DISP-02 → Phase TBD
-- DISP-03 → Phase TBD
-- DISP-04 → Phase TBD
-- DISP-05 → Phase TBD
-- DISP-06 → Phase TBD
+- DISP-01 -> Phase 2: Slideshow + PWA
+- DISP-02 -> Phase 2: Slideshow + PWA
+- DISP-03 -> Phase 2: Slideshow + PWA
+- DISP-04 -> Phase 2: Slideshow + PWA
+- DISP-05 -> Phase 2: Slideshow + PWA
+- DISP-06 -> Phase 2: Slideshow + PWA
 
 ---
 
@@ -55,9 +55,9 @@
 - [ ] **PWA-03**: App works in iOS Guided Access mode (kiosk mode for always-on display, no navigation away from page)
 
 **Traceability:**
-- PWA-01 → Phase TBD
-- PWA-02 → Phase TBD
-- PWA-03 → Phase TBD
+- PWA-01 -> Phase 2: Slideshow + PWA
+- PWA-02 -> Phase 2: Slideshow + PWA
+- PWA-03 -> Phase 2: Slideshow + PWA
 
 ---
 
@@ -69,23 +69,23 @@
 - [ ] **INFRA-04**: Health check endpoint (`/api/health`) reports token status, cache size, last API call timestamp, uptime
 
 **Traceability:**
-- INFRA-01 → Phase TBD
-- INFRA-02 → Phase TBD
-- INFRA-03 → Phase TBD
-- INFRA-04 → Phase TBD
+- INFRA-01 -> Phase 1: Backend + Deployment
+- INFRA-02 -> Phase 1: Backend + Deployment
+- INFRA-03 -> Phase 2: Slideshow + PWA
+- INFRA-04 -> Phase 1: Backend + Deployment
 
 ---
 
-### Advanced Features (ADV) — Polish Week Target
+### Advanced Features (ADV) -- Polish Week Target
 
 - [ ] **ADV-01**: "On This Day" mode filters photos to only those taken on today's month+day across all years (mimics Google Photos Memories, unique differentiator)
 - [ ] **ADV-02**: Portrait pair mode detects two consecutive portrait photos and displays them side-by-side in landscape orientation (matches Aura's $200+ flagship feature)
 - [ ] **ADV-03**: Settings page (`/settings`) provides web UI to configure slideshow interval, enable/disable filters and modes, no code changes needed
 
 **Traceability:**
-- ADV-01 → Phase TBD
-- ADV-02 → Phase TBD
-- ADV-03 → Phase TBD
+- ADV-01 -> Phase 3: Advanced Features
+- ADV-02 -> Phase 3: Advanced Features
+- ADV-03 -> Phase 3: Advanced Features
 
 ---
 
@@ -118,16 +118,16 @@
 
 Explicitly not building these features:
 
-- **Multi-user auth / multiple accounts** — Massively increases scope (user management, per-user tokens, per-user caches). Wife can share albums to single Google account. Defer multi-device to future milestone.
-- **Photo upload from browser** — Requires file handling, storage management, mixing local + Google Photos sources. Family members can add photos to shared Google Photos album instead.
-- **Native iOS app** — $100 Apple Developer fee, App Store review, no benefit over PWA + Guided Access for single-device home use.
-- **Face recognition / AI curation** — Requires ML infrastructure, GPU resources, massive scope. Google Photos already does this; use Google Photos albums for curated selection.
-- **Real-time photo sync** — Google Photos has no push notification API. High-frequency polling wastes quota. Cache refresh every 6 hours is acceptable for photo frame use case.
-- **Complex transition library (10+ styles)** — Each transition is separate implementation, testing matrix explodes. Crossfade is sufficient; commercial frames ship 3-5 max.
-- **Social features (like/comment)** — Wrong product category. This is ambient display, not social app. Zero interaction is the feature.
-- **Instagram / Facebook integration** — Each integration is separate OAuth flow, separate API, separate failure modes. Google Photos is single source of truth.
-- **Ambient light sensor integration** — iPad doesn't expose ambient light sensor to web APIs (would require native app). Use time-based auto-dim instead.
-- **Music / Spotify integration** — Audio playback in PWA unreliable on iOS (auto-play restrictions). Different product category.
+- **Multi-user auth / multiple accounts** -- Massively increases scope (user management, per-user tokens, per-user caches). Wife can share albums to single Google account. Defer multi-device to future milestone.
+- **Photo upload from browser** -- Requires file handling, storage management, mixing local + Google Photos sources. Family members can add photos to shared Google Photos album instead.
+- **Native iOS app** -- $100 Apple Developer fee, App Store review, no benefit over PWA + Guided Access for single-device home use.
+- **Face recognition / AI curation** -- Requires ML infrastructure, GPU resources, massive scope. Google Photos already does this; use Google Photos albums for curated selection.
+- **Real-time photo sync** -- Google Photos has no push notification API. High-frequency polling wastes quota. Cache refresh every 6 hours is acceptable for photo frame use case.
+- **Complex transition library (10+ styles)** -- Each transition is separate implementation, testing matrix explodes. Crossfade is sufficient; commercial frames ship 3-5 max.
+- **Social features (like/comment)** -- Wrong product category. This is ambient display, not social app. Zero interaction is the feature.
+- **Instagram / Facebook integration** -- Each integration is separate OAuth flow, separate API, separate failure modes. Google Photos is single source of truth.
+- **Ambient light sensor integration** -- iPad doesn't expose ambient light sensor to web APIs (would require native app). Use time-based auto-dim instead.
+- **Music / Spotify integration** -- Audio playback in PWA unreliable on iOS (auto-play restrictions). Different product category.
 
 ---
 
@@ -185,9 +185,9 @@ Explicitly not building these features:
 
 ## Key Constraints (from PROJECT.md)
 
-- **API:** Picker API only (`photospicker.mediaitems.readonly` scope) — Library API deprecated March 31, 2025
+- **API:** Picker API only (`photospicker.mediaitems.readonly` scope) -- Library API deprecated March 31, 2025
 - **Platform:** iPad Pro 1st Gen (iOS 16.x max) OR Chrome on iPad (better PWA support per user note)
-- **Screen Wake:** NoSleep.js is PRIMARY strategy (not fallback) — Wake Lock API broken on iOS 16.x PWAs
+- **Screen Wake:** NoSleep.js is PRIMARY strategy (not fallback) -- Wake Lock API broken on iOS 16.x PWAs
 - **Timeline:** Weekend MVP + Polish Week = 7-10 days total
 - **Budget:** $0 (existing VPS, free Google APIs, no App Store)
 - **Security:** API keys in `.env` (gitignored), private GitHub repo, no hardcoded secrets
@@ -197,11 +197,28 @@ Explicitly not building these features:
 
 ## Traceability
 
-*(This section will be updated by roadmap creation to map each requirement to specific phases)*
-
-**Format:** `REQ-ID → Phase X: Phase Name`
-
-Traceability will be populated after roadmap is generated.
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| AUTH-01 | Phase 1: Backend + Deployment | Pending |
+| AUTH-02 | Phase 1: Backend + Deployment | Pending |
+| AUTH-03 | Phase 1: Backend + Deployment | Pending |
+| AUTH-04 | Phase 1: Backend + Deployment | Pending |
+| DISP-01 | Phase 2: Slideshow + PWA | Pending |
+| DISP-02 | Phase 2: Slideshow + PWA | Pending |
+| DISP-03 | Phase 2: Slideshow + PWA | Pending |
+| DISP-04 | Phase 2: Slideshow + PWA | Pending |
+| DISP-05 | Phase 2: Slideshow + PWA | Pending |
+| DISP-06 | Phase 2: Slideshow + PWA | Pending |
+| PWA-01 | Phase 2: Slideshow + PWA | Pending |
+| PWA-02 | Phase 2: Slideshow + PWA | Pending |
+| PWA-03 | Phase 2: Slideshow + PWA | Pending |
+| INFRA-01 | Phase 1: Backend + Deployment | Pending |
+| INFRA-02 | Phase 1: Backend + Deployment | Pending |
+| INFRA-03 | Phase 2: Slideshow + PWA | Pending |
+| INFRA-04 | Phase 1: Backend + Deployment | Pending |
+| ADV-01 | Phase 3: Advanced Features | Pending |
+| ADV-02 | Phase 3: Advanced Features | Pending |
+| ADV-03 | Phase 3: Advanced Features | Pending |
 
 ---
 
