@@ -62,9 +62,14 @@ app.use(express.json());
 // Serve static files from public directory (for Phase 2 frontend)
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Mount auth routes (will be created in next task)
+// Mount auth routes
 const authRouter = require('./auth');
 app.use('/auth', authRouter);
+
+// Mount picker routes
+const pickerRouter = require('./picker');
+app.use('/api/picker', pickerRouter);
+logger.info('Picker routes mounted');
 
 // Basic root route
 app.get('/', (req, res) => {
