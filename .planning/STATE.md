@@ -10,28 +10,30 @@ See: .planning/PROJECT.md (updated 2026-02-08)
 ## Current Position
 
 Phase: 1 of 3 (Backend + Deployment)
-Plan: 0 of TBD in current phase
-Status: Ready to plan
-Last activity: 2026-02-08 -- Roadmap created
+Plan: 1 of 5 in current phase
+Status: In progress
+Last activity: 2026-02-09 - Completed 01-01-PLAN.md
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [██░░░░░░░░] 20%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 0
-- Average duration: -
-- Total execution time: 0 hours
+- Total plans completed: 1
+- Average duration: 6 minutes
+- Total execution time: 0.1 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| - | - | - | - |
+| 1. Backend + Deployment | 1/5 | 6 min | 6 min |
+| 2. Slideshow + PWA | 0/TBD | - | - |
+| 3. Advanced Features | 0/TBD | - | - |
 
 **Recent Trend:**
-- Last 5 plans: -
-- Trend: -
+- Last 5 plans: 01-01 (6 min)
+- Trend: Starting strong
 
 *Updated after each plan completion*
 
@@ -43,6 +45,10 @@ Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
 
 - Roadmap: Compressed to 3 phases (quick depth). Phase 1 combines all backend + infra. Phase 2 combines all frontend + PWA. Phase 3 is polish-week advanced features.
+- 01-01: Use 1Password CLI secret references instead of plaintext .env files (user requirement for security on shared VPS)
+- 01-01: Forever sessions with 1-year expiry (dedicated iPad use case, no manual logout needed)
+- 01-01: Dynamic OAuth redirectUri to support both local dev and production HTTPS
+- 01-01: Token merge logic preserves refresh_token (Google only sends it once)
 
 ### Pending Todos
 
@@ -56,6 +62,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-08
-Stopped at: Roadmap created, ready to plan Phase 1
+Last session: 2026-02-09
+Stopped at: Completed 01-01-PLAN.md (OAuth authentication)
 Resume file: None
