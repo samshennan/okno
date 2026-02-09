@@ -50,7 +50,7 @@ app.use(session({
     ttl: 86400 * 365  // 1 year
   }),
   cookie: {
-    secure: false,  // Will be true in production with HTTPS
+    secure: process.env.NODE_ENV === 'production',  // true in production (HTTPS)
     httpOnly: true,
     maxAge: 365 * 24 * 60 * 60 * 1000  // 1 year
   }
