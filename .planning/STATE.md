@@ -10,30 +10,30 @@ See: .planning/PROJECT.md (updated 2026-02-08)
 ## Current Position
 
 Phase: 1 of 3 (Backend + Deployment)
-Plan: 1 of 5 in current phase
+Plan: 2 of 5 in current phase
 Status: In progress
-Last activity: 2026-02-09 - Completed 01-01-PLAN.md
+Last activity: 2026-02-09 - Completed 01-02-PLAN.md
 
-Progress: [██░░░░░░░░] 20%
+Progress: [████░░░░░░] 40%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 1
-- Average duration: 6 minutes
-- Total execution time: 0.1 hours
+- Total plans completed: 2
+- Average duration: 5 minutes
+- Total execution time: 0.17 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 1. Backend + Deployment | 1/5 | 6 min | 6 min |
+| 1. Backend + Deployment | 2/5 | 10 min | 5 min |
 | 2. Slideshow + PWA | 0/TBD | - | - |
 | 3. Advanced Features | 0/TBD | - | - |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (6 min)
-- Trend: Starting strong
+- Last 5 plans: 01-01 (6 min), 01-02 (4 min)
+- Trend: Accelerating (4 min/plan current)
 
 *Updated after each plan completion*
 
@@ -49,6 +49,9 @@ Recent decisions affecting current work:
 - 01-01: Forever sessions with 1-year expiry (dedicated iPad use case, no manual logout needed)
 - 01-01: Dynamic OAuth redirectUri to support both local dev and production HTTPS
 - 01-01: Token merge logic preserves refresh_token (Google only sends it once)
+- 01-02: Store sessionId in cache for baseUrl refresh (mediaItems.list requires it)
+- 01-02: 50-minute refresh interval for baseUrls (10-minute buffer before 60-min expiry)
+- 01-02: Gitignore cache.json (user-specific media item selection, not secrets)
 
 ### Pending Todos
 
@@ -63,5 +66,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-09
-Stopped at: Completed 01-01-PLAN.md (OAuth authentication)
+Stopped at: Completed 01-02-PLAN.md (Picker integration and photo cache)
 Resume file: None
