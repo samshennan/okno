@@ -71,6 +71,16 @@ const pickerRouter = require('./picker');
 app.use('/api/picker', pickerRouter);
 logger.info('Picker routes mounted');
 
+// Mount photo routes
+const photoRouter = require('./photo-proxy');
+app.use('/api/photo', photoRouter);
+
+// Mount health routes
+const healthRouter = require('./health');
+app.use('/api/health', healthRouter);
+
+logger.info('Photo and health routes mounted');
+
 // Basic root route
 app.get('/', (req, res) => {
   res.send('<h1>Okno</h1><p>Google Photos digital photo frame backend</p><p><a href="/auth/login">Login with Google</a></p>');
