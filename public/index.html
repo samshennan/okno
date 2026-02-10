@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Okno - Google Photos Frame</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #000;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 600px;
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      font-weight: 300;
+      letter-spacing: 0.1em;
+    }
+
+    .status {
+      margin: 2rem 0;
+      padding: 1rem;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+      font-size: 1.1rem;
+    }
+
+    .status.authenticated {
+      background: rgba(46, 204, 113, 0.1);
+      border: 1px solid rgba(46, 204, 113, 0.3);
+    }
+
+    .status.error {
+      background: rgba(231, 76, 60, 0.1);
+      border: 1px solid rgba(231, 76, 60, 0.3);
+    }
+
+    button {
+      background: #fff;
+      color: #000;
+      border: none;
+      padding: 1rem 2rem;
+      font-size: 1rem;
+      border-radius: 4px;
+      cursor: pointer;
+      margin: 0.5rem;
+      transition: transform 0.1s;
+    }
+
+    button:hover {
+      transform: scale(1.05);
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .picker-status {
+      margin-top: 2rem;
+      padding: 1rem;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+      display: none;
+    }
+
+    .picker-status.visible {
+      display: block;
+    }
+
+    .loading {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255, 255, 255, 0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .links {
+      margin-top: 2rem;
+      padding-top: 2rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .links a {
+      color: rgba(255, 255, 255, 0.6);
+      text-decoration: none;
+      margin: 0 1rem;
+      font-size: 0.9rem;
+    }
+
+    .links a:hover {
+      color: #fff;
+    }
+
+    .photo-count {
+      font-size: 2rem;
+      font-weight: bold;
+      color: #2ecc71;
+      margin: 1rem 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>OKNO</h1>
+
+    <div id="status" class="status">
+      <div class="loading"></div> Checking authentication...
+    </div>
+
+    <div id="actions"></div>
+
+    <div id="pickerStatus" class="picker-status"></div>
+
+    <div class="links">
+      <a href="/api/health">Health Check</a>
+      <a href="/api/photo/random" target="_blank">Random Photo</a>
+    </div>
+  </div>
+
+  <script>
+    const statusEl = document.getElementById('status');
+    const actionsEl = document.getElementById('actions');
+    const pickerStatusEl = document.getElementById('pickerStatus');
+
+    let pickerWindow = null;
+    let pollInterval = null;
+
+    // Check authentication status on load
+    async function checkAuth() {
+      try {
+        const res = await fetch('/auth/status');
+        const data = await res.json();
+
+        if (data.authenticated) {
+          statusEl.className = 'status authenticated';
+          statusEl.textContent = '✓ Authenticated with Google Photos';
+
+          // Check if photos are cached
+          const healthRes = await fetch('/api/health');
+          const health = await healthRes.json();
+
+          if (health.cache && health.cache.size > 0) {
+            actionsEl.innerHTML = `
+              <div class="photo-count">${health.cache.size} photos cached</div>
+              <button onclick="openPicker()">Select Different Photos</button>
+              <button onclick="window.location.href='/slideshow.html'">Start Slideshow</button>
+            `;
+          } else {
+            actionsEl.innerHTML = `
+              <button onclick="openPicker()">Select Photos</button>
+            `;
+          }
+        } else {
+          statusEl.className = 'status';
+          statusEl.textContent = '✗ Not authenticated';
+          actionsEl.innerHTML = `
+            <button onclick="window.location.href='/auth/login'">Login with Google</button>
+          `;
+        }
+      } catch (error) {
+        statusEl.className = 'status error';
+        statusEl.textContent = '✗ Error checking authentication';
+        console.error('Auth check failed:', error);
+      }
+    }
+
+    async function openPicker() {
+      try {
+        // Show loading state
+        pickerStatusEl.className = 'picker-status visible';
+        pickerStatusEl.innerHTML = '<div class="loading"></div> Creating picker session...';
+
+        // Create picker session
+        const res = await fetch('/api/picker/start', { method: 'POST' });
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data.error || 'Failed to create picker session');
+        }
+
+        pickerStatusEl.innerHTML = `
+          <p>Opening Google Photos Picker...</p>
+          <p style="font-size: 0.9rem; opacity: 0.7;">Select your photos, then close the picker window</p>
+        `;
+
+        // Open picker in popup window
+        const width = 800;
+        const height = 800;
+        const left = (screen.width - width) / 2;
+        const top = (screen.height - height) / 2;
+
+        pickerWindow = window.open(
+          data.pickerUrl,
+          'GooglePhotosPicker',
+          `width=${width},height=${height},left=${left},top=${top}`
+        );
+
+        // Start polling for completion
+        startPolling(data.sessionId, parseInt(data.pollInterval) || 5000);
+
+      } catch (error) {
+        pickerStatusEl.className = 'picker-status visible';
+        pickerStatusEl.innerHTML = `
+          <div style="color: #e74c3c;">✗ Error: ${error.message}</div>
+        `;
+        console.error('Picker error:', error);
+      }
+    }
+
+    function startPolling(sessionId, interval) {
+      pollInterval = setInterval(async () => {
+        try {
+          // Check if picker window was closed
+          if (pickerWindow && pickerWindow.closed) {
+            pickerStatusEl.innerHTML = '<div class="loading"></div> Fetching selected photos...';
+
+            // Window closed, check status
+            const statusRes = await fetch(`/api/picker/status/${sessionId}`);
+            const status = await statusRes.json();
+
+            if (status.done) {
+              // Photos were selected, fetch them
+              clearInterval(pollInterval);
+
+              const completeRes = await fetch(`/api/picker/complete/${sessionId}`, {
+                method: 'POST'
+              });
+              const result = await completeRes.json();
+
+              if (!completeRes.ok) {
+                throw new Error(result.error || 'Failed to fetch photos');
+              }
+
+              pickerStatusEl.innerHTML = `
+                <div style="color: #2ecc71;">✓ Success! ${result.count} photos cached</div>
+              `;
+
+              // Refresh UI after 2 seconds
+              setTimeout(() => {
+                pickerStatusEl.className = 'picker-status';
+                checkAuth();
+              }, 2000);
+            } else {
+              // Window closed without selecting photos
+              clearInterval(pollInterval);
+              pickerStatusEl.innerHTML = `
+                <div style="opacity: 0.7;">Picker closed without selecting photos</div>
+              `;
+              setTimeout(() => {
+                pickerStatusEl.className = 'picker-status';
+              }, 3000);
+            }
+          }
+        } catch (error) {
+          clearInterval(pollInterval);
+          pickerStatusEl.innerHTML = `
+            <div style="color: #e74c3c;">✗ Error: ${error.message}</div>
+          `;
+          console.error('Polling error:', error);
+        }
+      }, interval);
+    }
+
+    // Initialize
+    checkAuth();
+  </script>
+</body>
+</html>
