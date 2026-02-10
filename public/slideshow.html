@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Okno Slideshow</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #000;
+      color: #fff;
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    #slideshow {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .photo {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      opacity: 0;
+      transition: opacity 1s ease-in-out;
+    }
+
+    .photo.active {
+      opacity: 1;
+      z-index: 1;
+    }
+
+    .photo.preload {
+      z-index: 0;
+    }
+
+    #loading {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      z-index: 10;
+    }
+
+    #loading.hidden {
+      display: none;
+    }
+
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 4px solid rgba(255, 255, 255, 0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 1rem;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    #error {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      max-width: 500px;
+      padding: 2rem;
+      background: rgba(231, 76, 60, 0.1);
+      border: 1px solid rgba(231, 76, 60, 0.3);
+      border-radius: 8px;
+      display: none;
+      z-index: 10;
+    }
+
+    #error.visible {
+      display: block;
+    }
+
+    #controls {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      display: flex;
+      gap: 1rem;
+      z-index: 100;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    body:hover #controls {
+      opacity: 1;
+    }
+
+    button {
+      background: rgba(255, 255, 255, 0.9);
+      color: #000;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 1rem;
+      transition: transform 0.1s;
+    }
+
+    button:hover {
+      transform: scale(1.05);
+    }
+
+    button:active {
+      transform: scale(0.95);
+    }
+
+    #info {
+      position: fixed;
+      bottom: 2rem;
+      left: 2rem;
+      font-size: 0.9rem;
+      opacity: 0;
+      transition: opacity 0.3s;
+      z-index: 100;
+      background: rgba(0, 0, 0, 0.5);
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+    }
+
+    body:hover #info {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <div id="loading">
+    <div class="spinner"></div>
+    <p>Loading photos...</p>
+  </div>
+
+  <div id="error">
+    <h2>Error</h2>
+    <p id="errorMessage"></p>
+    <button onclick="window.location.href='/'">Back to Home</button>
+  </div>
+
+  <div id="slideshow"></div>
+
+  <div id="info">
+    Photo <span id="currentIndex">1</span> of <span id="totalPhotos">?</span>
+  </div>
+
+  <div id="controls">
+    <button onclick="previousPhoto()">← Previous</button>
+    <button onclick="togglePlayPause()" id="playPauseBtn">Pause</button>
+    <button onclick="nextPhoto()">Next →</button>
+    <button onclick="window.location.href='/'">Exit</button>
+  </div>
+
+  <script>
+    const slideshowEl = document.getElementById('slideshow');
+    const loadingEl = document.getElementById('loading');
+    const errorEl = document.getElementById('error');
+    const errorMessageEl = document.getElementById('errorMessage');
+    const currentIndexEl = document.getElementById('currentIndex');
+    const totalPhotosEl = document.getElementById('totalPhotos');
+    const playPauseBtn = document.getElementById('playPauseBtn');
+
+    let currentIndex = 0;
+    let photoCount = 0;
+    let isPlaying = true;
+    let intervalHandle = null;
+    const INTERVAL_MS = 30000; // 30 seconds
+
+    // Get interval from URL params (e.g., ?interval=10 for 10 seconds)
+    const urlParams = new URLSearchParams(window.location.search);
+    const customInterval = parseInt(urlParams.get('interval'));
+    const interval = (customInterval && customInterval > 0) ? customInterval * 1000 : INTERVAL_MS;
+
+    async function init() {
+      try {
+        // Get photo count from health endpoint
+        const healthRes = await fetch('/api/health');
+        const health = await healthRes.json();
+
+        if (!health.cache || health.cache.totalItems === 0) {
+          throw new Error('No photos in cache. Please select photos first.');
+        }
+
+        photoCount = health.cache.totalItems;
+        totalPhotosEl.textContent = photoCount;
+
+        // Hide loading
+        loadingEl.classList.add('hidden');
+
+        // Load first photo
+        await loadPhoto(0);
+
+        // Start slideshow
+        startSlideshow();
+
+      } catch (error) {
+        console.error('Initialization failed:', error);
+        showError(error.message);
+      }
+    }
+
+    async function loadPhoto(index) {
+      try {
+        // Create new image element
+        const img = document.createElement('img');
+        img.className = 'photo preload';
+        img.src = `/api/photo/random?t=${Date.now()}`; // Cache bust
+
+        // Wait for image to load
+        await new Promise((resolve, reject) => {
+          img.onload = resolve;
+          img.onerror = reject;
+        });
+
+        // Remove old photos
+        const oldPhotos = slideshowEl.querySelectorAll('.photo');
+        oldPhotos.forEach(photo => {
+          if (!photo.classList.contains('active')) {
+            photo.remove();
+          }
+        });
+
+        // Add new photo
+        slideshowEl.appendChild(img);
+
+        // Trigger transition
+        setTimeout(() => {
+          // Remove active from all
+          const allPhotos = slideshowEl.querySelectorAll('.photo');
+          allPhotos.forEach(photo => photo.classList.remove('active'));
+
+          // Make new photo active
+          img.classList.add('active');
+          img.classList.remove('preload');
+
+          // Update index
+          currentIndex = (currentIndex + 1) % photoCount;
+          currentIndexEl.textContent = currentIndex + 1;
+
+          // Remove old photos after transition
+          setTimeout(() => {
+            const oldPhotos = slideshowEl.querySelectorAll('.photo:not(.active)');
+            oldPhotos.forEach(photo => photo.remove());
+          }, 1000);
+        }, 50);
+
+      } catch (error) {
+        console.error('Failed to load photo:', error);
+        // Continue to next photo even if one fails
+      }
+    }
+
+    function startSlideshow() {
+      if (intervalHandle) {
+        clearInterval(intervalHandle);
+      }
+      intervalHandle = setInterval(() => {
+        if (isPlaying) {
+          loadPhoto(currentIndex);
+        }
+      }, interval);
+      isPlaying = true;
+      playPauseBtn.textContent = 'Pause';
+    }
+
+    function stopSlideshow() {
+      if (intervalHandle) {
+        clearInterval(intervalHandle);
+        intervalHandle = null;
+      }
+      isPlaying = false;
+      playPauseBtn.textContent = 'Play';
+    }
+
+    function togglePlayPause() {
+      if (isPlaying) {
+        stopSlideshow();
+      } else {
+        startSlideshow();
+      }
+    }
+
+    function nextPhoto() {
+      loadPhoto(currentIndex);
+    }
+
+    function previousPhoto() {
+      // Just load a new random photo (we don't track history)
+      loadPhoto(currentIndex);
+    }
+
+    function showError(message) {
+      loadingEl.classList.add('hidden');
+      errorMessageEl.textContent = message;
+      errorEl.classList.add('visible');
+    }
+
+    // Initialize on load
+    init();
+
+    // Keyboard controls
+    document.addEventListener('keydown', (e) => {
+      if (e.key === ' ' || e.key === 'Spacebar') {
+        e.preventDefault();
+        togglePlayPause();
+      } else if (e.key === 'ArrowRight') {
+        nextPhoto();
+      } else if (e.key === 'ArrowLeft') {
+        previousPhoto();
+      } else if (e.key === 'Escape') {
+        window.location.href = '/';
+      }
+    });
+  </script>
+</body>
+</html>
