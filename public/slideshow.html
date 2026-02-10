@@ -601,15 +601,14 @@
 
     // Click/tap anywhere to toggle controls
     document.body.addEventListener('click', (e) => {
-      // Don't toggle if clicking a button
-      if (e.target.tagName === 'BUTTON') {
-        // Keep controls visible when using them
-        if (controlsVisible) {
-          clearTimeout(hideControlsTimeout);
-          hideControlsTimeout = setTimeout(hideControls, 4000);
-        }
+      // If clicking a button when controls are visible, just reset timer
+      if (e.target.tagName === 'BUTTON' && controlsVisible) {
+        clearTimeout(hideControlsTimeout);
+        hideControlsTimeout = setTimeout(hideControls, 4000);
         return;
       }
+
+      // Otherwise toggle controls (including if button clicked while hidden)
       toggleControls();
     });
 
@@ -625,6 +624,11 @@
 
     // Initialize on load
     init();
+
+    // Show controls briefly on load so user knows they exist
+    setTimeout(() => {
+      showControls();
+    }, 500);
 
     // Keyboard controls
     document.addEventListener('keydown', (e) => {
