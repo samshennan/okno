@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Okno - Google Photos Frame</title>
+  <title>Okno - A Window in Time</title>
   <style>
     * {
       margin: 0;
@@ -23,15 +23,50 @@
     }
 
     .container {
-      max-width: 600px;
+      max-width: 700px;
       text-align: center;
     }
 
     h1 {
-      font-size: 3rem;
-      margin-bottom: 1rem;
+      font-size: 4rem;
+      margin-bottom: 0.5rem;
+      font-weight: 200;
+      letter-spacing: 0.2em;
+    }
+
+    .tagline {
+      font-size: 1.3rem;
       font-weight: 300;
-      letter-spacing: 0.1em;
+      font-style: italic;
+      color: rgba(255, 255, 255, 0.8);
+      margin-bottom: 2rem;
+      letter-spacing: 0.05em;
+    }
+
+    .hero-copy {
+      font-size: 1.1rem;
+      line-height: 1.7;
+      color: rgba(255, 255, 255, 0.9);
+      margin-bottom: 2rem;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .trust-signals {
+      display: flex;
+      justify-content: center;
+      gap: 1.5rem;
+      margin: 2rem 0;
+      font-size: 0.85rem;
+      color: rgba(255, 255, 255, 0.6);
+      flex-wrap: wrap;
+    }
+
+    .trust-signals span {
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
     }
 
     .status {
@@ -128,6 +163,21 @@
 <body>
   <div class="container">
     <h1>OKNO</h1>
+    <p class="tagline">A Window in Time</p>
+
+    <div id="heroContent">
+      <p class="hero-copy">
+        Every photo is a portal to a moment that shaped you.
+        Okno keeps those windows open—always rotating, always reminding you
+        of the life you've lived.
+      </p>
+
+      <div class="trust-signals">
+        <span>🔒 Secure OAuth</span>
+        <span>✅ Open Source</span>
+        <span>🚫 No Data Collection</span>
+      </div>
+    </div>
 
     <div id="status" class="status">
       <div class="loading"></div> Checking authentication...
@@ -138,8 +188,8 @@
     <div id="pickerStatus" class="picker-status"></div>
 
     <div class="links">
+      <a href="https://github.com/samshennan/okno" target="_blank">View on GitHub</a>
       <a href="/api/health">Health Check</a>
-      <a href="/api/photo/random" target="_blank">Random Photo</a>
     </div>
   </div>
 
@@ -158,6 +208,9 @@
         const data = await res.json();
 
         if (data.authenticated) {
+          // Hide hero copy when authenticated
+          document.getElementById('heroContent').style.display = 'none';
+
           statusEl.className = 'status authenticated';
           statusEl.textContent = '✓ Authenticated with Google Photos';
 
@@ -182,9 +235,9 @@
           }
         } else {
           statusEl.className = 'status';
-          statusEl.textContent = '✗ Not authenticated';
+          statusEl.textContent = 'Ready to open your window?';
           actionsEl.innerHTML = `
-            <button onclick="window.location.href='/auth/login'">Login with Google</button>
+            <button onclick="window.location.href='/auth/login'">Open Your Window</button>
           `;
         }
       } catch (error) {
