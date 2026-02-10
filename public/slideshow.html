@@ -188,11 +188,11 @@
   <div id="slideshow"></div>
 
   <div id="intervalControls">
-    <button class="small" onclick="setInterval(10)" data-interval="10">10s</button>
-    <button class="small" onclick="setInterval(30)" data-interval="30">30s</button>
-    <button class="small" onclick="setInterval(60)" data-interval="60">1m</button>
-    <button class="small" onclick="setInterval(120)" data-interval="120">2m</button>
-    <button class="small" onclick="setInterval(300)" data-interval="300">5m</button>
+    <button class="small" onclick="changeInterval(10)" data-interval="10">10s</button>
+    <button class="small" onclick="changeInterval(30)" data-interval="30">30s</button>
+    <button class="small" onclick="changeInterval(60)" data-interval="60">1m</button>
+    <button class="small" onclick="changeInterval(120)" data-interval="120">2m</button>
+    <button class="small" onclick="changeInterval(300)" data-interval="300">5m</button>
   </div>
 
   <div id="info">
@@ -357,8 +357,8 @@
       errorEl.classList.add('visible');
     }
 
-    // Set slideshow interval
-    function setInterval(seconds) {
+    // Change slideshow interval
+    function changeInterval(seconds) {
       currentIntervalSeconds = seconds;
       updateIntervalButtons();
       if (isPlaying) {
