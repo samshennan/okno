@@ -240,6 +240,9 @@
           if (pickerWindow && pickerWindow.closed) {
             pickerStatusEl.innerHTML = '<div class="loading"></div> Fetching selected photos...';
 
+            // Wait 2 seconds for Google to finalize the selection
+            await new Promise(resolve => setTimeout(resolve, 2000));
+
             // Window closed, check status
             const statusRes = await fetch(`/api/picker/status/${sessionId}`);
             const status = await statusRes.json();
