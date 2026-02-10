@@ -166,7 +166,60 @@
 
 ---
 
-## Phase 6: Advanced Features (Nice-to-Haves)
+## Phase 6: Monetization Research & Planning
+
+**Goal:** Evaluate commercial viability and prepare for potential paid managed hosting option
+
+### Market Research
+- [x] Competitive pricing analysis (see COMPETITIVE-ANALYSIS.md)
+- [ ] User surveys (GitHub community)
+- [ ] Feature demand analysis
+- [ ] Willingness-to-pay research
+
+### Business Model Options
+- [ ] Freemium SaaS (free self-hosted + paid managed hosting)
+- [ ] One-time purchase (App Store)
+- [ ] Open-source + sponsorships (GitHub Sponsors)
+- [ ] Hybrid model (recommended: open-source + managed hosting)
+
+### Revenue Projections
+- [ ] Cost modeling (infrastructure per user)
+- [ ] Pricing strategy ($4.99/month personal, $9.99/month family)
+- [ ] Break-even analysis
+- [ ] 3-year revenue projections
+
+### Go/No-Go Decision Criteria
+**Market Validation Gates:**
+- [ ] 1,000+ GitHub stars (community interest)
+- [ ] 50+ email signups for managed hosting waitlist
+- [ ] Positive feedback from r/selfhosted and Product Hunt
+
+**If Yes → Monetize:**
+- [ ] Legal entity formation (LLC or sole proprietor)
+- [ ] Payment infrastructure (Stripe integration)
+- [ ] Billing dashboard
+- [ ] Terms of Service + Privacy Policy
+- [ ] Support system (ticketing, email)
+- [ ] Managed hosting infrastructure (Docker + Kubernetes)
+- [ ] Marketing site (okno.app or oknoframe.com)
+
+**If No → Portfolio Only:**
+- [ ] Keep as free open-source project
+- [ ] Focus on community contributions
+- [ ] Use as portfolio piece for job applications
+- [ ] No support obligations
+
+### Key Insights from Competitive Analysis
+- **Market gap:** No open-source self-hostable Google Photos frame exists
+- **Competitor pricing:** $2.99–$29.99/year (we'd be $49.99/year managed, $0 self-hosted)
+- **Unique value:** Only option with privacy + no vendor lock-in + full control
+- **Target market:** r/selfhosted community (5M+ users) + privacy-conscious families
+
+**See:** [COMPETITIVE-ANALYSIS.md](COMPETITIVE-ANALYSIS.md) for full details
+
+---
+
+## Phase 7: Advanced Features (Nice-to-Haves)
 
 ### Smart Album Support:
 - [ ] Detect Google Photos smart albums (People, Places)
@@ -209,8 +262,13 @@
    - Required for public use
    - Portfolio piece goal
 
-5. **Phase 6** (Advanced Features) - Future polish
-   - After public release
+5. **Phase 6** (Monetization) - After community validation
+   - Only if 1,000+ GitHub stars
+   - Business model research complete
+   - Go/No-Go decision based on market validation
+
+6. **Phase 7** (Advanced Features) - Future polish
+   - After public release and/or monetization decision
 
 ---
 
