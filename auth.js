@@ -192,6 +192,18 @@ router.get('/status', (req, res) => {
   });
 });
 
+// POST /auth/logout - Sign out and clear session
+router.post('/logout', (req, res) => {
+  req.session.destroy((err) => {
+    if (err) {
+      logger.error('Logout failed:', { error: err.message });
+      return res.status(500).json({ error: 'Failed to sign out' });
+    }
+    logger.info('User signed out');
+    res.json({ success: true });
+  });
+});
+
 // Export router and oAuth2Client (needed by picker.js and photo-proxy.js)
 module.exports = router;
 module.exports.oAuth2Client = oAuth2Client;

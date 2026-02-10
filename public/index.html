@@ -170,10 +170,14 @@
               <div class="photo-count">${health.cache.totalItems} photos cached</div>
               <button onclick="openPicker()">Select Different Photos</button>
               <button onclick="window.location.href='/slideshow.html'">Start Slideshow</button>
+              <br><br>
+              <button onclick="signOut()" style="background: rgba(231, 76, 60, 0.8); color: #fff;">Sign Out</button>
             `;
           } else {
             actionsEl.innerHTML = `
               <button onclick="openPicker()">Select Photos</button>
+              <br><br>
+              <button onclick="signOut()" style="background: rgba(231, 76, 60, 0.8); color: #fff;">Sign Out</button>
             `;
           }
         } else {
@@ -354,6 +358,25 @@
           <div style="color: #e74c3c;">✗ Error: ${error.message}</div>
         `;
         console.error('Check complete error:', error);
+      }
+    }
+
+    // Sign out
+    async function signOut() {
+      if (!confirm('Are you sure you want to sign out? This will clear your session and require re-authentication.')) {
+        return;
+      }
+
+      try {
+        const res = await fetch('/auth/logout', { method: 'POST' });
+        if (res.ok) {
+          window.location.reload();
+        } else {
+          alert('Sign out failed. Please try again.');
+        }
+      } catch (error) {
+        console.error('Sign out error:', error);
+        alert('Sign out failed: ' + error.message);
       }
     }
 
