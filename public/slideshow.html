@@ -236,6 +236,13 @@
       font-family: monospace;
       font-size: 0.9em;
     }
+
+    /* Hide keyboard help on mobile/iPad */
+    @media (max-width: 768px), (pointer: coarse) {
+      #keyboardHelp {
+        display: none !important;
+      }
+    }
   </style>
 </head>
 <body>
