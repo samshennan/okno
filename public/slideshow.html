@@ -119,10 +119,12 @@
       z-index: 100;
       opacity: 0;
       transition: opacity 0.3s;
+      pointer-events: none;
     }
 
-    body:hover #controls {
+    #controls.visible {
       opacity: 1;
+      pointer-events: auto;
     }
 
     button {
@@ -166,8 +168,9 @@
       transition: opacity 0.3s;
     }
 
-    body:hover #intervalControls {
+    #intervalControls.visible {
       opacity: 1;
+      pointer-events: auto;
     }
 
     #displayModeControls {
@@ -180,10 +183,12 @@
       z-index: 100;
       opacity: 0;
       transition: opacity 0.3s;
+      pointer-events: none;
     }
 
-    body:hover #displayModeControls {
+    #displayModeControls.visible {
       opacity: 1;
+      pointer-events: auto;
     }
 
     #info {
@@ -197,9 +202,10 @@
       background: rgba(0, 0, 0, 0.5);
       padding: 0.5rem 1rem;
       border-radius: 4px;
+      pointer-events: none;
     }
 
-    body:hover #info {
+    #info.visible {
       opacity: 1;
     }
   </style>
@@ -227,9 +233,9 @@
   </div>
 
   <div id="displayModeControls">
-    <button class="small" onclick="setDisplayMode('cover')" data-mode="cover" title="Fill screen, crop edges">Fill</button>
-    <button class="small" onclick="setDisplayMode('contain')" data-mode="contain" title="Show full photo, black bars">Fit</button>
-    <button class="small" onclick="setDisplayMode('dual')" data-mode="dual" title="2 portraits side-by-side">Dual</button>
+    <button class="small" onclick="setDisplayMode('cover')" data-mode="cover" title="Zoom to fill screen (may crop edges)">Fill Screen</button>
+    <button class="small" onclick="setDisplayMode('contain')" data-mode="contain" title="Show full photo (black bars)">Show All</button>
+    <button class="small" onclick="setDisplayMode('dual')" data-mode="dual" title="2 portrait photos side-by-side">2 Portraits</button>
   </div>
 
   <div id="info">
@@ -517,6 +523,62 @@
         document.exitFullscreen();
       }
     }
+
+    // Control visibility
+    let controlsVisible = false;
+    let hideControlsTimeout = null;
+
+    function showControls() {
+      controlsVisible = true;
+      document.getElementById('controls').classList.add('visible');
+      document.getElementById('intervalControls').classList.add('visible');
+      document.getElementById('displayModeControls').classList.add('visible');
+      document.getElementById('info').classList.add('visible');
+
+      // Auto-hide after 4 seconds
+      clearTimeout(hideControlsTimeout);
+      hideControlsTimeout = setTimeout(hideControls, 4000);
+    }
+
+    function hideControls() {
+      controlsVisible = false;
+      document.getElementById('controls').classList.remove('visible');
+      document.getElementById('intervalControls').classList.remove('visible');
+      document.getElementById('displayModeControls').classList.remove('visible');
+      document.getElementById('info').classList.remove('visible');
+    }
+
+    function toggleControls() {
+      if (controlsVisible) {
+        hideControls();
+      } else {
+        showControls();
+      }
+    }
+
+    // Click/tap anywhere to toggle controls
+    document.body.addEventListener('click', (e) => {
+      // Don't toggle if clicking a button
+      if (e.target.tagName === 'BUTTON') {
+        // Keep controls visible when using them
+        if (controlsVisible) {
+          clearTimeout(hideControlsTimeout);
+          hideControlsTimeout = setTimeout(hideControls, 4000);
+        }
+        return;
+      }
+      toggleControls();
+    });
+
+    // Show controls on any mouse movement (desktop)
+    let mouseMoveTimeout;
+    document.addEventListener('mousemove', () => {
+      showControls();
+      clearTimeout(mouseMoveTimeout);
+      mouseMoveTimeout = setTimeout(() => {
+        // Don't auto-hide on desktop, just when they stop moving
+      }, 100);
+    });
 
     // Initialize on load
     init();
