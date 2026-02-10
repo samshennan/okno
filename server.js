@@ -37,8 +37,15 @@ const app = express();
 // Trust proxy - enables Express to see X-Forwarded-Proto from nginx
 app.set('trust proxy', true);
 
-// Security headers
-app.use(helmet());
+// Security headers with CSP configured to allow inline scripts
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+      "script-src": ["'self'", "'unsafe-inline'"],  // Allow inline scripts for index.html
+    },
+  },
+}));
 
 // Request logging
 app.use(morgan('combined', {
