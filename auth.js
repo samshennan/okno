@@ -137,6 +137,34 @@ router.get('/callback', async (req, res) => {
     const { tokens } = await oAuth2Client.getToken(req.query.code);
     oAuth2Client.setCredentials(tokens);
 
+    // Verify user email is in allowlist
+    const allowedEmails = process.env.ALLOWED_EMAILS || '';
+    if (allowedEmails) {
+      const allowedList = allowedEmails.split(',').map(e => e.trim().toLowerCase());
+
+      // Get user info to check email
+      const oauth2Response = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+        headers: {
+          'Authorization': `Bearer ${tokens.access_token}`
+        }
+      });
+
+      if (!oauth2Response.ok) {
+        logger.error('Failed to get user info');
+        return res.status(500).send('Failed to verify user identity');
+      }
+
+      const userInfo = await oauth2Response.json();
+      const userEmail = userInfo.email?.toLowerCase();
+
+      if (!allowedList.includes(userEmail)) {
+        logger.warn('Unauthorized email attempted login', { email: userEmail });
+        return res.status(403).send(`Access denied. This photo frame is for family use only. Your email (${userEmail}) is not authorized.`);
+      }
+
+      logger.info('Email verified', { email: userEmail });
+    }
+
     // Save tokens to disk
     saveTokens(tokens);
 
