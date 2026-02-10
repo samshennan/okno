@@ -218,24 +218,197 @@ A: Yes, anytime. Go to [Google Account Permissions](https://myaccount.google.com
 
 ---
 
+## Option 6: A Window in Time (Poetic & Memorable) ⭐ NEW FAVORITE
+
+### Hero
+**OKNO**
+*A Window in Time*
+
+Every photo is a portal. A glimpse into moments that shaped you, people who matter, places you've been. Okno keeps those windows open—always rotating, always reminding you of the life you've lived.
+
+Transform your iPad into a living frame. Your memories, flowing like time itself.
+
+**No subscriptions. No hardware. Just memories.**
+
+### Tagline Variations
+- "OKNO: A Window in Time" (main)
+- "Your memories, flowing through time"
+- "Every photo, a window to a moment"
+- "Time flows. Memories stay."
+
+### Why Login?
+
+**To unlock your window.**
+
+When you login with Google Photos, you're giving us a key to your photo collection—but only the rooms you choose to show. Think of it as curating an exhibition of your life.
+
+**What we need:**
+- Permission to see photos you select (up to 2,000)
+- A secure connection to Google (OAuth—same tech banks use)
+
+**What we never touch:**
+- Your password (Google handles that)
+- Photos you don't select
+- Any other Google data (Gmail, Drive, etc.)
+
+**Your memories stream directly from Google. We're just the window.**
+
+### The Story (Optional Hero Expansion)
+
+Remember when photos lived in frames on your mantle? When you'd walk past them every day and smile at a frozen moment—your daughter's first birthday, that trip to Italy, grandma's garden?
+
+Then we moved them to the cloud. Safe, but invisible. Thousands of moments, trapped in an app you open once a month.
+
+**Okno brings them back to life.**
+
+Not printed, not static—flowing, changing, surprising you with memories you'd forgotten. A window that opens to different moments throughout the day.
+
+*Polish for "window." A portal to your past. A reminder of what matters.*
+
+### Trust & Privacy Section
+
+**Your memories are sacred. Here's our promise:**
+
+🔒 **Secure Login**
+We use Google's OAuth (the same system your bank uses). We never see your password.
+
+✅ **You Control Access**
+Select which photos we can display. Revoke permission anytime in your [Google settings](https://myaccount.google.com/permissions).
+
+🚫 **Zero Data Collection**
+We don't store your photos. We don't track you. We don't sell anything. We just display what you choose.
+
+🌐 **Open Source**
+Don't trust us? [Read the code yourself](https://github.com/samshennan/okno). Or host it on your own server.
+
+**Privacy is a feature, not an afterthought.**
+
+### Call-to-Action
+
+**Primary:**
+- "Open Your Window" (poetic)
+- "Start Your Journey" (emotional)
+- "Login with Google Photos" (direct)
+
+**Secondary:**
+- "How It Works"
+- "Why We're Different"
+- "See the Code"
+
+### Visual Concept
+
+```
+┌─────────────────────────────────────┐
+│                                     │
+│             O K N O                 │
+│        A Window in Time             │
+│                                     │
+│   [Faded photo montage background] │
+│                                     │
+│     Every photo is a portal to a    │
+│     moment that shaped you.         │
+│                                     │
+│  [Open Your Window - Big Button]    │
+│       [How It Works - Link]         │
+│                                     │
+│  🔒 Secure  ✅ Private  🌐 Open     │
+│                                     │
+└─────────────────────────────────────┘
+```
+
+### Full Page Flow
+
+**Section 1: Hero**
+- Large "OKNO" wordmark
+- Subtitle: "A Window in Time"
+- Emotional copy about photos as portals
+- Primary CTA: "Open Your Window"
+
+**Section 2: How It Works** (3 steps)
+1. 🔐 **Login with Google** - Secure OAuth connection
+2. 📸 **Select Your Favorites** - Up to 2,000 photos
+3. 🪟 **Open Your Window** - Slideshow starts, memories flow
+
+**Section 3: Why We're Different**
+- ✅ No subscriptions ($0 forever)
+- ✅ No proprietary hardware (use your iPad)
+- ✅ No data collection (privacy-first)
+- ✅ Open source (see the code)
+
+**Section 4: Why Login? (Privacy Explained)**
+- Clear explanation of OAuth
+- What we access vs. don't access
+- How to revoke permission
+- Open-source transparency
+
+**Section 5: FAQ** (collapsed accordion)
+- "Do you store my photos?" → No
+- "Can you see all my photos?" → Only what you select
+- "How much does it cost?" → $0 forever
+- "Can I revoke access?" → Yes, anytime
+
+**Section 6: Footer**
+- Made with ❤️ for family memories
+- [View on GitHub](https://github.com/samshennan/okno)
+- Privacy Policy | Terms
+
+---
+
+## Comparison: Option 5 vs Option 6
+
+### Option 5 (Benefit-Focused)
+- **Tone:** Practical, clear, trustworthy
+- **Best for:** Converting skeptical users
+- **Strength:** Addresses concerns directly
+- **Weakness:** Less memorable
+
+### Option 6 (A Window in Time) ⭐
+- **Tone:** Poetic, emotional, memorable
+- **Best for:** Creating brand identity
+- **Strength:** Unique positioning, storytelling
+- **Weakness:** Might feel too "artsy" for some
+
+### Recommended: Hybrid Approach
+
+**Use Option 6 for:**
+- Hero section (emotional hook)
+- Brand identity (tagline, story)
+- Marketing materials
+
+**Use Option 5 for:**
+- "Why Login?" section (practical concerns)
+- FAQ (direct answers)
+- Trust signals (clear benefits)
+
+**Best of both worlds:**
+- Lead with emotion (Option 6 hero)
+- Follow with logic (Option 5 privacy/FAQ)
+
+---
+
 ## Recommended Final Copy (For Home Page)
 
-**Combine Option 5 (Benefit-Focused) with FAQ section**
+**✨ NEW RECOMMENDATION: Hybrid Approach (Option 6 Hero + Option 5 Details)**
+
+**Use "A Window in Time" for emotional hook, then practical details**
 
 **Reasoning:**
-- Clear value proposition
-- Addresses privacy concerns upfront
-- Shows trust signals
-- Multiple CTAs for different user types
-- FAQ reduces friction
+- Memorable brand identity ("A Window in Time" is PERFECT)
+- Emotional connection leads to engagement
+- Practical details address privacy concerns
+- Best of both: poetry + clarity
+- Unique positioning vs. competitors
 
 **Implementation:**
 ```html
 <section class="hero">
-  <h1>Your Memories, Always Visible</h1>
-  <p class="subtitle">Transform your iPad into a beautiful photo frame...</p>
-  <button class="cta-primary">Login with Google Photos</button>
-  <button class="cta-secondary">Why We Need Login?</button>
+  <h1>OKNO</h1>
+  <p class="tagline">A Window in Time</p>
+  <p class="hero-copy">Every photo is a portal to a moment that shaped you.
+     Okno keeps those windows open—always rotating, always reminding you
+     of the life you've lived.</p>
+  <button class="cta-primary">Open Your Window</button>
+  <button class="cta-secondary">How It Works</button>
 </section>
 
 <section class="trust-signals">
