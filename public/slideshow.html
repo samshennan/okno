@@ -326,7 +326,9 @@
         const health = await healthRes.json();
 
         if (!health.cache || health.cache.totalItems === 0) {
-          throw new Error('No photos in cache. Please select photos first.');
+          // No photos available - redirect to home page
+          window.location.href = '/';
+          return;
         }
 
         photoCount = health.cache.totalItems;
