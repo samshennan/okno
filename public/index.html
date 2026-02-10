@@ -204,25 +204,42 @@
           throw new Error(data.error || 'Failed to create picker session');
         }
 
-        pickerStatusEl.innerHTML = `
-          <p>Opening Google Photos Picker...</p>
-          <p style="font-size: 0.9rem; opacity: 0.7;">Select your photos, then close the picker window</p>
-        `;
+        // Detect if mobile/iPad (tabs) or desktop (popups)
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
-        // Open picker in popup window
-        const width = 800;
-        const height = 800;
-        const left = (screen.width - width) / 2;
-        const top = (screen.height - height) / 2;
+        if (isMobile) {
+          // iPad opens picker in new tab - show instructions
+          pickerStatusEl.innerHTML = `
+            <p>✓ Picker session created</p>
+            <p style="font-size: 0.9rem; opacity: 0.7; margin: 1rem 0;">
+              1. Tap the button below to open Google Photos<br>
+              2. Select your photos and tap "Done"<br>
+              3. Come back to this tab and tap "Check for Photos"
+            </p>
+            <button onclick="window.open('${data.pickerUrl}', '_blank')">Open Picker</button>
+            <button onclick="checkPickerComplete('${data.sessionId}')" style="margin-top: 0.5rem;">Check for Photos</button>
+          `;
+        } else {
+          // Desktop - open popup and auto-detect close
+          pickerStatusEl.innerHTML = `
+            <p>Opening Google Photos Picker...</p>
+            <p style="font-size: 0.9rem; opacity: 0.7;">Select your photos, then close the picker window</p>
+          `;
 
-        pickerWindow = window.open(
-          data.pickerUrl,
-          'GooglePhotosPicker',
-          `width=${width},height=${height},left=${left},top=${top}`
-        );
+          const width = 800;
+          const height = 800;
+          const left = (screen.width - width) / 2;
+          const top = (screen.height - height) / 2;
 
-        // Start polling for completion
-        startPolling(data.sessionId, parseInt(data.pollInterval) || 5000);
+          pickerWindow = window.open(
+            data.pickerUrl,
+            'GooglePhotosPicker',
+            `width=${width},height=${height},left=${left},top=${top}`
+          );
+
+          // Start polling for completion
+          startPolling(data.sessionId, parseInt(data.pollInterval) || 5000);
+        }
 
       } catch (error) {
         pickerStatusEl.className = 'picker-status visible';
@@ -288,6 +305,56 @@
           console.error('Polling error:', error);
         }
       }, interval);
+    }
+
+    // Manual check for picker completion (for iPad/mobile)
+    async function checkPickerComplete(sessionId) {
+      try {
+        pickerStatusEl.innerHTML = '<div class="loading"></div> Checking for photos...';
+
+        // Wait a moment for Google to finalize
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Check picker status
+        const statusRes = await fetch(`/api/picker/status/${sessionId}`);
+        const status = await statusRes.json();
+
+        if (status.done) {
+          // Photos were selected, fetch them
+          pickerStatusEl.innerHTML = '<div class="loading"></div> Fetching selected photos...';
+
+          const completeRes = await fetch(`/api/picker/complete/${sessionId}`, {
+            method: 'POST'
+          });
+          const result = await completeRes.json();
+
+          if (!completeRes.ok) {
+            throw new Error(result.error || 'Failed to fetch photos');
+          }
+
+          pickerStatusEl.innerHTML = `
+            <div style="color: #2ecc71;">✓ Success! ${result.count} photos cached</div>
+          `;
+
+          // Refresh UI after 2 seconds
+          setTimeout(() => {
+            pickerStatusEl.className = 'picker-status';
+            checkAuth();
+          }, 2000);
+        } else {
+          pickerStatusEl.innerHTML = `
+            <div style="opacity: 0.7;">No photos selected yet. Select photos and try again.</div>
+          `;
+          setTimeout(() => {
+            pickerStatusEl.className = 'picker-status';
+          }, 3000);
+        }
+      } catch (error) {
+        pickerStatusEl.innerHTML = `
+          <div style="color: #e74c3c;">✗ Error: ${error.message}</div>
+        `;
+        console.error('Check complete error:', error);
+      }
     }
 
     // Initialize
