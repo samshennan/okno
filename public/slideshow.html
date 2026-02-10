@@ -243,6 +243,37 @@
         display: none !important;
       }
     }
+
+    /* Sleep reminder - mobile only */
+    #sleepReminder {
+      display: none;
+      position: fixed;
+      top: 2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.8rem;
+      opacity: 0;
+      transition: opacity 0.3s;
+      z-index: 100;
+      background: rgba(0, 0, 0, 0.85);
+      padding: 0.6rem 1rem;
+      border-radius: 6px;
+      pointer-events: none;
+      text-align: center;
+      max-width: 90%;
+      line-height: 1.4;
+    }
+
+    #sleepReminder.visible {
+      opacity: 1;
+    }
+
+    /* Show sleep reminder only on mobile/iPad */
+    @media (max-width: 768px), (pointer: coarse) {
+      #sleepReminder {
+        display: block;
+      }
+    }
   </style>
 </head>
 <body>
@@ -258,6 +289,10 @@
   </div>
 
   <div id="slideshow"></div>
+
+  <div id="sleepReminder">
+    💡 To keep screen on: Settings → Display & Brightness → Auto-Lock → Never
+  </div>
 
   <div id="intervalControls">
     <button class="small" onclick="changeInterval(10)" data-interval="10">10s</button>
@@ -578,6 +613,7 @@
       document.getElementById('displayModeControls').classList.add('visible');
       document.getElementById('info').classList.add('visible');
       document.getElementById('keyboardHelp').classList.add('visible');
+      document.getElementById('sleepReminder').classList.add('visible');
 
       // Auto-hide after 4 seconds
       clearTimeout(hideControlsTimeout);
@@ -591,6 +627,7 @@
       document.getElementById('displayModeControls').classList.remove('visible');
       document.getElementById('info').classList.remove('visible');
       document.getElementById('keyboardHelp').classList.remove('visible');
+      document.getElementById('sleepReminder').classList.remove('visible');
     }
 
     function toggleControls() {
