@@ -13,8 +13,8 @@
 
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: #000;
-      color: #fff;
+      background: #F5F3ED; /* Warm eggshell */
+      color: #4A5A52; /* Muted eucalyptus text */
       display: flex;
       align-items: center;
       justify-content: center;
@@ -38,7 +38,7 @@
       font-size: 1.3rem;
       font-weight: 300;
       font-style: italic;
-      color: rgba(255, 255, 255, 0.8);
+      color: #7A9487; /* Soft eucalyptus */
       margin-bottom: 2rem;
       letter-spacing: 0.05em;
     }
@@ -46,7 +46,7 @@
     .hero-copy {
       font-size: 1.1rem;
       line-height: 1.7;
-      color: rgba(255, 255, 255, 0.9);
+      color: #5A6B62; /* Darker eucalyptus */
       margin-bottom: 2rem;
       max-width: 600px;
       margin-left: auto;
@@ -59,7 +59,7 @@
       gap: 1.5rem;
       margin: 2rem 0;
       font-size: 0.85rem;
-      color: rgba(255, 255, 255, 0.6);
+      color: rgba(90, 107, 98, 0.6);
       flex-wrap: wrap;
     }
 
@@ -72,19 +72,22 @@
     .status {
       margin: 2rem 0;
       padding: 1rem;
-      background: rgba(255, 255, 255, 0.05);
+      background: rgba(143, 181, 165, 0.08);
       border-radius: 8px;
       font-size: 1.1rem;
+      color: #5A6B62;
     }
 
     .status.authenticated {
-      background: rgba(46, 204, 113, 0.1);
-      border: 1px solid rgba(46, 204, 113, 0.3);
+      background: rgba(143, 181, 165, 0.15);
+      border: 1px solid rgba(143, 181, 165, 0.35);
+      color: #4A5A52;
     }
 
     .status.error {
-      background: rgba(231, 76, 60, 0.1);
-      border: 1px solid rgba(231, 76, 60, 0.3);
+      background: rgba(184, 134, 123, 0.15);
+      border: 1px solid rgba(184, 134, 123, 0.35);
+      color: #8B6F66;
     }
 
     button {
@@ -93,14 +96,21 @@
       border: none;
       padding: 1rem 2rem;
       font-size: 1rem;
-      border-radius: 4px;
+      border-radius: 12px;
       cursor: pointer;
       margin: 0.5rem;
-      transition: transform 0.1s;
+      transition: all 0.2s ease;
+      font-weight: 500;
+      box-shadow: 0 4px 14px 0 rgba(255, 255, 255, 0.1);
     }
 
     button:hover {
-      transform: scale(1.05);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px 0 rgba(255, 255, 255, 0.2);
+    }
+
+    button:active {
+      transform: translateY(0);
     }
 
     button:disabled {
@@ -109,12 +119,43 @@
       transform: none;
     }
 
+    button.primary {
+      padding: 1.5rem 3rem;
+      font-size: 1.3rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      background: #8FB5A5; /* Soft eucalyptus */
+      color: #F5F3ED; /* Warm eggshell text */
+      border-radius: 16px;
+      box-shadow: 0 8px 24px 0 rgba(143, 181, 165, 0.25);
+      margin: 1.5rem 0.5rem;
+    }
+
+    button.primary:hover {
+      transform: translateY(-3px);
+      background: #7DA594; /* Slightly darker eucalyptus */
+      box-shadow: 0 12px 32px 0 rgba(143, 181, 165, 0.35);
+    }
+
+    button.secondary {
+      background: rgba(143, 181, 165, 0.1);
+      color: #5A6B62;
+      border: 1px solid rgba(143, 181, 165, 0.25);
+      font-size: 0.95rem;
+    }
+
+    button.secondary:hover {
+      background: rgba(143, 181, 165, 0.18);
+      border-color: rgba(143, 181, 165, 0.35);
+    }
+
     .picker-status {
       margin-top: 2rem;
       padding: 1rem;
-      background: rgba(255, 255, 255, 0.05);
+      background: rgba(143, 181, 165, 0.08);
       border-radius: 8px;
       display: none;
+      color: #5A6B62;
     }
 
     .picker-status.visible {
@@ -125,8 +166,8 @@
       display: inline-block;
       width: 20px;
       height: 20px;
-      border: 3px solid rgba(255, 255, 255, 0.3);
-      border-top-color: #fff;
+      border: 3px solid rgba(143, 181, 165, 0.25);
+      border-top-color: #8FB5A5;
       border-radius: 50%;
       animation: spin 1s linear infinite;
     }
@@ -138,24 +179,24 @@
     .links {
       margin-top: 2rem;
       padding-top: 2rem;
-      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      border-top: 1px solid rgba(143, 181, 165, 0.2);
     }
 
     .links a {
-      color: rgba(255, 255, 255, 0.6);
+      color: rgba(90, 107, 98, 0.6);
       text-decoration: none;
       margin: 0 1rem;
       font-size: 0.9rem;
     }
 
     .links a:hover {
-      color: #fff;
+      color: #5A6B62;
     }
 
     .photo-count {
       font-size: 2rem;
       font-weight: bold;
-      color: #2ecc71;
+      color: #8FB5A5;
       margin: 1rem 0;
     }
   </style>
@@ -210,17 +251,18 @@
             statusEl.className = 'status authenticated';
             statusEl.textContent = `${health.cache.totalItems} photos ready`;
             actionsEl.innerHTML = `
-              <button onclick="window.location.href='/slideshow.html'">Start Slideshow</button>
-              <button onclick="openPicker()">Change Photos</button>
+              <button class="primary" onclick="window.location.href='/slideshow.html'">Start Slideshow</button>
+              <br>
+              <button class="secondary" onclick="openPicker()">Change Photos</button>
               <br><br>
-              <button onclick="signOut()" style="background: rgba(231, 76, 60, 0.8); color: #fff;">Sign Out</button>
+              <button class="secondary" onclick="signOut()" style="background: rgba(231, 76, 60, 0.15); border-color: rgba(231, 76, 60, 0.3); color: rgba(231, 76, 60, 1);">Sign Out</button>
             `;
           } else {
             statusEl.style.display = 'none';
             actionsEl.innerHTML = `
-              <button onclick="openPicker()">Select Photos</button>
+              <button class="primary" onclick="openPicker()">Select Photos</button>
               <br><br>
-              <button onclick="signOut()" style="background: rgba(231, 76, 60, 0.8); color: #fff;">Sign Out</button>
+              <button class="secondary" onclick="signOut()" style="background: rgba(231, 76, 60, 0.15); border-color: rgba(231, 76, 60, 0.3); color: rgba(231, 76, 60, 1);">Sign Out</button>
             `;
           }
         } else {
