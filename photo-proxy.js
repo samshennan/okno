@@ -78,20 +78,23 @@ router.get('/random', async (req, res) => {
       });
     }
 
-    // Stream image to client with appropriate headers
+    // Set response headers
     res.set('Content-Type', imageResponse.headers.get('content-type') || 'image/jpeg');
     res.set('Cache-Control', 'no-store'); // Don't cache proxied images (baseUrls expire)
     res.set('X-Photo-Id', item.id);
     res.set('X-Photo-CreateTime', item.createTime || '');
 
+    // Convert response to buffer and send
+    const arrayBuffer = await imageResponse.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
     logger.info('Served random photo', {
       photoId: item.id,
-      contentType: imageResponse.headers.get('content-type')
+      contentType: imageResponse.headers.get('content-type'),
+      size: buffer.length
     });
 
-    // Pipe image bytes to response
-    // Node.js fetch returns a ReadableStream that can be piped
-    imageResponse.body.pipe(res);
+    res.send(buffer);
 
   } catch (error) {
     logger.error('Failed to proxy photo:', { error: error.message, stack: error.stack });
