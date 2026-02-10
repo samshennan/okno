@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 const express = require('express');
 const helmet = require('helmet');
 const morgan = require('morgan');
@@ -31,6 +33,9 @@ if (!fs.existsSync('./logs')) {
 
 // Create Express app
 const app = express();
+
+// Trust proxy - enables Express to see X-Forwarded-Proto from nginx
+app.set('trust proxy', true);
 
 // Security headers
 app.use(helmet());
@@ -83,7 +88,30 @@ logger.info('Photo and health routes mounted');
 
 // Basic root route
 app.get('/', (req, res) => {
-  res.send('<h1>Okno</h1><p>Google Photos digital photo frame backend</p><p><a href="/auth/login">Login with Google</a></p>');
+  const isAuthenticated = req.session.authenticated;
+
+  if (isAuthenticated) {
+    res.send(`
+      <h1>Okno</h1>
+      <p>✅ Authenticated with Google Photos</p>
+      <h2>Available endpoints:</h2>
+      <ul>
+        <li><a href="/api/health">Health Check</a></li>
+        <li><a href="/api/photo/random">Random Photo</a> (requires photos in cache)</li>
+        <li><a href="/auth/status">Auth Status</a></li>
+      </ul>
+      <h3>Photo Picker API:</h3>
+      <p>To select photos, POST to <code>/api/picker/start</code> to get a picker URL</p>
+      <p><a href="/auth/login">Re-authenticate</a></p>
+    `);
+  } else {
+    res.send(`
+      <h1>Okno</h1>
+      <p>Google Photos digital photo frame backend</p>
+      <p>❌ Not authenticated</p>
+      <p><a href="/auth/login">Login with Google</a></p>
+    `);
+  }
 });
 
 // Start server
