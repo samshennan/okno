@@ -166,6 +166,7 @@
       z-index: 100;
       opacity: 0;
       transition: opacity 0.3s;
+      pointer-events: none;
     }
 
     #intervalControls.visible {
@@ -208,6 +209,33 @@
     #info.visible {
       opacity: 1;
     }
+
+    #keyboardHelp {
+      position: fixed;
+      top: 2rem;
+      left: 2rem;
+      font-size: 0.85rem;
+      opacity: 0;
+      transition: opacity 0.3s;
+      z-index: 100;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 0.75rem 1rem;
+      border-radius: 4px;
+      pointer-events: none;
+      line-height: 1.6;
+    }
+
+    #keyboardHelp.visible {
+      opacity: 1;
+    }
+
+    #keyboardHelp kbd {
+      background: rgba(255, 255, 255, 0.2);
+      padding: 0.1rem 0.4rem;
+      border-radius: 3px;
+      font-family: monospace;
+      font-size: 0.9em;
+    }
   </style>
 </head>
 <body>
@@ -240,6 +268,12 @@
 
   <div id="info">
     Photo <span id="currentIndex">1</span> of <span id="totalPhotos">?</span>
+  </div>
+
+  <div id="keyboardHelp">
+    <kbd>Space</kbd> Play/Pause &nbsp;
+    <kbd>←</kbd><kbd>→</kbd> Prev/Next &nbsp;
+    <kbd>Esc</kbd> Exit
   </div>
 
   <div id="controls">
@@ -534,6 +568,7 @@
       document.getElementById('intervalControls').classList.add('visible');
       document.getElementById('displayModeControls').classList.add('visible');
       document.getElementById('info').classList.add('visible');
+      document.getElementById('keyboardHelp').classList.add('visible');
 
       // Auto-hide after 4 seconds
       clearTimeout(hideControlsTimeout);
@@ -546,6 +581,7 @@
       document.getElementById('intervalControls').classList.remove('visible');
       document.getElementById('displayModeControls').classList.remove('visible');
       document.getElementById('info').classList.remove('visible');
+      document.getElementById('keyboardHelp').classList.remove('visible');
     }
 
     function toggleControls() {
