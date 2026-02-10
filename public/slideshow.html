@@ -35,9 +35,13 @@
       left: 0;
       width: 100%;
       height: 100%;
-      object-fit: contain;
+      object-fit: cover; /* Default: fill screen, crop if needed */
       opacity: 0;
       transition: opacity 1s ease-in-out;
+    }
+
+    .photo.contain-mode {
+      object-fit: contain; /* Show full photo with black bars */
     }
 
     .photo.active {
@@ -47,6 +51,17 @@
 
     .photo.preload {
       z-index: 0;
+    }
+
+    /* Dual portrait mode: 2 photos side-by-side */
+    .photo.dual-left {
+      width: 50%;
+      left: 0;
+    }
+
+    .photo.dual-right {
+      width: 50%;
+      left: 50%;
     }
 
     #loading {
@@ -155,6 +170,22 @@
       opacity: 1;
     }
 
+    #displayModeControls {
+      position: fixed;
+      top: 2rem;
+      right: 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      z-index: 100;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    body:hover #displayModeControls {
+      opacity: 1;
+    }
+
     #info {
       position: fixed;
       bottom: 2rem;
@@ -195,6 +226,12 @@
     <button class="small" onclick="changeInterval(300)" data-interval="300">5m</button>
   </div>
 
+  <div id="displayModeControls">
+    <button class="small" onclick="setDisplayMode('cover')" data-mode="cover" title="Fill screen, crop edges">Fill</button>
+    <button class="small" onclick="setDisplayMode('contain')" data-mode="contain" title="Show full photo, black bars">Fit</button>
+    <button class="small" onclick="setDisplayMode('dual')" data-mode="dual" title="2 portraits side-by-side">Dual</button>
+  </div>
+
   <div id="info">
     Photo <span id="currentIndex">1</span> of <span id="totalPhotos">?</span>
   </div>
@@ -221,12 +258,18 @@
     let isPlaying = true;
     let intervalHandle = null;
     let currentIntervalSeconds = 10; // Default 10 seconds
+    let displayMode = 'cover'; // 'cover', 'contain', or 'dual'
+    let pendingPortrait = null; // For dual mode: holds first portrait photo
 
-    // Get interval from URL params (e.g., ?interval=10 for 10 seconds)
+    // Get params from URL
     const urlParams = new URLSearchParams(window.location.search);
     const customInterval = parseInt(urlParams.get('interval'));
     if (customInterval && customInterval > 0) {
       currentIntervalSeconds = customInterval;
+    }
+    const urlMode = urlParams.get('mode');
+    if (urlMode && ['cover', 'contain', 'dual'].includes(urlMode)) {
+      displayMode = urlMode;
     }
 
     async function init() {
@@ -245,8 +288,9 @@
         // Hide loading
         loadingEl.classList.add('hidden');
 
-        // Update interval button states
+        // Update button states
         updateIntervalButtons();
+        updateDisplayModeButtons();
 
         // Load first photo
         await loadPhoto(0);
@@ -262,53 +306,114 @@
 
     async function loadPhoto(index) {
       try {
-        // Create new image element
-        const img = document.createElement('img');
-        img.className = 'photo preload';
-        img.src = `/api/photo/random?t=${Date.now()}`; // Cache bust
+        // Load new random photo
+        const img = await createPhotoElement();
 
-        // Wait for image to load
-        await new Promise((resolve, reject) => {
-          img.onload = resolve;
-          img.onerror = reject;
-        });
+        // Check if portrait (taller than wide)
+        const isPortrait = img.naturalHeight > img.naturalWidth;
 
-        // Remove old photos
-        const oldPhotos = slideshowEl.querySelectorAll('.photo');
-        oldPhotos.forEach(photo => {
-          if (!photo.classList.contains('active')) {
-            photo.remove();
+        // Handle dual portrait mode
+        if (displayMode === 'dual' && isPortrait) {
+          if (!pendingPortrait) {
+            // First portrait - save it and load another
+            pendingPortrait = img;
+            await loadPhoto(index); // Recursive call to get second photo
+            return;
+          } else {
+            // Second portrait - show both side-by-side
+            await showDualPortraits(pendingPortrait, img);
+            pendingPortrait = null;
+            return;
           }
-        });
-
-        // Add new photo
-        slideshowEl.appendChild(img);
-
-        // Trigger transition
-        setTimeout(() => {
-          // Remove active from all
-          const allPhotos = slideshowEl.querySelectorAll('.photo');
-          allPhotos.forEach(photo => photo.classList.remove('active'));
-
-          // Make new photo active
-          img.classList.add('active');
-          img.classList.remove('preload');
-
-          // Update index
-          currentIndex = (currentIndex + 1) % photoCount;
-          currentIndexEl.textContent = currentIndex + 1;
-
-          // Remove old photos after transition
-          setTimeout(() => {
-            const oldPhotos = slideshowEl.querySelectorAll('.photo:not(.active)');
-            oldPhotos.forEach(photo => photo.remove());
-          }, 1000);
-        }, 50);
+        } else {
+          // Not dual mode, or not portrait, or landscape in dual mode
+          pendingPortrait = null; // Clear pending if we had one
+          await showSinglePhoto(img);
+        }
 
       } catch (error) {
         console.error('Failed to load photo:', error);
-        // Continue to next photo even if one fails
       }
+    }
+
+    async function createPhotoElement() {
+      const img = document.createElement('img');
+      img.className = 'photo preload';
+      img.src = `/api/photo/random?t=${Date.now()}`;
+
+      // Apply display mode class
+      if (displayMode === 'contain') {
+        img.classList.add('contain-mode');
+      }
+
+      // Wait for load
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+      });
+
+      return img;
+    }
+
+    async function showSinglePhoto(img) {
+      // Remove old photos
+      const oldPhotos = slideshowEl.querySelectorAll('.photo');
+      oldPhotos.forEach(photo => {
+        if (!photo.classList.contains('active')) photo.remove();
+      });
+
+      slideshowEl.appendChild(img);
+
+      // Trigger transition
+      setTimeout(() => {
+        const allPhotos = slideshowEl.querySelectorAll('.photo');
+        allPhotos.forEach(photo => photo.classList.remove('active'));
+
+        img.classList.add('active');
+        img.classList.remove('preload');
+
+        currentIndex = (currentIndex + 1) % photoCount;
+        currentIndexEl.textContent = currentIndex + 1;
+
+        setTimeout(() => {
+          const oldPhotos = slideshowEl.querySelectorAll('.photo:not(.active)');
+          oldPhotos.forEach(photo => photo.remove());
+        }, 1000);
+      }, 50);
+    }
+
+    async function showDualPortraits(img1, img2) {
+      // Remove old photos
+      const oldPhotos = slideshowEl.querySelectorAll('.photo');
+      oldPhotos.forEach(photo => {
+        if (!photo.classList.contains('active')) photo.remove();
+      });
+
+      // Position photos side-by-side
+      img1.classList.add('dual-left');
+      img2.classList.add('dual-right');
+
+      slideshowEl.appendChild(img1);
+      slideshowEl.appendChild(img2);
+
+      // Trigger transition
+      setTimeout(() => {
+        const allPhotos = slideshowEl.querySelectorAll('.photo');
+        allPhotos.forEach(photo => photo.classList.remove('active'));
+
+        img1.classList.add('active');
+        img2.classList.add('active');
+        img1.classList.remove('preload');
+        img2.classList.remove('preload');
+
+        currentIndex = (currentIndex + 2) % photoCount;
+        currentIndexEl.textContent = currentIndex + 1;
+
+        setTimeout(() => {
+          const oldPhotos = slideshowEl.querySelectorAll('.photo:not(.active)');
+          oldPhotos.forEach(photo => photo.remove());
+        }, 1000);
+      }, 50);
     }
 
     function startSlideshow() {
@@ -372,6 +477,29 @@
       buttons.forEach(btn => {
         const btnInterval = parseInt(btn.dataset.interval);
         if (btnInterval === currentIntervalSeconds) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+    }
+
+    // Set display mode
+    function setDisplayMode(mode) {
+      displayMode = mode;
+      pendingPortrait = null; // Clear pending portrait when changing modes
+      updateDisplayModeButtons();
+
+      // Reload current photo with new mode
+      loadPhoto(currentIndex);
+    }
+
+    // Update active state of display mode buttons
+    function updateDisplayModeButtons() {
+      const buttons = document.querySelectorAll('#displayModeControls button');
+      buttons.forEach(btn => {
+        const btnMode = btn.dataset.mode;
+        if (btnMode === displayMode) {
           btn.classList.add('active');
         } else {
           btn.classList.remove('active');
