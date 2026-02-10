@@ -2,6 +2,50 @@
 
 All notable changes to Okno will be documented in this file.
 
+## [0.1.1] - 2026-02-10 - Post-Launch Fixes 🔧
+
+### 🐛 Bug Fixes
+- **Sign Out Button:** Added "Sign Out" button to home page for re-authentication
+- **Logout Endpoint:** Added `POST /auth/logout` to destroy session
+- **Manual Cache Refresh:** Added `POST /api/health/refresh` endpoint to update expired baseUrls
+- **Sleep Reminder Position:** Moved iPad sleep reminder to bottom-left to avoid UI overlap
+- **Email Allowlist:** Added `ALLOWED_EMAILS` environment variable for family-only access
+- **Email Verification:** Added email check during OAuth callback (sam@samshennan.com, alicja.chodara@gmail.com)
+
+### 🔒 Security Enhancements
+- Restricted access to authorized emails only via allowlist
+- Added warning message for unauthorized login attempts
+- Improved session security with explicit logout flow
+
+### 🎨 UX Improvements
+- Sign Out button appears in red for clear visibility
+- Confirmation dialog before signing out
+- Auto-reload after logout for clean state
+- Sleep reminder positioned to not block controls
+
+### 🛠️ Developer Experience
+- Manual cache refresh for debugging expired baseUrls
+- Better error logging for unauthorized access attempts
+- Health endpoint returns cache refresh timestamp
+
+### 📚 Documentation
+- Added [COMPETITIVE-ANALYSIS.md](COMPETITIVE-ANALYSIS.md) with market research
+- Added [SECURITY-AUDIT.md](SECURITY-AUDIT.md) with comprehensive security analysis
+- Updated [ROADMAP.md](ROADMAP.md) with Phase 6 (Monetization Research)
+- Created comprehensive [README.md](README.md) for GitHub
+
+### 🔧 Technical Debt Fixed
+- Addressed baseUrl expiry issue (403 Forbidden errors)
+- Added workaround for token expiry during slideshow
+- Documented cache storage architecture (metadata only, no images)
+
+### 🎯 Issues Resolved
+- Black photos issue (expired OAuth tokens + stale baseUrls)
+- Missing re-authentication UI (now have Sign Out button)
+- Cache staleness detection and manual refresh capability
+
+---
+
 ## [0.1.0] - 2026-02-10 - v1 LAUNCH 🎉
 
 ### 🎯 Vision Achieved
