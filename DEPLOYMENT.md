@@ -20,7 +20,7 @@ Before starting, ensure you have:
 2. Navigate to: **APIs & Services → Credentials**
 3. Click **Create Credentials → OAuth 2.0 Client ID**
 4. Application type: **Web application**
-5. Add authorized redirect URI: `https://okno.yourdomain.com/auth/callback`
+5. Add authorized redirect URI: `https://okno.moonacle.com/auth/callback`
    - Replace `yourdomain.com` with your actual domain
 6. Click **Create** and save the Client ID and Client Secret
 
@@ -71,7 +71,7 @@ Before starting, ensure you have:
    - Value: `[Your VPS IP address]`
    - TTL: `3600` (or default)
 3. Wait for DNS propagation (5-30 minutes)
-4. Verify: `nslookup okno.yourdomain.com` should return your VPS IP
+4. Verify: `nslookup okno.moonacle.com` should return 159.69.152.123
 
 ## Step 3: Set Up VPS
 
@@ -164,7 +164,7 @@ sudo cp nginx.conf.template /etc/nginx/sites-available/okno
 
 # Edit the config to replace yourdomain.com
 sudo nano /etc/nginx/sites-available/okno
-# Replace all instances of "okno.yourdomain.com" with your actual domain
+# Domain is already configured: okno.moonacle.com
 
 # Enable the site
 sudo ln -s /etc/nginx/sites-available/okno /etc/nginx/sites-enabled/
@@ -180,7 +180,7 @@ sudo systemctl reload nginx
 
 ```bash
 # Run certbot to get Let's Encrypt certificate
-sudo certbot --nginx -d okno.yourdomain.com
+sudo certbot --nginx -d okno.moonacle.com
 
 # Follow the prompts:
 # - Enter your email address
@@ -245,7 +245,7 @@ pm2 save
 
 ```bash
 # From VPS
-curl https://okno.yourdomain.com/api/health
+curl https://okno.moonacle.com/api/health
 
 # Should return JSON with:
 # {
