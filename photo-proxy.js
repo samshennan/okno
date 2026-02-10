@@ -38,9 +38,20 @@ router.get('/random', async (req, res) => {
     // Get access token for Authorization header
     const { token } = await oAuth2Client.getAccessToken();
 
+    // Extract baseUrl from Picker API structure (nested in mediaFile)
+    const baseUrl = item.mediaFile?.baseUrl || item.baseUrl;
+
+    if (!baseUrl) {
+      logger.error('No baseUrl found in cached item', { itemId: item.id });
+      return res.status(500).json({
+        error: 'invalid_cache',
+        message: 'Cached item missing baseUrl'
+      });
+    }
+
     // Append size parameters to baseUrl (w2048-h1536 for iPad Pro landscape)
     // Research: Google requires width/height params on baseUrls
-    const imageUrl = `${item.baseUrl}=w2048-h1536`;
+    const imageUrl = `${baseUrl}=w2048-h1536`;
 
     logger.info('Fetching image from Google', {
       photoId: item.id,
