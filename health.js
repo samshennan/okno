@@ -50,5 +50,22 @@ router.get('/', (req, res) => {
   }
 });
 
+// POST /api/health/refresh - Manually refresh cache baseUrls
+router.post('/refresh', async (req, res) => {
+  try {
+    await photoCache.refreshBaseUrls();
+    res.json({
+      success: true,
+      message: 'Cache refresh initiated',
+      lastRefresh: photoCache.getLastRefresh()
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 // Export router
 module.exports = router;
