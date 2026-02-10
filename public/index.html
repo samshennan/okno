@@ -165,9 +165,9 @@
           const healthRes = await fetch('/api/health');
           const health = await healthRes.json();
 
-          if (health.cache && health.cache.size > 0) {
+          if (health.cache && health.cache.totalItems > 0) {
             actionsEl.innerHTML = `
-              <div class="photo-count">${health.cache.size} photos cached</div>
+              <div class="photo-count">${health.cache.totalItems} photos cached</div>
               <button onclick="openPicker()">Select Different Photos</button>
               <button onclick="window.location.href='/slideshow.html'">Start Slideshow</button>
             `;
