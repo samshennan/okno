@@ -99,6 +99,32 @@ ${req.file ? `### Screenshot
 
       logger.info(`Bug report received: ${description.substring(0, 50)}...`);
 
+      // ALSO save to bugs.json for GSD integration
+      const bugsJsonFile = path.join(feedbackDir, 'bugs.json');
+      let bugsData = [];
+
+      if (fs.existsSync(bugsJsonFile)) {
+        try {
+          bugsData = JSON.parse(fs.readFileSync(bugsJsonFile, 'utf-8'));
+        } catch (parseError) {
+          logger.error(`Error parsing bugs.json: ${parseError.message}`);
+          bugsData = [];
+        }
+      }
+
+      bugsData.push({
+        id: `bug-${Date.now()}`,
+        timestamp,
+        email: email || null,
+        description,
+        screenshot: req.file ? `./screenshots/${req.file.filename}` : null,
+        status: 'pending', // pending, in-progress, resolved
+        priority: 'normal'
+      });
+
+      fs.writeFileSync(bugsJsonFile, JSON.stringify(bugsData, null, 2));
+      logger.info(`Bug saved to JSON (ID: bug-${Date.now()})`);
+
     } else if (type === 'feature') {
       filename = path.join(feedbackDir, 'feature-requests.md');
 
@@ -120,6 +146,25 @@ ${reason}
 `;
 
       logger.info(`Feature request received: ${description.substring(0, 50)}...`);
+
+      // ALSO save to features.csv for spreadsheet review
+      const csvFile = path.join(feedbackDir, 'features.csv');
+
+      // Create CSV header if file doesn't exist
+      if (!fs.existsSync(csvFile)) {
+        fs.writeFileSync(csvFile, 'Timestamp,Email,Description,Reason\n');
+      }
+
+      // Escape CSV values (handle quotes and commas)
+      const escapeCsv = (str) => {
+        if (!str) return '';
+        return `"${str.replace(/"/g, '""')}"`;
+      };
+
+      const csvRow = `${escapeCsv(timestamp)},${escapeCsv(email || 'Not provided')},${escapeCsv(description)},${escapeCsv(reason || 'Not provided')}\n`;
+
+      fs.appendFileSync(csvFile, csvRow);
+      logger.info('Feature request saved to CSV');
     }
 
     // Append to markdown file
