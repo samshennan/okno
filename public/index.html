@@ -186,30 +186,32 @@
       transform: none;
     }
 
-    /* Primary Button - Raised with Color */
+    /* Primary Button - Refined Raised Style */
     button.primary {
       padding: 18px 40px;
       font-size: 1.063rem;
       font-weight: 600;
       letter-spacing: -0.01em;
-      background: #8FB5A5;
+      background: linear-gradient(145deg, #9AC0AF, #8FB5A5);
       color: #FFFFFF;
       border: none;
       border-radius: 14px;
-      box-shadow: -8px -8px 20px rgba(255, 255, 255, 0.4),
-                  8px 8px 20px rgba(143, 181, 165, 0.6),
-                  inset -2px -2px 6px rgba(125, 165, 148, 0.3),
-                  inset 2px 2px 6px rgba(255, 255, 255, 0.2);
+      box-shadow: -6px -6px 16px rgba(255, 255, 255, 0.6),
+                  6px 6px 16px rgba(143, 181, 165, 0.4);
       margin: 24px 6px 12px;
     }
 
     button.primary:hover {
-      transform: translateY(-3px);
-      background: #7DA594;
-      box-shadow: -10px -10px 25px rgba(255, 255, 255, 0.5),
-                  10px 10px 25px rgba(143, 181, 165, 0.7),
-                  inset -2px -2px 6px rgba(125, 165, 148, 0.3),
-                  inset 2px 2px 6px rgba(255, 255, 255, 0.2);
+      transform: translateY(-2px);
+      background: linear-gradient(145deg, #8FB5A5, #7DA594);
+      box-shadow: -8px -8px 20px rgba(255, 255, 255, 0.7),
+                  8px 8px 20px rgba(143, 181, 165, 0.5);
+    }
+
+    button.primary:active {
+      transform: translateY(0);
+      box-shadow: -4px -4px 12px rgba(255, 255, 255, 0.5),
+                  4px 4px 12px rgba(143, 181, 165, 0.3);
     }
 
     button.secondary {
@@ -460,16 +462,18 @@
       line-height: 1.6;
     }
 
-    /* File Upload */
+    /* File Upload - Sunken Style */
     .file-upload-area {
       position: relative;
       padding: 24px;
-      background: rgba(143, 181, 165, 0.03);
+      background: #F0F0F3;
       border: 1.5px dashed rgba(143, 181, 165, 0.25);
       border-radius: 10px;
       text-align: center;
       cursor: pointer;
-      transition: all 0.25s ease;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: inset -4px -4px 8px rgba(174, 174, 192, 0.2),
+                  inset 4px 4px 8px #FFFFFF;
     }
 
     .file-upload-area:hover {

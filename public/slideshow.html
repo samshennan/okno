@@ -177,6 +177,28 @@
       font-size: 0.813rem;
     }
 
+    /* Secondary Action Buttons (Fullscreen, Exit) - Darker */
+    button.secondary-action {
+      background: #E0E0E5;
+      color: #3A4A42;
+      box-shadow: -4px -4px 10px rgba(255, 255, 255, 0.6),
+                  4px 4px 10px rgba(0, 0, 0, 0.25);
+    }
+
+    button.secondary-action:hover {
+      background: #D5D5DA;
+      transform: translateY(-2px);
+      box-shadow: -6px -6px 14px rgba(255, 255, 255, 0.7),
+                  6px 6px 14px rgba(0, 0, 0, 0.3);
+    }
+
+    button.secondary-action:active {
+      background: #E0E0E5;
+      transform: translateY(0);
+      box-shadow: inset -3px -3px 6px rgba(0, 0, 0, 0.2),
+                  inset 3px 3px 6px rgba(255, 255, 255, 0.5);
+    }
+
     /* Active Button State - Sunken with Color */
     button.active {
       background: #8FB5A5;
@@ -377,8 +399,8 @@
     <button onclick="previousPhoto()">← Previous</button>
     <button onclick="togglePlayPause()" id="playPauseBtn">Pause</button>
     <button onclick="nextPhoto()">Next →</button>
-    <button onclick="toggleFullscreen()" id="fullscreenBtn">Fullscreen</button>
-    <button onclick="exitSlideshow()">Exit</button>
+    <button class="secondary-action" onclick="toggleFullscreen()" id="fullscreenBtn">Fullscreen</button>
+    <button class="secondary-action" onclick="exitSlideshow()">Exit</button>
   </div>
 
   <script>
