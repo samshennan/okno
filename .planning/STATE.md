@@ -9,11 +9,12 @@ See: .planning/PROJECT.md (updated 2026-02-08)
 
 ## Current Position
 
-**Phase: COMPLETE - v0.1.1 shipped! 🎉**
-Status: Production-ready, deployed at okno.moonacle.com
-Last activity: 2026-02-10 - Completed v0.1.1 post-launch fixes
+**Phase: 2 of 7 (Slideshow + PWA)**
+Plan: 1 of 3 in phase
+Status: In progress - Building PWA capabilities
+Last activity: 2026-02-11 - Completed 02-01-PLAN.md (PWA Installation)
 
-Progress: [██████████] 100% (Phase 1 complete)
+Progress: [██████████░░░░░░░░░░] 50% (Phase 1 complete, Phase 2 started)
 
 ## What We Shipped
 
@@ -34,6 +35,11 @@ Progress: [██████████] 100% (Phase 1 complete)
 - ✅ Comprehensive documentation (README, CHANGELOG, ROADMAP, SECURITY-AUDIT, COMPETITIVE-ANALYSIS)
 - ✅ Fixed black photos issue (expired tokens + stale baseUrls)
 
+### Phase 2 Progress (2026-02-11)
+- ✅ PWA manifest with fullscreen display mode (02-01)
+- ✅ Service Worker with network-first photo caching (02-01)
+- ✅ iOS-specific meta tags for Add to Home Screen (02-01)
+
 ## Performance Metrics
 
 **Development Time:**
@@ -50,31 +56,19 @@ Progress: [██████████] 100% (Phase 1 complete)
 
 ## Accumulated Context
 
-### Key Decisions (v0.1.x)
+### Key Decisions
 
-**Architecture:**
-- Single-tenant design (shared OAuth tokens + cache)
-- File-based cache (metadata only, no image storage)
-- On-demand streaming from Google Photos
-- baseUrl refresh every 50 minutes (10-min buffer before expiry)
-
-**Security:**
-- Email allowlist via ALLOWED_EMAILS env var
-- OAuth email verification during callback
-- Session-based authentication (1-year expiry)
-- Manual cache refresh endpoint for debugging
-
-**UX:**
-- Sign Out button for re-authentication
-- Sleep reminder for iPad Auto-Lock settings
-- Control visibility: tap to show, auto-hide after 4s
-- Three display modes: Fill Screen, Show All, 2 Portraits
-
-**Deployment:**
-- 1Password CLI for secrets management
-- nginx reverse proxy with Let's Encrypt SSL
-- PM2 for process management and auto-restart
-- Health endpoint for monitoring
+| Decision | Rationale | Phase | Date |
+|----------|-----------|-------|------|
+| Single-tenant design (shared OAuth tokens + cache) | Family use case, simplifies auth | 01 | 2026-02-10 |
+| File-based cache (metadata only, no image storage) | Lightweight, no disk space issues | 01 | 2026-02-10 |
+| On-demand streaming from Google Photos | No local storage, always fresh photos | 01 | 2026-02-10 |
+| baseUrl refresh every 50 minutes | 10-min buffer before 1-hour expiry | 01 | 2026-02-10 |
+| Email allowlist via ALLOWED_EMAILS env var | Security for family sharing | 01 | 2026-02-10 |
+| Session-based authentication (1-year expiry) | Long-lived sessions for photo frame use case | 01 | 2026-02-10 |
+| Network-first caching for photos | Fresh photos when online, offline fallback | 02-01 | 2026-02-11 |
+| Fullscreen display mode (not standalone) | Remove all browser chrome for photo frame | 02-01 | 2026-02-11 |
+| Sharp for icon generation (not ImageMagick) | Portable, programmatic, high-quality | 02-01 | 2026-02-11 |
 
 ### Technical Debt
 
@@ -145,22 +139,21 @@ See: ROADMAP.md for full feature roadmap
 
 ## Session Continuity
 
-**Last session:** 2026-02-10
-**Status:** v0.1.1 complete and deployed
-**Resume file:** None needed - ready for Phase 2 when requested
+**Last session:** 2026-02-11 19:10 UTC
+**Status:** Phase 02 Plan 01 complete (PWA Installation)
+**Resume file:** None - continue to 02-02 or 02-03 next
 
 **Current state:**
 - Production app running at okno.moonacle.com
-- 6 photos cached, slideshow working
-- Email allowlist active (Sam + Alicja)
-- All documentation committed to GitHub
-- Ready for Phase 2 (photo management UI)
+- PWA infrastructure complete (manifest, Service Worker, iOS meta tags)
+- Slideshow now installable via Add to Home Screen
+- Offline photo caching active
+- Ready for next Phase 2 plans (photo management or slideshow improvements)
 
 **Next steps when resuming:**
-1. Review ROADMAP.md Phase 2 requirements
-2. Design thumbnail grid UI
-3. Implement photo toggle functionality
-4. Test on iPad with 2000 photos
+1. Test PWA installation on actual iPad device
+2. Verify fullscreen mode and offline caching work as expected
+3. Continue to Phase 02 Plan 02 (photo management) or Plan 03 (slideshow improvements)
 
 ---
 
