@@ -11,6 +11,9 @@
   <meta name="apple-mobile-web-app-title" content="Okno">
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
   <link rel="manifest" href="/manifest.json">
+  
+  <!-- NoSleep.js required for iOS PWAs - Wake Lock API broken until iOS 18.4 (WebKit bug #254545) -->
+  <script src="https://cdn.jsdelivr.net/npm/nosleep.js@0.12.0/dist/NoSleep.min.js"></script>
   <style>
     * {
       margin: 0;
@@ -343,7 +346,7 @@
   <div id="slideshow"></div>
 
   <div id="sleepReminder">
-    💡 To keep screen on: Settings → Display & Brightness → Auto-Lock → Never
+    Screen wake enabled - photo frame will run indefinitely
   </div>
 
   <div id="intervalControls">
@@ -375,7 +378,7 @@
     <button onclick="togglePlayPause()" id="playPauseBtn">Pause</button>
     <button onclick="nextPhoto()">Next →</button>
     <button onclick="toggleFullscreen()" id="fullscreenBtn">Fullscreen</button>
-    <button onclick="window.location.href='/'">Exit</button>
+    <button onclick="exitSlideshow()">Exit</button>
   </div>
 
   <script>
@@ -395,6 +398,26 @@
     let displayMode = 'cover'; // 'cover', 'contain', or 'dual'
     let pendingPortrait = null; // For dual mode: holds first portrait photo
 
+    // Screen wake lock using NoSleep.js (Wake Lock API broken in iOS PWAs)
+    const noSleep = new NoSleep();
+    let wakeLockEnabled = false;
+
+    function enableWakeLock() {
+      if (!wakeLockEnabled) {
+        noSleep.enable();
+        wakeLockEnabled = true;
+        console.log('Screen wake lock enabled via NoSleep.js');
+      }
+    }
+
+    function exitSlideshow() {
+      if (wakeLockEnabled) {
+        noSleep.disable();
+        wakeLockEnabled = false;
+      }
+      window.location.href = '/';
+    }
+
     // Get params from URL
     const urlParams = new URLSearchParams(window.location.search);
     const customInterval = parseInt(urlParams.get('interval'));
@@ -404,6 +427,30 @@
     const urlMode = urlParams.get('mode');
     if (urlMode && ['cover', 'contain', 'dual'].includes(urlMode)) {
       displayMode = urlMode;
+    }
+
+    // Exponential backoff retry for network resilience
+    async function fetchWithRetry(url, maxRetries = 7) {
+      for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+          const response = await fetch(url);
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          return response;
+        } catch (error) {
+          if (attempt === maxRetries) {
+            console.error(`Fetch failed after ${maxRetries} retries:`, error);
+            throw error; // Final attempt failed
+          }
+
+          // Exponential backoff: 10ms, 20ms, 40ms, 80ms, 160ms, 320ms, 640ms
+          const baseDelay = Math.pow(2, attempt) * 10;
+          const jitter = Math.random() * baseDelay * 0.1; // +/- 10% jitter to prevent thundering herd
+          const delay = baseDelay + jitter;
+
+          console.log(`Retry ${attempt + 1}/${maxRetries} after ${delay.toFixed(0)}ms`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
     }
 
     async function init() {
@@ -423,6 +470,9 @@
 
         // Hide loading
         loadingEl.classList.add('hidden');
+
+        // Enable screen wake lock after first successful load
+        enableWakeLock();
 
         // Update button states
         updateIntervalButtons();
@@ -444,6 +494,12 @@
       try {
         // Load new random photo
         const img = await createPhotoElement();
+
+        // If fetch failed after all retries, skip this photo
+        if (!img) {
+          console.warn('Skipping photo due to load failure - keeping previous photo visible');
+          return;
+        }
 
         // Check if portrait (taller than wide)
         const isPortrait = img.naturalHeight > img.naturalWidth;
@@ -475,21 +531,32 @@
     async function createPhotoElement() {
       const img = document.createElement('img');
       img.className = 'photo preload';
-      img.src = `/api/photo/random?t=${Date.now()}`;
 
-      // Apply display mode class
-      if (displayMode === 'contain') {
-        img.classList.add('contain-mode');
+      try {
+        // Use retry wrapper instead of direct fetch
+        const response = await fetchWithRetry(`/api/photo/random?t=${Date.now()}`);
+        const blob = await response.blob();
+        img.src = URL.createObjectURL(blob);
+
+        // Apply display mode class
+        if (displayMode === 'contain') {
+          img.classList.add('contain-mode');
+        }
+
+        // Wait for image to load
+        await new Promise((resolve, reject) => {
+          img.onload = resolve;
+          img.onerror = reject;
+        });
+
+        return img;
+      } catch (error) {
+        console.error('Failed to load photo after retries:', error);
+        // Return null to keep showing previous photo
+        return null;
       }
-
-      // Wait for load
-      await new Promise((resolve, reject) => {
-        img.onload = resolve;
-        img.onerror = reject;
-      });
-
-      return img;
     }
+
 
     async function showSinglePhoto(img) {
       // Remove old photos
@@ -731,7 +798,7 @@
       } else if (e.key === 'ArrowLeft') {
         previousPhoto();
       } else if (e.key === 'Escape') {
-        window.location.href = '/';
+        exitSlideshow();
       }
     });
 
