@@ -220,20 +220,20 @@
       border: none;
       font-size: 0.938rem;
       padding: 12px 24px;
-      box-shadow: inset -3px -3px 6px rgba(174, 174, 192, 0.2),
-                  inset 3px 3px 6px rgba(255, 255, 255, 0.8);
+      box-shadow: -4px -4px 10px rgba(255, 255, 255, 0.8),
+                  4px 4px 10px rgba(174, 174, 192, 0.3);
     }
 
     button.secondary:hover {
-      background: #E8E8EB;
-      box-shadow: inset -4px -4px 8px rgba(174, 174, 192, 0.25),
-                  inset 4px 4px 8px rgba(255, 255, 255, 0.9);
+      transform: translateY(-2px);
+      box-shadow: -6px -6px 14px rgba(255, 255, 255, 0.9),
+                  6px 6px 14px rgba(174, 174, 192, 0.4);
     }
 
     button.secondary:active {
-      background: #F0F0F3;
-      box-shadow: inset -2px -2px 4px rgba(174, 174, 192, 0.15),
-                  inset 2px 2px 4px rgba(255, 255, 255, 0.7);
+      transform: translateY(0);
+      box-shadow: -3px -3px 8px rgba(255, 255, 255, 0.7),
+                  3px 3px 8px rgba(174, 174, 192, 0.25);
     }
 
     .picker-status {
@@ -436,7 +436,7 @@
       letter-spacing: 0.01em;
     }
 
-    /* Sunken Input Style - Neumorphic */
+    /* Sunken Input Style - Neumorphic (Deeper Inset) */
     .form-input,
     .form-textarea {
       width: 100%;
@@ -444,19 +444,20 @@
       font-size: 0.938rem;
       font-family: inherit;
       color: #4A5A52;
-      background: #F0F0F3;
+      background: #E8E8EB;
       border: none;
       border-radius: 10px;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      box-shadow: inset -4px -4px 8px rgba(174, 174, 192, 0.2),
-                  inset 4px 4px 8px #FFFFFF;
+      box-shadow: inset -5px -5px 12px rgba(174, 174, 192, 0.3),
+                  inset 5px 5px 12px rgba(255, 255, 255, 0.6);
       outline: none;
     }
 
     .form-input:focus,
     .form-textarea:focus {
-      box-shadow: inset -5px -5px 10px rgba(143, 181, 165, 0.2),
-                  inset 5px 5px 10px rgba(255, 255, 255, 0.8),
+      background: #E3E3E7;
+      box-shadow: inset -6px -6px 14px rgba(143, 181, 165, 0.25),
+                  inset 6px 6px 14px rgba(255, 255, 255, 0.7),
                   0 0 0 3px rgba(143, 181, 165, 0.12);
     }
 
