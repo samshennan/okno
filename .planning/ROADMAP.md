@@ -47,11 +47,12 @@ Plans:
   3. The screen stays awake indefinitely -- leaving the iPad untouched for 1+ hours does not trigger screen dimming or sleep
   4. Adding the app to Home Screen launches it as a standalone fullscreen PWA, and it works in iOS Guided Access (kiosk) mode
   5. If the network drops briefly, the slideshow continues showing the current photo and retries fetching the next one automatically
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 02-01: TBD
-- [ ] 02-02: TBD
+- [ ] 02-01-PLAN.md — PWA manifest + Service Worker (foundation for offline support)
+- [ ] 02-02-PLAN.md — NoSleep.js integration + exponential backoff retry (screen wake + resilience)
+- [ ] 02-03-PLAN.md — Human verification of all Phase 2 success criteria
 
 ### Phase 3: Advanced Features
 **Goal**: Okno goes beyond basic slideshow with emotionally powerful features that match premium commercial frames
@@ -74,5 +75,5 @@ Phases execute in numeric order: 1 -> 2 -> 3
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Backend + Deployment | 0/5 | Ready to execute | - |
-| 2. Slideshow + PWA | 0/TBD | Not started | - |
+| 2. Slideshow + PWA | 0/3 | Ready to execute | - |
 | 3. Advanced Features | 0/TBD | Not started | - |
