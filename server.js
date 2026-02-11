@@ -42,7 +42,7 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       ...helmet.contentSecurityPolicy.getDefaultDirectives(),
-      "script-src": ["'self'", "'unsafe-inline'"],  // Allow inline scripts
+      "script-src": ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],  // Allow inline scripts + CDN
       "script-src-attr": ["'unsafe-inline'"],  // Allow inline event handlers (onclick, etc)
     },
   },

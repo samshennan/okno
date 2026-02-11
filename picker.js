@@ -108,7 +108,9 @@ router.get('/status/:sessionId', async (req, res) => {
 
     logger.info('Picker status checked', {
       sessionId: req.params.sessionId,
-      done
+      done,
+      mediaItemsSet: session.mediaItemsSet,
+      fullSession: JSON.stringify(session)
     });
 
     res.json({ done });
