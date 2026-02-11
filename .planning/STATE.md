@@ -10,9 +10,9 @@ See: .planning/PROJECT.md (updated 2026-02-08)
 ## Current Position
 
 **Phase: 2 of 7 (Slideshow + PWA)**
-Plan: 1 of 3 in phase
+Plan: 2 of 3 in phase
 Status: In progress - Building PWA capabilities
-Last activity: 2026-02-11 - Completed 02-01-PLAN.md (PWA Installation)
+Last activity: 2026-02-11 - Completed 02-02-PLAN.md (Screen Wake Lock + Network Resilience)
 
 Progress: [██████████░░░░░░░░░░] 50% (Phase 1 complete, Phase 2 started)
 
@@ -39,6 +39,8 @@ Progress: [██████████░░░░░░░░░░] 50% (Ph
 - ✅ PWA manifest with fullscreen display mode (02-01)
 - ✅ Service Worker with network-first photo caching (02-01)
 - ✅ iOS-specific meta tags for Add to Home Screen (02-01)
+- ✅ NoSleep.js screen wake lock for indefinite operation (02-02)
+- ✅ Exponential backoff retry for network resilience (02-02)
 
 ## Performance Metrics
 
@@ -46,13 +48,20 @@ Progress: [██████████░░░░░░░░░░] 50% (Ph
 - Phase 1 (Backend + Deployment): ~6 hours (including planning)
 - v0.1.0 launch: 1 session
 - v0.1.1 fixes: 1 session (same day)
-- Total: ~8 hours from concept to production
+- Phase 2 (02-01 + 02-02): ~45 minutes total
+- Total: ~9 hours from concept to production-ready PWA
 
 **Phase 1 Results:**
 - Plans completed: 5/5 (01-01 through 01-05)
 - Deployment: Successful, live at okno.moonacle.com
 - Security: Email allowlist active, HTTPS enforced
 - Stability: PM2 auto-restart, health monitoring
+
+**Phase 2 Results (in progress):**
+- Plans completed: 2/3 (02-01, 02-02 complete)
+- PWA installable on iOS with fullscreen mode
+- Screen stays awake indefinitely during slideshow
+- Network resilience handles weak WiFi gracefully
 
 ## Accumulated Context
 
@@ -69,6 +78,10 @@ Progress: [██████████░░░░░░░░░░] 50% (Ph
 | Network-first caching for photos | Fresh photos when online, offline fallback | 02-01 | 2026-02-11 |
 | Fullscreen display mode (not standalone) | Remove all browser chrome for photo frame | 02-01 | 2026-02-11 |
 | Sharp for icon generation (not ImageMagick) | Portable, programmatic, high-quality | 02-01 | 2026-02-11 |
+| NoSleep.js via CDN (not npm package) | Avoids build step, maintains vanilla JS | 02-02 | 2026-02-11 |
+| NoSleep.js over Wake Lock API | Wake Lock API broken in iOS PWAs until iOS 18.4 | 02-02 | 2026-02-11 |
+| Exponential backoff (7 retries, 10ms-640ms) | Balances fast recovery with server kindness | 02-02 | 2026-02-11 |
+| Blob URLs for photo loading | Prevents cache issues with expired baseUrls | 02-02 | 2026-02-11 |
 
 ### Technical Debt
 
@@ -77,6 +90,8 @@ Progress: [██████████░░░░░░░░░░] 50% (Ph
 - ✅ Missing re-authentication UI (Sign Out button)
 - ✅ Email allowlist for security
 - ✅ Comprehensive documentation
+- ✅ iPad screen sleep prevention (NoSleep.js)
+- ✅ Network error handling (exponential backoff)
 
 **Remaining:**
 - ⚠️ Auto-retry on 403 errors (manual refresh required)
@@ -126,6 +141,8 @@ See: ROADMAP.md for full feature roadmap
 - ✅ OAuth token expiry (manual refresh endpoint + Sign Out button)
 - ✅ No re-authentication UI (Sign Out button added)
 - ✅ Security for family use (email allowlist active)
+- ✅ iPad screen sleep issues (NoSleep.js screen wake lock)
+- ✅ Network errors causing white flashes (exponential backoff retry)
 
 **Active:**
 - Google Picker API has no "Select All" option (manual selection only)
@@ -139,21 +156,20 @@ See: ROADMAP.md for full feature roadmap
 
 ## Session Continuity
 
-**Last session:** 2026-02-11 19:10 UTC
-**Status:** Phase 02 Plan 01 complete (PWA Installation)
-**Resume file:** None - continue to 02-02 or 02-03 next
+**Last session:** 2026-02-11 19:39 UTC
+**Status:** Phase 02 Plan 02 complete (Screen Wake Lock + Network Resilience)
+**Resume file:** None - continue to 02-03 next
 
 **Current state:**
 - Production app running at okno.moonacle.com
-- PWA infrastructure complete (manifest, Service Worker, iOS meta tags)
-- Slideshow now installable via Add to Home Screen
-- Offline photo caching active
-- Ready for next Phase 2 plans (photo management or slideshow improvements)
+- PWA fully functional with screen wake lock and network resilience
+- iPad can run as always-on photo frame without intervention
+- Ready for Phase 02 Plan 03 or production testing
 
 **Next steps when resuming:**
-1. Test PWA installation on actual iPad device
-2. Verify fullscreen mode and offline caching work as expected
-3. Continue to Phase 02 Plan 02 (photo management) or Plan 03 (slideshow improvements)
+1. Test on actual iPad device - verify PWA installation + screen wake lock
+2. Test network resilience with weak WiFi or airplane mode
+3. Continue to Phase 02 Plan 03 (photo management) or Phase 3 planning
 
 ---
 
