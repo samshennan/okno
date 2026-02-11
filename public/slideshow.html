@@ -110,16 +110,23 @@
       display: block;
     }
 
+    /* Neumorphic Control Panel */
     #controls {
       position: fixed;
       bottom: 2rem;
       right: 2rem;
       display: flex;
-      gap: 1rem;
+      gap: 8px;
       z-index: 100;
       opacity: 0;
       transition: opacity 0.3s;
       pointer-events: none;
+      background: #F0F0F3;
+      backdrop-filter: blur(20px);
+      padding: 10px;
+      border-radius: 16px;
+      box-shadow: -6px -6px 16px rgba(255, 255, 255, 0.6),
+                  6px 6px 16px rgba(0, 0, 0, 0.15);
     }
 
     #controls.visible {
@@ -127,46 +134,72 @@
       pointer-events: auto;
     }
 
+    /* Neumorphic Buttons */
     button {
-      background: rgba(255, 255, 255, 0.9);
-      color: #000;
+      background: #F0F0F3;
+      color: #4A5A52;
       border: none;
       padding: 0.75rem 1.5rem;
-      border-radius: 4px;
+      border-radius: 10px;
       cursor: pointer;
-      font-size: 1rem;
-      transition: transform 0.1s;
+      font-size: 0.938rem;
+      font-weight: 500;
+      letter-spacing: -0.01em;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: -4px -4px 10px rgba(255, 255, 255, 0.8),
+                  4px 4px 10px rgba(0, 0, 0, 0.2);
     }
 
     button:hover {
-      transform: scale(1.05);
+      transform: translateY(-2px);
+      box-shadow: -6px -6px 14px rgba(255, 255, 255, 0.9),
+                  6px 6px 14px rgba(0, 0, 0, 0.25);
     }
 
     button:active {
-      transform: scale(0.95);
+      transform: translateY(0);
+      box-shadow: inset -3px -3px 6px rgba(0, 0, 0, 0.15),
+                  inset 3px 3px 6px rgba(255, 255, 255, 0.7);
     }
 
     button.small {
-      padding: 0.5rem 0.75rem;
-      font-size: 0.875rem;
+      padding: 10px 16px;
+      font-size: 0.813rem;
     }
 
+    /* Active Button State - Sunken with Color */
     button.active {
-      background: rgba(46, 204, 113, 0.9);
-      color: #fff;
+      background: #8FB5A5;
+      color: #FFFFFF;
+      box-shadow: inset -3px -3px 6px rgba(125, 165, 148, 0.4),
+                  inset 3px 3px 6px rgba(255, 255, 255, 0.2),
+                  -2px -2px 6px rgba(255, 255, 255, 0.3),
+                  2px 2px 6px rgba(143, 181, 165, 0.4);
     }
 
+    button.active:hover {
+      background: #7DA594;
+      transform: translateY(-1px);
+    }
+
+    /* Neumorphic Interval Controls */
     #intervalControls {
       position: fixed;
       top: 2rem;
       left: 50%;
       transform: translateX(-50%);
       display: flex;
-      gap: 0.5rem;
+      gap: 6px;
       z-index: 100;
       opacity: 0;
       transition: opacity 0.3s;
       pointer-events: none;
+      background: #F0F0F3;
+      backdrop-filter: blur(20px);
+      padding: 10px;
+      border-radius: 16px;
+      box-shadow: -6px -6px 16px rgba(255, 255, 255, 0.6),
+                  6px 6px 16px rgba(0, 0, 0, 0.15);
     }
 
     #intervalControls.visible {
@@ -174,17 +207,24 @@
       pointer-events: auto;
     }
 
+    /* Neumorphic Display Mode Controls */
     #displayModeControls {
       position: fixed;
       top: 2rem;
       right: 2rem;
       display: flex;
       flex-direction: column;
-      gap: 0.5rem;
+      gap: 6px;
       z-index: 100;
       opacity: 0;
       transition: opacity 0.3s;
       pointer-events: none;
+      background: #F0F0F3;
+      backdrop-filter: blur(20px);
+      padding: 10px;
+      border-radius: 16px;
+      box-shadow: -6px -6px 16px rgba(255, 255, 255, 0.6),
+                  6px 6px 16px rgba(0, 0, 0, 0.15);
     }
 
     #displayModeControls.visible {
@@ -192,18 +232,24 @@
       pointer-events: auto;
     }
 
+    /* Neumorphic Info Panel */
     #info {
       position: fixed;
       bottom: 2rem;
       left: 2rem;
-      font-size: 0.9rem;
+      font-size: 0.813rem;
+      font-weight: 500;
+      color: #4A5A52;
       opacity: 0;
       transition: opacity 0.3s;
       z-index: 100;
-      background: rgba(0, 0, 0, 0.5);
-      padding: 0.5rem 1rem;
-      border-radius: 4px;
+      background: #F0F0F3;
+      backdrop-filter: blur(12px);
+      padding: 12px 18px;
+      border-radius: 12px;
       pointer-events: none;
+      box-shadow: -4px -4px 10px rgba(255, 255, 255, 0.7),
+                  4px 4px 10px rgba(0, 0, 0, 0.15);
     }
 
     #info.visible {

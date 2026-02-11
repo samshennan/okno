@@ -92,7 +92,11 @@ app.use('/api/photo', photoRouter);
 const healthRouter = require('./health');
 app.use('/api/health', healthRouter);
 
-logger.info('Photo and health routes mounted');
+// Mount feedback routes
+const feedbackRouter = require('./feedback');
+app.use('/api/feedback', feedbackRouter);
+
+logger.info('Photo, health, and feedback routes mounted');
 
 // Root route now served by static index.html in public/
 // (removed inline HTML, using public/index.html instead)

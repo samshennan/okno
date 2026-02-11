@@ -13,42 +13,84 @@
 
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: #F5F3ED; /* Warm eggshell */
-      color: #4A5A52; /* Muted eucalyptus text */
+      background: #F0F0F3;
+      color: #4A5A52;
       display: flex;
       align-items: center;
       justify-content: center;
       min-height: 100vh;
       padding: 20px;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* Subtle background pattern - neumorphic style */
+    body::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-image: radial-gradient(circle at 20% 50%, rgba(143, 181, 165, 0.02) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 80%, rgba(122, 148, 135, 0.03) 0%, transparent 50%);
+      pointer-events: none;
     }
 
     .container {
-      max-width: 700px;
+      max-width: 480px;
       text-align: center;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Window Icon - Neumorphic */
+    .window-icon {
+      width: 64px;
+      height: 64px;
+      margin: 0 auto 24px;
+      background: #F0F0F3;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      box-shadow: -8px -8px 20px #FFFFFF,
+                  8px 8px 20px rgba(174, 174, 192, 0.4);
+      animation: float 6s ease-in-out infinite;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-10px); }
     }
 
     h1 {
-      font-size: 4rem;
-      margin-bottom: 0.5rem;
-      font-weight: 200;
-      letter-spacing: 0.2em;
+      font-size: 3.5rem;
+      margin-bottom: 8px;
+      font-weight: 300;
+      letter-spacing: 0.15em;
+      background: linear-gradient(135deg, #4A5A52 0%, #5A6B62 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
     }
 
     .tagline {
-      font-size: 1.3rem;
-      font-weight: 300;
+      font-size: 1.125rem;
+      font-weight: 400;
       font-style: italic;
-      color: #7A9487; /* Soft eucalyptus */
-      margin-bottom: 2rem;
-      letter-spacing: 0.05em;
+      color: #7A9487;
+      margin-bottom: 40px;
+      letter-spacing: 0.03em;
     }
 
     .hero-copy {
-      font-size: 1.1rem;
+      font-size: 1rem;
       line-height: 1.7;
-      color: #5A6B62; /* Darker eucalyptus */
-      margin-bottom: 2rem;
-      max-width: 600px;
+      color: rgba(90, 107, 98, 0.8);
+      margin-bottom: 32px;
+      max-width: 400px;
       margin-left: auto;
       margin-right: auto;
     }
@@ -56,61 +98,86 @@
     .trust-signals {
       display: flex;
       justify-content: center;
-      gap: 1.5rem;
-      margin: 2rem 0;
-      font-size: 0.85rem;
-      color: rgba(90, 107, 98, 0.6);
+      gap: 24px;
+      margin: 32px 0;
+      font-size: 0.813rem;
+      color: rgba(90, 107, 98, 0.5);
       flex-wrap: wrap;
     }
 
     .trust-signals span {
       display: flex;
       align-items: center;
-      gap: 0.3rem;
+      gap: 6px;
+      padding: 8px 16px;
+      background: rgba(143, 181, 165, 0.06);
+      border-radius: 20px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
+    .trust-signals span:hover {
+      background: rgba(143, 181, 165, 0.12);
+      transform: translateY(-2px);
+    }
+
+    /* Neumorphic Status Cards */
     .status {
-      margin: 2rem 0;
-      padding: 1rem;
-      background: rgba(143, 181, 165, 0.08);
-      border-radius: 8px;
-      font-size: 1.1rem;
+      margin: 32px 0;
+      padding: 20px 24px;
+      background: #F0F0F3;
+      border-radius: 16px;
+      font-size: 1rem;
+      font-weight: 500;
       color: #5A6B62;
+      box-shadow: inset -4px -4px 8px rgba(174, 174, 192, 0.15),
+                  inset 4px 4px 8px #FFFFFF,
+                  -2px -2px 6px #FFFFFF,
+                  2px 2px 6px rgba(174, 174, 192, 0.2);
     }
 
     .status.authenticated {
-      background: rgba(143, 181, 165, 0.15);
-      border: 1px solid rgba(143, 181, 165, 0.35);
       color: #4A5A52;
+      box-shadow: inset -5px -5px 10px rgba(143, 181, 165, 0.15),
+                  inset 5px 5px 10px rgba(255, 255, 255, 0.8),
+                  -2px -2px 6px #FFFFFF,
+                  2px 2px 6px rgba(143, 181, 165, 0.25);
     }
 
     .status.error {
-      background: rgba(184, 134, 123, 0.15);
-      border: 1px solid rgba(184, 134, 123, 0.35);
       color: #8B6F66;
+      box-shadow: inset -5px -5px 10px rgba(184, 134, 123, 0.15),
+                  inset 5px 5px 10px rgba(255, 255, 255, 0.8),
+                  -2px -2px 6px #FFFFFF,
+                  2px 2px 6px rgba(184, 134, 123, 0.2);
     }
 
+    /* Neumorphic Buttons */
     button {
-      background: #fff;
-      color: #000;
+      background: #F0F0F3;
+      color: #4A5A52;
       border: none;
-      padding: 1rem 2rem;
-      font-size: 1rem;
+      padding: 14px 28px;
+      font-size: 0.938rem;
+      font-weight: 500;
       border-radius: 12px;
       cursor: pointer;
-      margin: 0.5rem;
-      transition: all 0.2s ease;
-      font-weight: 500;
-      box-shadow: 0 4px 14px 0 rgba(255, 255, 255, 0.1);
+      margin: 6px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      letter-spacing: -0.01em;
+      box-shadow: -6px -6px 16px #FFFFFF,
+                  6px 6px 16px rgba(174, 174, 192, 0.4);
     }
 
     button:hover {
       transform: translateY(-2px);
-      box-shadow: 0 6px 20px 0 rgba(255, 255, 255, 0.2);
+      box-shadow: -8px -8px 20px #FFFFFF,
+                  8px 8px 20px rgba(174, 174, 192, 0.5);
     }
 
     button:active {
       transform: translateY(0);
+      box-shadow: inset -4px -4px 8px rgba(174, 174, 192, 0.2),
+                  inset 4px 4px 8px #FFFFFF;
     }
 
     button:disabled {
@@ -119,57 +186,73 @@
       transform: none;
     }
 
+    /* Primary Button - Raised with Color */
     button.primary {
-      padding: 1.5rem 3rem;
-      font-size: 1.3rem;
+      padding: 18px 40px;
+      font-size: 1.063rem;
       font-weight: 600;
-      letter-spacing: 0.02em;
-      background: #8FB5A5; /* Soft eucalyptus */
-      color: #F5F3ED; /* Warm eggshell text */
-      border-radius: 16px;
-      box-shadow: 0 8px 24px 0 rgba(143, 181, 165, 0.25);
-      margin: 1.5rem 0.5rem;
+      letter-spacing: -0.01em;
+      background: #8FB5A5;
+      color: #FFFFFF;
+      border: none;
+      border-radius: 14px;
+      box-shadow: -8px -8px 20px rgba(255, 255, 255, 0.4),
+                  8px 8px 20px rgba(143, 181, 165, 0.6),
+                  inset -2px -2px 6px rgba(125, 165, 148, 0.3),
+                  inset 2px 2px 6px rgba(255, 255, 255, 0.2);
+      margin: 24px 6px 12px;
     }
 
     button.primary:hover {
       transform: translateY(-3px);
-      background: #7DA594; /* Slightly darker eucalyptus */
-      box-shadow: 0 12px 32px 0 rgba(143, 181, 165, 0.35);
+      background: #7DA594;
+      box-shadow: -10px -10px 25px rgba(255, 255, 255, 0.5),
+                  10px 10px 25px rgba(143, 181, 165, 0.7),
+                  inset -2px -2px 6px rgba(125, 165, 148, 0.3),
+                  inset 2px 2px 6px rgba(255, 255, 255, 0.2);
     }
 
     button.secondary {
-      background: rgba(143, 181, 165, 0.1);
+      background: rgba(255, 255, 255, 0.6);
       color: #5A6B62;
-      border: 1px solid rgba(143, 181, 165, 0.25);
-      font-size: 0.95rem;
+      border: 1px solid rgba(143, 181, 165, 0.2);
+      font-size: 0.938rem;
+      padding: 12px 24px;
     }
 
     button.secondary:hover {
-      background: rgba(143, 181, 165, 0.18);
+      background: rgba(255, 255, 255, 0.9);
       border-color: rgba(143, 181, 165, 0.35);
     }
 
     .picker-status {
-      margin-top: 2rem;
-      padding: 1rem;
-      background: rgba(143, 181, 165, 0.08);
-      border-radius: 8px;
+      margin-top: 24px;
+      padding: 20px 24px;
+      background: rgba(255, 255, 255, 0.6);
+      backdrop-filter: blur(12px);
+      border-radius: 14px;
       display: none;
       color: #5A6B62;
+      border: 1px solid rgba(143, 181, 165, 0.15);
+      box-shadow: inset 0 2px 4px rgba(143, 181, 165, 0.08),
+                  0 4px 16px rgba(143, 181, 165, 0.08);
     }
 
     .picker-status.visible {
       display: block;
+      animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     .loading {
       display: inline-block;
-      width: 20px;
-      height: 20px;
-      border: 3px solid rgba(143, 181, 165, 0.25);
+      width: 18px;
+      height: 18px;
+      border: 2.5px solid rgba(143, 181, 165, 0.2);
       border-top-color: #8FB5A5;
       border-radius: 50%;
-      animation: spin 1s linear infinite;
+      animation: spin 0.8s linear infinite;
+      vertical-align: middle;
+      margin-right: 8px;
     }
 
     @keyframes spin {
@@ -177,38 +260,390 @@
     }
 
     .links {
-      margin-top: 2rem;
-      padding-top: 2rem;
-      border-top: 1px solid rgba(143, 181, 165, 0.2);
+      margin-top: 48px;
+      padding-top: 32px;
+      border-top: 1px solid rgba(143, 181, 165, 0.12);
     }
 
     .links a {
-      color: rgba(90, 107, 98, 0.6);
+      color: rgba(90, 107, 98, 0.55);
       text-decoration: none;
-      margin: 0 1rem;
-      font-size: 0.9rem;
+      margin: 0 16px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      letter-spacing: -0.01em;
     }
 
     .links a:hover {
-      color: #5A6B62;
+      color: #8FB5A5;
+      transform: translateY(-1px);
     }
 
     .photo-count {
+      font-size: 2.5rem;
+      font-weight: 300;
+      background: linear-gradient(135deg, #8FB5A5 0%, #7A9487 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin: 16px 0;
+      letter-spacing: -0.02em;
+    }
+
+    /* Modal Overlay */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(74, 90, 82, 0.4);
+      backdrop-filter: blur(8px);
+      z-index: 1000;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .modal-overlay.visible {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Modal Container */
+    .modal-container {
+      background: #F5F3ED;
+      border-radius: 20px;
+      max-width: 520px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15),
+                  0 0 1px rgba(74, 90, 82, 0.1);
+      animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    /* Modal Header */
+    .modal-header {
+      padding: 32px 32px 24px;
+      border-bottom: 1px solid rgba(143, 181, 165, 0.12);
+    }
+
+    .modal-title {
+      font-size: 1.5rem;
+      font-weight: 400;
+      letter-spacing: -0.01em;
+      color: #4A5A52;
+      margin: 0;
+    }
+
+    .modal-subtitle {
+      font-size: 0.875rem;
+      color: rgba(90, 107, 98, 0.6);
+      margin: 6px 0 0;
+      line-height: 1.5;
+    }
+
+    /* Modal Body */
+    .modal-body {
+      padding: 32px;
+    }
+
+    /* Type Selection */
+    .type-selector {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 32px;
+    }
+
+    .type-option {
+      position: relative;
+      padding: 20px 16px;
+      background: rgba(143, 181, 165, 0.04);
+      border: 1.5px solid rgba(143, 181, 165, 0.15);
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      text-align: center;
+    }
+
+    .type-option:hover {
+      border-color: rgba(143, 181, 165, 0.35);
+      background: rgba(143, 181, 165, 0.08);
+      transform: translateY(-2px);
+    }
+
+    .type-option.selected {
+      background: rgba(143, 181, 165, 0.12);
+      border-color: #8FB5A5;
+      box-shadow: 0 0 0 3px rgba(143, 181, 165, 0.08);
+    }
+
+    .type-icon {
+      font-size: 1.5rem;
+      margin-bottom: 8px;
+      filter: grayscale(0.2) opacity(0.85);
+    }
+
+    .type-label {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: #5A6B62;
+      letter-spacing: -0.01em;
+    }
+
+    /* Form Fields */
+    .form-group {
+      margin-bottom: 24px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 0.813rem;
+      font-weight: 500;
+      color: rgba(90, 107, 98, 0.75);
+      margin-bottom: 10px;
+      letter-spacing: 0.01em;
+    }
+
+    /* Sunken Input Style - Neumorphic */
+    .form-input,
+    .form-textarea {
+      width: 100%;
+      padding: 14px 16px;
+      font-size: 0.938rem;
+      font-family: inherit;
+      color: #4A5A52;
+      background: #F0F0F3;
+      border: none;
+      border-radius: 10px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: inset -4px -4px 8px rgba(174, 174, 192, 0.2),
+                  inset 4px 4px 8px #FFFFFF;
+      outline: none;
+    }
+
+    .form-input:focus,
+    .form-textarea:focus {
+      box-shadow: inset -5px -5px 10px rgba(143, 181, 165, 0.2),
+                  inset 5px 5px 10px rgba(255, 255, 255, 0.8),
+                  0 0 0 3px rgba(143, 181, 165, 0.12);
+    }
+
+    .form-input::placeholder,
+    .form-textarea::placeholder {
+      color: rgba(90, 107, 98, 0.35);
+    }
+
+    .form-textarea {
+      min-height: 140px;
+      resize: vertical;
+      line-height: 1.6;
+    }
+
+    /* File Upload */
+    .file-upload-area {
+      position: relative;
+      padding: 24px;
+      background: rgba(143, 181, 165, 0.03);
+      border: 1.5px dashed rgba(143, 181, 165, 0.25);
+      border-radius: 10px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.25s ease;
+    }
+
+    .file-upload-area:hover {
+      border-color: #8FB5A5;
+      background: rgba(143, 181, 165, 0.06);
+    }
+
+    .file-upload-area.drag-over {
+      border-color: #8FB5A5;
+      background: rgba(143, 181, 165, 0.12);
+    }
+
+    .file-upload-icon {
       font-size: 2rem;
-      font-weight: bold;
+      margin-bottom: 8px;
+      opacity: 0.5;
+    }
+
+    .file-upload-text {
+      font-size: 0.875rem;
+      color: rgba(90, 107, 98, 0.6);
+    }
+
+    .file-upload-text strong {
       color: #8FB5A5;
-      margin: 1rem 0;
+      font-weight: 500;
+    }
+
+    .file-upload-input {
+      display: none;
+    }
+
+    .file-preview {
+      margin-top: 12px;
+      padding: 12px;
+      background: rgba(143, 181, 165, 0.08);
+      border-radius: 8px;
+      font-size: 0.875rem;
+      color: #5A6B62;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .file-remove {
+      background: none;
+      border: none;
+      color: #B8867B;
+      cursor: pointer;
+      padding: 4px 8px;
+      margin: 0;
+      font-size: 1.2rem;
+      opacity: 0.7;
+      transition: opacity 0.2s;
+    }
+
+    .file-remove:hover {
+      opacity: 1;
+      transform: none;
+    }
+
+    /* Modal Actions */
+    .modal-actions {
+      display: flex;
+      gap: 12px;
+      padding: 24px 32px 32px;
+      border-top: 1px solid rgba(143, 181, 165, 0.12);
+    }
+
+    .modal-btn {
+      flex: 1;
+      padding: 14px 24px;
+      font-size: 0.938rem;
+      font-weight: 500;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      letter-spacing: -0.01em;
+    }
+
+    .modal-btn-primary {
+      background: #8FB5A5;
+      color: #F5F3ED;
+      box-shadow: 0 2px 8px rgba(143, 181, 165, 0.25);
+    }
+
+    .modal-btn-primary:hover:not(:disabled) {
+      background: #7DA594;
+      box-shadow: 0 4px 12px rgba(143, 181, 165, 0.35);
+      transform: translateY(-1px);
+    }
+
+    .modal-btn-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .modal-btn-secondary {
+      background: rgba(143, 181, 165, 0.08);
+      color: #5A6B62;
+      border: 1px solid rgba(143, 181, 165, 0.2);
+    }
+
+    .modal-btn-secondary:hover {
+      background: rgba(143, 181, 165, 0.14);
+      border-color: rgba(143, 181, 165, 0.3);
+      transform: translateY(-1px);
+    }
+
+    /* Success Message */
+    .success-message {
+      text-align: center;
+      padding: 48px 32px;
+    }
+
+    .success-icon {
+      font-size: 3.5rem;
+      margin-bottom: 16px;
+      opacity: 0.85;
+    }
+
+    .success-title {
+      font-size: 1.25rem;
+      font-weight: 500;
+      color: #4A5A52;
+      margin-bottom: 8px;
+    }
+
+    .success-subtitle {
+      font-size: 0.938rem;
+      color: rgba(90, 107, 98, 0.6);
+      line-height: 1.6;
+    }
+
+    /* Donation Content */
+    .donation-content {
+      text-align: center;
+    }
+
+    .donation-icon {
+      font-size: 3rem;
+      margin-bottom: 16px;
+      opacity: 0.85;
+    }
+
+    .donation-text {
+      font-size: 1rem;
+      color: #5A6B62;
+      line-height: 1.7;
+      margin-bottom: 24px;
+    }
+
+    .donation-amount {
+      font-size: 2rem;
+      font-weight: 300;
+      color: #8FB5A5;
+      margin: 24px 0;
+      letter-spacing: -0.02em;
     }
   </style>
 </head>
 <body>
   <div class="container">
+    <div class="window-icon">🪟</div>
     <h1>OKNO</h1>
     <p class="tagline">A Window in Time</p>
 
     <div id="heroContent">
       <p class="hero-copy">
-        Your memories, always visible.
+        Your memories, always visible.<br>
+        A quiet presence on your shelf.
       </p>
     </div>
 
@@ -221,7 +656,40 @@
     <div id="pickerStatus" class="picker-status"></div>
 
     <div class="links">
-      <a href="mailto:sam@samshennan.com?subject=Okno Bug Report">Report a Bug</a>
+      <a href="#" onclick="openFeedbackModal(); return false;">Report a Bug</a>
+    </div>
+  </div>
+
+  <!-- Feedback Modal -->
+  <div id="feedbackModal" class="modal-overlay" onclick="if(event.target === this) closeFeedbackModal()">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h2 class="modal-title" id="modalTitle">Share Your Feedback</h2>
+        <p class="modal-subtitle" id="modalSubtitle">Help us improve Okno</p>
+      </div>
+
+      <div class="modal-body" id="modalBody">
+        <!-- Type Selector -->
+        <div class="type-selector">
+          <div class="type-option" onclick="selectFeedbackType('bug')">
+            <div class="type-icon">🐛</div>
+            <div class="type-label">Bug Report</div>
+          </div>
+          <div class="type-option" onclick="selectFeedbackType('feature')">
+            <div class="type-icon">✨</div>
+            <div class="type-label">Feature Request</div>
+          </div>
+          <div class="type-option" onclick="selectFeedbackType('donation')">
+            <div class="type-icon">💝</div>
+            <div class="type-label">Support Us</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-actions" id="modalActions" style="display: none;">
+        <button class="modal-btn modal-btn-secondary" onclick="closeFeedbackModal()">Cancel</button>
+        <button class="modal-btn modal-btn-primary" id="submitBtn" onclick="submitFeedback()">Submit</button>
+      </div>
     </div>
   </div>
 
@@ -477,6 +945,301 @@
 
     // Initialize
     checkAuth();
+
+    // Feedback Modal State
+    let feedbackType = null;
+    let uploadedFile = null;
+
+    function openFeedbackModal() {
+      document.getElementById('feedbackModal').classList.add('visible');
+      resetFeedbackModal();
+    }
+
+    function closeFeedbackModal() {
+      document.getElementById('feedbackModal').classList.remove('visible');
+      setTimeout(resetFeedbackModal, 300);
+    }
+
+    function resetFeedbackModal() {
+      feedbackType = null;
+      uploadedFile = null;
+      document.getElementById('modalTitle').textContent = 'Share Your Feedback';
+      document.getElementById('modalSubtitle').textContent = 'Help us improve Okno';
+      document.getElementById('modalActions').style.display = 'none';
+
+      document.getElementById('modalBody').innerHTML = `
+        <div class="type-selector">
+          <div class="type-option" onclick="selectFeedbackType('bug')">
+            <div class="type-icon">🐛</div>
+            <div class="type-label">Bug Report</div>
+          </div>
+          <div class="type-option" onclick="selectFeedbackType('feature')">
+            <div class="type-icon">✨</div>
+            <div class="type-label">Feature Request</div>
+          </div>
+          <div class="type-option" onclick="selectFeedbackType('donation')">
+            <div class="type-icon">💝</div>
+            <div class="type-label">Support Us</div>
+          </div>
+        </div>
+      `;
+    }
+
+    function selectFeedbackType(type) {
+      feedbackType = type;
+      document.getElementById('modalActions').style.display = 'flex';
+
+      if (type === 'bug') {
+        document.getElementById('modalTitle').textContent = 'Report a Bug';
+        document.getElementById('modalSubtitle').textContent = 'Help us fix issues and improve stability';
+        document.getElementById('submitBtn').textContent = 'Submit Bug Report';
+
+        document.getElementById('modalBody').innerHTML = `
+          <div class="form-group">
+            <label class="form-label">What happened?</label>
+            <textarea
+              class="form-textarea"
+              id="bugDescription"
+              placeholder="Describe the issue you experienced..."
+              required
+            ></textarea>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Your email (optional)</label>
+            <input
+              type="email"
+              class="form-input"
+              id="userEmail"
+              placeholder="your@email.com"
+            />
+            <p style="font-size: 0.75rem; color: rgba(90, 107, 98, 0.5); margin-top: 6px;">
+              We'll only use this to follow up on your report
+            </p>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Screenshot (optional)</label>
+            <div class="file-upload-area" onclick="document.getElementById('fileInput').click()">
+              <div class="file-upload-icon">📎</div>
+              <div class="file-upload-text">
+                <strong>Click to upload</strong> or drag and drop<br>
+                <span style="font-size: 0.75rem; opacity: 0.7;">PNG, JPG up to 5MB</span>
+              </div>
+            </div>
+            <input
+              type="file"
+              id="fileInput"
+              class="file-upload-input"
+              accept="image/*"
+              onchange="handleFileUpload(event)"
+            />
+            <div id="filePreview"></div>
+          </div>
+        `;
+      } else if (type === 'feature') {
+        document.getElementById('modalTitle').textContent = 'Request a Feature';
+        document.getElementById('modalSubtitle').textContent = 'Share your ideas for new capabilities';
+        document.getElementById('submitBtn').textContent = 'Submit Feature Request';
+
+        document.getElementById('modalBody').innerHTML = `
+          <div class="form-group">
+            <label class="form-label">What would you like to see?</label>
+            <textarea
+              class="form-textarea"
+              id="featureDescription"
+              placeholder="Describe the feature you'd like..."
+              required
+            ></textarea>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Why would this be useful?</label>
+            <textarea
+              class="form-textarea"
+              id="featureReason"
+              placeholder="Help us understand the benefit..."
+              style="min-height: 100px;"
+            ></textarea>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Your email (optional)</label>
+            <input
+              type="email"
+              class="form-input"
+              id="userEmail"
+              placeholder="your@email.com"
+            />
+            <p style="font-size: 0.75rem; color: rgba(90, 107, 98, 0.5); margin-top: 6px;">
+              Get notified when we launch new features
+            </p>
+          </div>
+        `;
+      } else if (type === 'donation') {
+        document.getElementById('modalTitle').textContent = 'Support Development';
+        document.getElementById('modalSubtitle').textContent = 'Help keep Okno free and evolving';
+        document.getElementById('modalActions').style.display = 'none';
+
+        document.getElementById('modalBody').innerHTML = `
+          <div class="donation-content">
+            <div class="donation-icon">🙏</div>
+            <p class="donation-text">
+              Okno is a passion project built with care.<br>
+              Your support helps us continue development.
+            </p>
+
+            <div style="margin: 32px 0;">
+              <a href="https://www.paypal.com/donate/?business=YOUR_PAYPAL&item_name=Okno+Development"
+                 target="_blank"
+                 style="text-decoration: none;">
+                <button class="modal-btn modal-btn-primary" style="margin: 0;">
+                  Donate via PayPal
+                </button>
+              </a>
+            </div>
+
+            <p style="font-size: 0.813rem; color: rgba(90, 107, 98, 0.5); line-height: 1.6;">
+              Every contribution, no matter the size,<br>
+              helps us build something meaningful.
+            </p>
+          </div>
+        `;
+      }
+
+      // Setup drag and drop for file upload
+      const uploadArea = document.querySelector('.file-upload-area');
+      if (uploadArea) {
+        uploadArea.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          uploadArea.classList.add('drag-over');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+          uploadArea.classList.remove('drag-over');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+          e.preventDefault();
+          uploadArea.classList.remove('drag-over');
+          const files = e.dataTransfer.files;
+          if (files.length > 0) {
+            handleFileUpload({ target: { files } });
+          }
+        });
+      }
+    }
+
+    function handleFileUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      // Validate file
+      if (!file.type.startsWith('image/')) {
+        alert('Please upload an image file');
+        return;
+      }
+
+      if (file.size > 5 * 1024 * 1024) {
+        alert('File size must be less than 5MB');
+        return;
+      }
+
+      uploadedFile = file;
+
+      // Show preview
+      const preview = document.getElementById('filePreview');
+      preview.innerHTML = `
+        <div class="file-preview">
+          <span>📷 ${file.name} (${(file.size / 1024).toFixed(0)} KB)</span>
+          <button class="file-remove" onclick="removeFile()" type="button">×</button>
+        </div>
+      `;
+    }
+
+    function removeFile() {
+      uploadedFile = null;
+      document.getElementById('filePreview').innerHTML = '';
+      document.getElementById('fileInput').value = '';
+    }
+
+    async function submitFeedback() {
+      const submitBtn = document.getElementById('submitBtn');
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Submitting...';
+
+      try {
+        const formData = new FormData();
+        formData.append('type', feedbackType);
+
+        if (feedbackType === 'bug') {
+          const description = document.getElementById('bugDescription').value.trim();
+          const email = document.getElementById('userEmail').value.trim();
+
+          if (!description) {
+            alert('Please describe the issue');
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Submit Bug Report';
+            return;
+          }
+
+          formData.append('description', description);
+          if (email) formData.append('email', email);
+          if (uploadedFile) formData.append('screenshot', uploadedFile);
+
+        } else if (feedbackType === 'feature') {
+          const description = document.getElementById('featureDescription').value.trim();
+          const reason = document.getElementById('featureReason').value.trim();
+          const email = document.getElementById('userEmail').value.trim();
+
+          if (!description) {
+            alert('Please describe the feature');
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Submit Feature Request';
+            return;
+          }
+
+          formData.append('description', description);
+          formData.append('reason', reason);
+          if (email) formData.append('email', email);
+        }
+
+        const response = await fetch('/api/feedback', {
+          method: 'POST',
+          body: formData
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(result.error || 'Failed to submit feedback');
+        }
+
+        // Show success message
+        document.getElementById('modalBody').innerHTML = `
+          <div class="success-message">
+            <div class="success-icon">✓</div>
+            <div class="success-title">Thank you for your feedback!</div>
+            <div class="success-subtitle">
+              ${feedbackType === 'bug'
+                ? 'We\'ll investigate this issue and work on a fix.'
+                : 'We appreciate your ideas and will carefully review them.'}
+            </div>
+          </div>
+        `;
+
+        document.getElementById('modalActions').innerHTML = `
+          <button class="modal-btn modal-btn-primary" onclick="closeFeedbackModal()" style="margin: 0 auto;">
+            Close
+          </button>
+        `;
+
+      } catch (error) {
+        alert('Failed to submit feedback: ' + error.message);
+        submitBtn.disabled = false;
+        submitBtn.textContent = feedbackType === 'bug' ? 'Submit Bug Report' : 'Submit Feature Request';
+      }
+    }
   </script>
 </body>
 </html>

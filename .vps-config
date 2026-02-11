@@ -1,0 +1,10 @@
+# Okno VPS Configuration
+# This file contains VPS connection details for automated deployment
+
+VPS_HOST="okno.moonacle.com"
+VPS_IP="159.69.152.123"
+VPS_USER="root"
+VPS_APP_DIR="/var/www/okno"
+
+# 1Password references
+OP_SERVICE_TOKEN="op://Moonacle/Service Account Auth Token: Okno VPS Production/credential"

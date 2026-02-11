@@ -4,3 +4,6 @@ sessions/
 logs/
 .env
 cache.json
+.op-service-token
+okno.env
+feedback/
