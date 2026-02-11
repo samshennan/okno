@@ -559,10 +559,16 @@
 
 
     async function showSinglePhoto(img) {
-      // Remove old photos
+      // Remove old photos that aren't active (cleanup from >1 cycle ago)
       const oldPhotos = slideshowEl.querySelectorAll('.photo');
       oldPhotos.forEach(photo => {
-        if (!photo.classList.contains('active')) photo.remove();
+        if (!photo.classList.contains('active') && !photo.classList.contains('preload')) {
+          // Revoke blob URL before removing
+          if (photo.src && photo.src.startsWith('blob:')) {
+            URL.revokeObjectURL(photo.src);
+          }
+          photo.remove();
+        }
       });
 
       slideshowEl.appendChild(img);
@@ -578,18 +584,31 @@
         currentIndex = (currentIndex + 1) % photoCount;
         currentIndexEl.textContent = currentIndex + 1;
 
+        // Clean up old photos after transition completes (1.5s to account for network delays)
         setTimeout(() => {
           const oldPhotos = slideshowEl.querySelectorAll('.photo:not(.active)');
-          oldPhotos.forEach(photo => photo.remove());
-        }, 1000);
+          oldPhotos.forEach(photo => {
+            // Revoke blob URL before removing
+            if (photo.src && photo.src.startsWith('blob:')) {
+              URL.revokeObjectURL(photo.src);
+            }
+            photo.remove();
+          });
+        }, 1500); // Increased from 1000ms to give retries time to complete
       }, 50);
     }
 
     async function showDualPortraits(img1, img2) {
-      // Remove old photos
+      // Remove old photos that aren't active (cleanup from >1 cycle ago)
       const oldPhotos = slideshowEl.querySelectorAll('.photo');
       oldPhotos.forEach(photo => {
-        if (!photo.classList.contains('active')) photo.remove();
+        if (!photo.classList.contains('active') && !photo.classList.contains('preload')) {
+          // Revoke blob URL before removing
+          if (photo.src && photo.src.startsWith('blob:')) {
+            URL.revokeObjectURL(photo.src);
+          }
+          photo.remove();
+        }
       });
 
       // Position photos side-by-side
@@ -612,10 +631,17 @@
         currentIndex = (currentIndex + 2) % photoCount;
         currentIndexEl.textContent = currentIndex + 1;
 
+        // Clean up old photos after transition completes (1.5s to account for network delays)
         setTimeout(() => {
           const oldPhotos = slideshowEl.querySelectorAll('.photo:not(.active)');
-          oldPhotos.forEach(photo => photo.remove());
-        }, 1000);
+          oldPhotos.forEach(photo => {
+            // Revoke blob URL before removing
+            if (photo.src && photo.src.startsWith('blob:')) {
+              URL.revokeObjectURL(photo.src);
+            }
+            photo.remove();
+          });
+        }, 1500); // Increased from 1000ms to give retries time to complete
       }, 50);
     }
 
