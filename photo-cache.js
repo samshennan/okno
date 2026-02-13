@@ -93,6 +93,36 @@ function getRandomItem() {
   return cache.mediaItems[randomIndex];
 }
 
+// Get items matching today's month+day across all years ("On This Day")
+function getOnThisDayItems() {
+  const now = new Date();
+  const todayMonth = now.getMonth(); // 0-11
+  const todayDay = now.getDate();    // 1-31
+
+  return cache.mediaItems.filter(item => {
+    if (!item.createTime) return false;
+    try {
+      const d = new Date(item.createTime);
+      return d.getMonth() === todayMonth && d.getDate() === todayDay;
+    } catch {
+      return false;
+    }
+  });
+}
+
+// Get random item from On This Day set
+function getRandomOnThisDayItem() {
+  const items = getOnThisDayItems();
+  if (items.length === 0) return null;
+  const randomIndex = Math.floor(Math.random() * items.length);
+  return items[randomIndex];
+}
+
+// Get count of On This Day matching photos
+function getOnThisDayCount() {
+  return getOnThisDayItems().length;
+}
+
 // Get cache size
 function size() {
   return cache.mediaItems.length;
@@ -184,6 +214,8 @@ loadCache();
 module.exports = {
   getItem,
   getRandomItem,
+  getRandomOnThisDayItem,
+  getOnThisDayCount,
   setItems,
   size,
   getSessionId,
