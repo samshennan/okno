@@ -12,6 +12,12 @@
   <meta name="apple-mobile-web-app-title" content="Okno">
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
   <link rel="manifest" href="/manifest.json">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap"
+    rel="stylesheet">
+  <script src="https://unpkg.com/lucide@0.564.0/dist/umd/lucide.min.js"></script>
 
   <!-- NoSleep.js required for iOS PWAs - Wake Lock API broken until iOS 18.4 (WebKit bug #254545) -->
   <script src="https://cdn.jsdelivr.net/npm/nosleep.js@0.12.0/dist/NoSleep.min.js"></script>
@@ -23,7 +29,7 @@
     }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       background: #000;
       color: #fff;
       overflow: hidden;
@@ -407,11 +413,12 @@
   </div>
 
   <div id="controls">
-    <button onclick="previousPhoto()">← Previous</button>
-    <button onclick="togglePlayPause()" id="playPauseBtn">Pause</button>
-    <button onclick="nextPhoto()">Next →</button>
-    <button class="secondary-action" onclick="toggleFullscreen()" id="fullscreenBtn">Fullscreen</button>
-    <button class="secondary-action" onclick="exitSlideshow()">Exit</button>
+    <button onclick="previousPhoto()"><i data-lucide="chevron-left"></i> Previous</button>
+    <button onclick="togglePlayPause()" id="playPauseBtn"><i data-lucide="pause"></i> Pause</button>
+    <button onclick="nextPhoto()">Next <i data-lucide="chevron-right"></i></button>
+    <button class="secondary-action" onclick="toggleFullscreen()" id="fullscreenBtn"><i data-lucide="maximize"></i>
+      Fullscreen</button>
+    <button class="secondary-action" onclick="exitSlideshow()"><i data-lucide="log-out"></i> Exit</button>
   </div>
 
   <script>
@@ -890,6 +897,19 @@
           console.error('Service Worker registration failed:', error);
         });
     }
+
+    // Initialize Lucide icons
+    lucide.createIcons();
+
+    // Re-initialize icons when play/pause state changes
+    const originalTogglePlayPause = togglePlayPause;
+    window.togglePlayPause = function () {
+      originalTogglePlayPause();
+      const icon = isPlaying ? 'pause' : 'play';
+      const text = isPlaying ? ' Pause' : ' Play';
+      playPauseBtn.innerHTML = `<i data-lucide="${icon}"></i>${text}`;
+      lucide.createIcons();
+    };
   </script>
 </body>
 
