@@ -854,7 +854,12 @@
           );
 
           // Start polling for completion
-          startPolling(data.sessionId, parseInt(data.pollInterval) || 5000);
+          // pollInterval comes as "5s" string from Google API — parse to ms
+          const pollMs = (() => {
+            const match = String(data.pollInterval || '').match(/^(\d+)s$/);
+            return match ? parseInt(match[1]) * 1000 : 5000;
+          })();
+          startPolling(data.sessionId, pollMs);
         }
 
       } catch (error) {
@@ -871,19 +876,34 @@
         try {
           // Check if picker window was closed
           if (pickerWindow && pickerWindow.closed) {
+            clearInterval(pollInterval);
             pickerStatusEl.innerHTML = '<div class="loading"></div> Fetching selected photos...';
 
-            // Wait 2 seconds for Google to finalize the selection
-            await new Promise(resolve => setTimeout(resolve, 2000));
+            // Retry status checks — Google may need time to finalize after window close
+            const MAX_RETRIES = 6;
+            const RETRY_DELAY = 3000;
+            let done = false;
 
-            // Window closed, check status
-            const statusRes = await fetch(`/api/picker/status/${sessionId}`);
-            const status = await statusRes.json();
+            for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+              // Wait before checking (longer initial wait for Google to finalize)
+              await new Promise(resolve => setTimeout(resolve, attempt === 1 ? 4000 : RETRY_DELAY));
 
-            if (status.done) {
+              const statusRes = await fetch(`/api/picker/status/${sessionId}`);
+              const status = await statusRes.json();
+              console.log(`Picker status check ${attempt}/${MAX_RETRIES}:`, status);
+
+              if (status.done) {
+                done = true;
+                break;
+              }
+
+              if (attempt < MAX_RETRIES) {
+                pickerStatusEl.innerHTML = `<div class="loading"></div> Waiting for Google to finalize... (${attempt}/${MAX_RETRIES})`;
+              }
+            }
+
+            if (done) {
               // Photos were selected, fetch them
-              clearInterval(pollInterval);
-
               const completeRes = await fetch(`/api/picker/complete/${sessionId}`, {
                 method: 'POST'
               });
@@ -903,8 +923,7 @@
                 checkAuth();
               }, 2000);
             } else {
-              // Window closed without selecting photos
-              clearInterval(pollInterval);
+              // Window closed without selecting photos after all retries
               pickerStatusEl.innerHTML = `
                 <div style="opacity: 0.7;">Picker closed without selecting photos</div>
               `;
@@ -928,14 +947,29 @@
       try {
         pickerStatusEl.innerHTML = '<div class="loading"></div> Checking for photos...';
 
-        // Wait a moment for Google to finalize
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Retry status checks — Google may need time to finalize
+        const MAX_RETRIES = 6;
+        const RETRY_DELAY = 3000;
+        let done = false;
 
-        // Check picker status
-        const statusRes = await fetch(`/api/picker/status/${sessionId}`);
-        const status = await statusRes.json();
+        for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+          await new Promise(resolve => setTimeout(resolve, attempt === 1 ? 3000 : RETRY_DELAY));
 
-        if (status.done) {
+          const statusRes = await fetch(`/api/picker/status/${sessionId}`);
+          const status = await statusRes.json();
+          console.log(`Mobile picker status check ${attempt}/${MAX_RETRIES}:`, status);
+
+          if (status.done) {
+            done = true;
+            break;
+          }
+
+          if (attempt < MAX_RETRIES) {
+            pickerStatusEl.innerHTML = `<div class="loading"></div> Waiting for Google to finalize... (${attempt}/${MAX_RETRIES})`;
+          }
+        }
+
+        if (done) {
           // Photos were selected, fetch them
           pickerStatusEl.innerHTML = '<div class="loading"></div> Fetching selected photos...';
 
