@@ -24,8 +24,23 @@ const logger = winston.createLogger({
 // Browser <img> tags cannot add headers, so backend must proxy
 router.get('/random', async (req, res) => {
   try {
-    // Get random item from cache
-    const item = photoCache.getRandomItem();
+    const onThisDay = req.query.onThisDay === 'true';
+    let item;
+
+    if (onThisDay) {
+      item = photoCache.getRandomOnThisDayItem();
+
+      // No photos match today's date
+      if (!item) {
+        return res.status(404).json({
+          error: 'no_photos_today',
+          message: 'No photos from this day in history',
+          count: 0
+        });
+      }
+    } else {
+      item = photoCache.getRandomItem();
+    }
 
     // If no item (empty cache), return 503 with helpful message
     if (!item) {
@@ -83,6 +98,12 @@ router.get('/random', async (req, res) => {
     res.set('Cache-Control', 'no-store'); // Don't cache proxied images (baseUrls expire)
     res.set('X-Photo-Id', item.id);
     res.set('X-Photo-CreateTime', item.createTime || '');
+
+    // On This Day headers
+    if (onThisDay) {
+      res.set('X-Photo-OnThisDay', 'true');
+      res.set('X-Photo-OnThisDayCount', String(photoCache.getOnThisDayCount()));
+    }
 
     // Convert response to buffer and send
     const arrayBuffer = await imageResponse.arrayBuffer();
