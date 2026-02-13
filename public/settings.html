@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Okno - Settings</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap"
+    rel="stylesheet">
+  <script src="https://unpkg.com/lucide@0.564.0/dist/umd/lucide.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #F0F0F3;
+      color: #4A5A52;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-image: radial-gradient(circle at 20% 50%, rgba(143, 181, 165, 0.02) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(122, 148, 135, 0.03) 0%, transparent 50%);
+      pointer-events: none;
+    }
+
+    .container {
+      max-width: 480px;
+      width: 100%;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Header */
+    .header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    .header h1 {
+      font-size: 1.75rem;
+      font-weight: 400;
+      letter-spacing: -0.01em;
+      background: linear-gradient(135deg, #4A5A52 0%, #5A6B62 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 4px;
+    }
+
+    .header p {
+      font-size: 0.875rem;
+      color: rgba(90, 107, 98, 0.6);
+    }
+
+    /* Settings Sections */
+    .settings-section {
+      background: #F0F0F3;
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 16px;
+      box-shadow: -6px -6px 16px rgba(255, 255, 255, 0.6),
+        6px 6px 16px rgba(174, 174, 192, 0.3);
+    }
+
+    .section-title {
+      font-size: 0.813rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: rgba(90, 107, 98, 0.5);
+      margin-bottom: 16px;
+    }
+
+    .setting-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 0;
+    }
+
+    .setting-row + .setting-row {
+      border-top: 1px solid rgba(143, 181, 165, 0.1);
+    }
+
+    .setting-label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .setting-label .icon {
+      width: 36px;
+      height: 36px;
+      background: rgba(143, 181, 165, 0.08);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #8FB5A5;
+      flex-shrink: 0;
+    }
+
+    .setting-label .text {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .setting-label .name {
+      font-size: 0.938rem;
+      font-weight: 500;
+      color: #4A5A52;
+    }
+
+    .setting-label .description {
+      font-size: 0.75rem;
+      color: rgba(90, 107, 98, 0.5);
+      margin-top: 2px;
+    }
+
+    /* Button Group for interval and display mode */
+    .btn-group {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .btn-group button {
+      background: #F0F0F3;
+      color: #4A5A52;
+      border: none;
+      padding: 8px 14px;
+      font-size: 0.813rem;
+      font-weight: 500;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: -3px -3px 8px rgba(255, 255, 255, 0.8),
+        3px 3px 8px rgba(174, 174, 192, 0.3);
+      letter-spacing: -0.01em;
+    }
+
+    .btn-group button:hover {
+      transform: translateY(-1px);
+      box-shadow: -4px -4px 10px rgba(255, 255, 255, 0.9),
+        4px 4px 10px rgba(174, 174, 192, 0.35);
+    }
+
+    .btn-group button:active {
+      transform: translateY(0);
+      box-shadow: inset -2px -2px 4px rgba(174, 174, 192, 0.15),
+        inset 2px 2px 4px rgba(255, 255, 255, 0.7);
+    }
+
+    .btn-group button.active {
+      background: #8FB5A5;
+      color: #FFFFFF;
+      box-shadow: inset -2px -2px 4px rgba(125, 165, 148, 0.4),
+        inset 2px 2px 4px rgba(255, 255, 255, 0.2),
+        -2px -2px 4px rgba(255, 255, 255, 0.3),
+        2px 2px 4px rgba(143, 181, 165, 0.4);
+    }
+
+    /* Toggle Switch */
+    .toggle {
+      position: relative;
+      width: 48px;
+      height: 28px;
+      flex-shrink: 0;
+    }
+
+    .toggle input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: #E0E0E5;
+      border-radius: 28px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: inset -2px -2px 4px rgba(255, 255, 255, 0.7),
+        inset 2px 2px 4px rgba(174, 174, 192, 0.25);
+    }
+
+    .toggle-slider::before {
+      content: '';
+      position: absolute;
+      height: 22px;
+      width: 22px;
+      left: 3px;
+      bottom: 3px;
+      background: #F0F0F3;
+      border-radius: 50%;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: -2px -2px 4px rgba(255, 255, 255, 0.8),
+        2px 2px 4px rgba(174, 174, 192, 0.3);
+    }
+
+    .toggle input:checked + .toggle-slider {
+      background: #8FB5A5;
+      box-shadow: inset -2px -2px 4px rgba(125, 165, 148, 0.3),
+        inset 2px 2px 4px rgba(255, 255, 255, 0.15);
+    }
+
+    .toggle input:checked + .toggle-slider::before {
+      transform: translateX(20px);
+      background: #FFFFFF;
+    }
+
+    .toggle input:disabled + .toggle-slider {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Coming Soon Badge */
+    .badge-coming-soon {
+      display: inline-block;
+      font-size: 0.625rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      background: rgba(143, 181, 165, 0.12);
+      color: #8FB5A5;
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-left: 8px;
+    }
+
+    /* Action Buttons */
+    .actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    .actions button {
+      flex: 1;
+      padding: 14px 24px;
+      font-size: 0.938rem;
+      font-weight: 500;
+      border-radius: 12px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      letter-spacing: -0.01em;
+    }
+
+    .btn-save {
+      background: linear-gradient(145deg, #9AC0AF, #8FB5A5);
+      color: #FFFFFF;
+      box-shadow: -4px -4px 10px rgba(255, 255, 255, 0.6),
+        4px 4px 10px rgba(143, 181, 165, 0.4);
+    }
+
+    .btn-save:hover {
+      transform: translateY(-2px);
+      background: linear-gradient(145deg, #8FB5A5, #7DA594);
+      box-shadow: -6px -6px 14px rgba(255, 255, 255, 0.7),
+        6px 6px 14px rgba(143, 181, 165, 0.5);
+    }
+
+    .btn-save:active {
+      transform: translateY(0);
+      box-shadow: -3px -3px 8px rgba(255, 255, 255, 0.5),
+        3px 3px 8px rgba(143, 181, 165, 0.3);
+    }
+
+    .btn-back {
+      background: #F0F0F3;
+      color: #5A6B62;
+      box-shadow: -4px -4px 10px rgba(255, 255, 255, 0.8),
+        4px 4px 10px rgba(174, 174, 192, 0.3);
+    }
+
+    .btn-back:hover {
+      transform: translateY(-2px);
+      box-shadow: -6px -6px 14px rgba(255, 255, 255, 0.9),
+        6px 6px 14px rgba(174, 174, 192, 0.4);
+    }
+
+    .btn-back:active {
+      transform: translateY(0);
+      box-shadow: -3px -3px 8px rgba(255, 255, 255, 0.7),
+        3px 3px 8px rgba(174, 174, 192, 0.25);
+    }
+
+    /* Toast notification */
+    .toast {
+      position: fixed;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: #4A5A52;
+      color: #FFFFFF;
+      padding: 12px 24px;
+      border-radius: 10px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 100;
+      pointer-events: none;
+    }
+
+    .toast.visible {
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* Interval row: stack on small screens */
+    .setting-row.interval-row {
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    @media (max-width: 420px) {
+      .interval-row .btn-group {
+        width: 100%;
+        justify-content: flex-start;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="header">
+      <h1><i data-lucide="settings" style="width: 24px; height: 24px; vertical-align: middle; margin-right: 6px;"></i>Settings</h1>
+      <p>Configure your Okno slideshow</p>
+    </div>
+
+    <!-- Slideshow Section -->
+    <div class="settings-section">
+      <div class="section-title">Slideshow</div>
+
+      <!-- Interval -->
+      <div class="setting-row interval-row">
+        <div class="setting-label">
+          <div class="icon"><i data-lucide="timer"></i></div>
+          <div class="text">
+            <span class="name">Interval</span>
+            <span class="description">Time between photos</span>
+          </div>
+        </div>
+        <div class="btn-group" id="intervalGroup">
+          <button data-value="10" onclick="setInterval_(10)">10s</button>
+          <button data-value="30" onclick="setInterval_(30)">30s</button>
+          <button data-value="60" onclick="setInterval_(60)">1m</button>
+          <button data-value="120" onclick="setInterval_(120)">2m</button>
+          <button data-value="300" onclick="setInterval_(300)">5m</button>
+        </div>
+      </div>
+
+      <!-- Display Mode -->
+      <div class="setting-row interval-row">
+        <div class="setting-label">
+          <div class="icon"><i data-lucide="monitor"></i></div>
+          <div class="text">
+            <span class="name">Display Mode</span>
+            <span class="description">How photos fill the screen</span>
+          </div>
+        </div>
+        <div class="btn-group" id="displayModeGroup">
+          <button data-value="cover" onclick="setDisplayMode_('cover')">Cover</button>
+          <button data-value="contain" onclick="setDisplayMode_('contain')">Contain</button>
+          <button data-value="dual" onclick="setDisplayMode_('dual')">Dual</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Features Section -->
+    <div class="settings-section">
+      <div class="section-title">Features</div>
+
+      <!-- On This Day -->
+      <div class="setting-row">
+        <div class="setting-label">
+          <div class="icon"><i data-lucide="calendar-heart"></i></div>
+          <div class="text">
+            <span class="name">On This Day <span class="badge-coming-soon">Coming Soon</span></span>
+            <span class="description">Show photos taken on today's date in past years</span>
+          </div>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="onThisDay" disabled>
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <!-- Portrait Pairs -->
+      <div class="setting-row">
+        <div class="setting-label">
+          <div class="icon"><i data-lucide="columns-2"></i></div>
+          <div class="text">
+            <span class="name">Portrait Pairs <span class="badge-coming-soon">Coming Soon</span></span>
+            <span class="description">Automatically pair portrait photos side-by-side</span>
+          </div>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="portraitPairs" disabled>
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="actions">
+      <button class="btn-back" onclick="window.location.href='/'">
+        <i data-lucide="arrow-left" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 4px;"></i>Back
+      </button>
+      <button class="btn-save" onclick="saveSettings()">
+        <i data-lucide="save" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 4px;"></i>Save Settings
+      </button>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // Current settings state
+    let settings = {
+      interval: 30,
+      displayMode: 'cover',
+      onThisDay: false,
+      portraitPairs: false,
+    };
+
+    // Load current config from server
+    async function loadSettings() {
+      try {
+        const res = await fetch('/api/config');
+        if (res.ok) {
+          const config = await res.json();
+          settings = { ...settings, ...config };
+          applySettingsToUI();
+        }
+      } catch (err) {
+        console.error('Failed to load settings:', err);
+      }
+    }
+
+    // Apply settings state to UI controls
+    function applySettingsToUI() {
+      // Interval buttons
+      document.querySelectorAll('#intervalGroup button').forEach(btn => {
+        btn.classList.toggle('active', parseInt(btn.dataset.value) === settings.interval);
+      });
+
+      // Display mode buttons
+      document.querySelectorAll('#displayModeGroup button').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.value === settings.displayMode);
+      });
+
+      // Toggles (disabled but show current state)
+      document.getElementById('onThisDay').checked = settings.onThisDay;
+      document.getElementById('portraitPairs').checked = settings.portraitPairs;
+    }
+
+    // UI handlers
+    function setInterval_(seconds) {
+      settings.interval = seconds;
+      document.querySelectorAll('#intervalGroup button').forEach(btn => {
+        btn.classList.toggle('active', parseInt(btn.dataset.value) === seconds);
+      });
+    }
+
+    function setDisplayMode_(mode) {
+      settings.displayMode = mode;
+      document.querySelectorAll('#displayModeGroup button').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.value === mode);
+      });
+    }
+
+    // Save to server
+    async function saveSettings() {
+      try {
+        const res = await fetch('/api/config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(settings),
+        });
+
+        if (res.ok) {
+          const updated = await res.json();
+          settings = { ...settings, ...updated };
+          showToast('Settings saved');
+        } else {
+          const err = await res.json();
+          showToast('Error: ' + (err.error || 'Failed to save'));
+        }
+      } catch (err) {
+        console.error('Failed to save settings:', err);
+        showToast('Error: Could not reach server');
+      }
+    }
+
+    // Toast notification
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.classList.add('visible');
+      setTimeout(() => toast.classList.remove('visible'), 2500);
+    }
+
+    // Initialize
+    loadSettings();
+    lucide.createIcons();
+  </script>
+</body>
+
+</html>
