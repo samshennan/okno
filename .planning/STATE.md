@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-08)
 
 **Core value:** Display random photos from Google Photos on an iPad in a beautiful, hands-off way that requires no interaction after initial setup.
-**Current focus:** Phase 3 execution -- Advanced Features (On This Day, portrait pairs, settings)
+**Current focus:** Phase 3 complete -- Advanced Features (On This Day, portrait pairs, settings)
 
 ## Current Position
 
 **Phase: 3 of 3 (Advanced Features)**
-Plan: 2 of 3 complete
-Status: In progress -- 03-01 and 03-02 complete, 03-03 remaining
-Last activity: 2026-02-13 - Completed 03-02-PLAN.md (On This Day mode)
+Plan: 3 of 3 complete
+Status: Phase 3 complete
+Last activity: 2026-02-13 - Completed 03-03-PLAN.md (Portrait Pairs feature)
 
-Progress: [█████████████████░░░] 87% (Phase 1+2 done, Phase 3: 2/3)
+Progress: [████████████████████] 100% (All phases complete)
 
 ## What We Shipped
 
@@ -43,7 +43,7 @@ Progress: [█████████████████░░░] 87% (Ph
 - Visual polish: Inter font, Lucide icons, custom SVG logo (02-03)
 - Picker bug fix: poll interval parsing + retry logic (02-03)
 
-### Phase 3 Progress (2026-02-13)
+### Phase 3 (2026-02-13)
 - Settings page at /settings.html with neumorphic UI (03-01)
 - Config persistence layer: config.js + config.json (03-01)
 - Config API: GET/POST /api/config (03-01)
@@ -53,6 +53,10 @@ Progress: [█████████████████░░░] 87% (Ph
 - OTD toggle enabled on settings page with live photo count (03-02)
 - Calendar-heart indicator showing photo date during OTD mode (03-02)
 - Graceful fallback to random mode when no OTD photos match (03-02)
+- Portrait pair mode: backend-assisted portrait pairing using Picker API metadata (03-03)
+- Portrait pairs toggle enabled on settings page with portrait count display (03-03)
+- Backend portrait filtering: ?portrait=true endpoint + X-Photo-IsPortrait header (03-03)
+- Portrait count exposed via /api/health endpoint (03-03)
 
 ## Accumulated Context
 
@@ -78,6 +82,8 @@ Progress: [█████████████████░░░] 87% (Ph
 | Server-side date filtering via createTime | createTime already in cache; no extra API calls needed | 03-02 | 2026-02-13 |
 | 404 for no OTD photos (not 200 empty) | Distinct status lets frontend detect and handle gracefully | 03-02 | 2026-02-13 |
 | 5-second fallback to random on no OTD match | Enough time to read message before auto-switching | 03-02 | 2026-02-13 |
+| Portrait detection from Picker API metadata | Backend filters by width/height without downloading images | 03-03 | 2026-02-13 |
+| Backend-assisted portrait pairing | ?portrait=true guarantees match; eliminates recursive guessing | 03-03 | 2026-02-13 |
 
 ### Blockers/Concerns
 
@@ -88,17 +94,17 @@ Progress: [█████████████████░░░] 87% (Ph
 
 ## Session Continuity
 
-**Last session:** 2026-02-13 22:52 UTC
-**Status:** Phase 3 in progress -- 03-01 and 03-02 complete
+**Last session:** 2026-02-13 22:53 UTC
+**Status:** All phases complete
 **Resume file:** None
 
 **Next steps when resuming:**
-1. Execute 03-03-PLAN.md (Portrait Pairs feature)
-2. Deploy Phase 3 to VPS
-3. iPad device testing (parallel manual activity)
+1. Deploy Phase 3 to VPS
+2. iPad device testing (parallel manual activity)
+3. Consider Phase 4 planning if desired
 
 ---
 
-**Project Status:** Phase 3 in progress -- On This Day mode shipped
+**Project Status:** All phases complete -- ready for deployment
 **Deployment:** https://okno.moonacle.com
 **GitHub:** https://github.com/samshennan/okno
