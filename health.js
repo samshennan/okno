@@ -33,6 +33,7 @@ router.get('/', (req, res) => {
       },
       cache: {
         totalItems: photoCache.size(),
+        portraitCount: photoCache.getPortraitCount(),
         sessionId: photoCache.getSessionId() || null,
         lastRefresh: photoCache.getLastRefresh() || null
       },

@@ -418,12 +418,12 @@
         <div class="setting-label">
           <div class="icon"><i data-lucide="columns-2"></i></div>
           <div class="text">
-            <span class="name">Portrait Pairs <span class="badge-coming-soon">Coming Soon</span></span>
-            <span class="description">Automatically pair portrait photos side-by-side</span>
+            <span class="name">Portrait Pairs</span>
+            <span class="description" id="portraitPairsDesc">Automatically pair portrait photos side-by-side</span>
           </div>
         </div>
         <label class="toggle">
-          <input type="checkbox" id="portraitPairs" disabled>
+          <input type="checkbox" id="portraitPairs" onchange="settings.portraitPairs = this.checked">
           <span class="toggle-slider"></span>
         </label>
       </div>
@@ -548,9 +548,27 @@
       }
     }
 
+    // Fetch portrait photo count from health endpoint
+    async function fetchPortraitCount() {
+      try {
+        const res = await fetch('/api/health');
+        if (res.ok) {
+          const health = await res.json();
+          const count = health.cache?.portraitCount;
+          if (count !== undefined && count !== null) {
+            document.getElementById('portraitPairsDesc').textContent =
+              `${count} portrait photo${count === 1 ? '' : 's'} available for pairing`;
+          }
+        }
+      } catch {
+        // Silently fail - description stays at default
+      }
+    }
+
     // Initialize
     loadSettings();
     fetchOnThisDayCount();
+    fetchPortraitCount();
     lucide.createIcons();
   </script>
 </body>
