@@ -434,9 +434,12 @@
     let photoCount = 0;
     let isPlaying = true;
     let intervalHandle = null;
-    let currentIntervalSeconds = 10; // Default 10 seconds
+    let currentIntervalSeconds = 30; // Default 30 seconds (matches config.js default)
     let displayMode = 'cover'; // 'cover', 'contain', or 'dual'
     let pendingPortrait = null; // For dual mode: holds first portrait photo
+
+    // App config loaded from server (available to future features via window.appConfig)
+    window.appConfig = null;
 
     // Screen wake lock using NoSleep.js (Wake Lock API broken in iOS PWAs)
     let noSleep = null;
@@ -477,15 +480,38 @@
       window.location.href = '/';
     }
 
-    // Get params from URL
+    // URL params (applied after config load; URL params take precedence over saved config)
     const urlParams = new URLSearchParams(window.location.search);
-    const customInterval = parseInt(urlParams.get('interval'));
-    if (customInterval && customInterval > 0) {
-      currentIntervalSeconds = customInterval;
-    }
+    const urlInterval = parseInt(urlParams.get('interval'));
     const urlMode = urlParams.get('mode');
-    if (urlMode && ['cover', 'contain', 'dual'].includes(urlMode)) {
-      displayMode = urlMode;
+
+    // Load config from server, then apply URL param overrides
+    async function loadAppConfig() {
+      try {
+        const res = await fetch('/api/config');
+        if (res.ok) {
+          window.appConfig = await res.json();
+
+          // Apply config values as base
+          if (window.appConfig.interval) {
+            currentIntervalSeconds = window.appConfig.interval;
+          }
+          if (window.appConfig.displayMode && ['cover', 'contain', 'dual'].includes(window.appConfig.displayMode)) {
+            displayMode = window.appConfig.displayMode;
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to load config, using defaults:', err);
+        window.appConfig = {};
+      }
+
+      // URL params override saved config (for testing/manual override)
+      if (urlInterval && urlInterval > 0) {
+        currentIntervalSeconds = urlInterval;
+      }
+      if (urlMode && ['cover', 'contain', 'dual'].includes(urlMode)) {
+        displayMode = urlMode;
+      }
     }
 
     // Exponential backoff retry for network resilience
@@ -514,6 +540,9 @@
 
     async function init() {
       try {
+        // Load saved config before anything else
+        await loadAppConfig();
+
         // Get photo count from health endpoint
         const healthRes = await fetch('/api/health');
         const health = await healthRes.json();
