@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-08)
 ## Current Position
 
 **Phase: 3 of 3 (Advanced Features)**
-Plan: 1 of 3 complete
-Status: In progress -- 03-01 complete, 03-02 and 03-03 remaining
-Last activity: 2026-02-13 - Completed 03-01-PLAN.md (Settings page and config persistence)
+Plan: 2 of 3 complete
+Status: In progress -- 03-01 and 03-02 complete, 03-03 remaining
+Last activity: 2026-02-13 - Completed 03-02-PLAN.md (On This Day mode)
 
-Progress: [████████████████░░░░] 80% (Phase 1+2 done, Phase 3: 1/3)
+Progress: [█████████████████░░░] 87% (Phase 1+2 done, Phase 3: 2/3)
 
 ## What We Shipped
 
@@ -49,6 +49,10 @@ Progress: [████████████████░░░░] 80% (Ph
 - Config API: GET/POST /api/config (03-01)
 - Slideshow reads config on startup, URL params override (03-01)
 - Feature toggles for On This Day and Portrait Pairs (disabled, Coming Soon) (03-01)
+- On This Day mode: date-based photo filtering across all years (03-02)
+- OTD toggle enabled on settings page with live photo count (03-02)
+- Calendar-heart indicator showing photo date during OTD mode (03-02)
+- Graceful fallback to random mode when no OTD photos match (03-02)
 
 ## Accumulated Context
 
@@ -71,6 +75,9 @@ Progress: [████████████████░░░░] 80% (Ph
 | File-based config persistence (config.json) | Lightweight, matches existing patterns (cache.json, tokens.json) | 03-01 | 2026-02-13 |
 | URL params override saved config | Allows testing/override without changing saved settings | 03-01 | 2026-02-13 |
 | Feature toggles disabled with Coming Soon | UI ready for 03-02 and 03-03 without premature functionality | 03-01 | 2026-02-13 |
+| Server-side date filtering via createTime | createTime already in cache; no extra API calls needed | 03-02 | 2026-02-13 |
+| 404 for no OTD photos (not 200 empty) | Distinct status lets frontend detect and handle gracefully | 03-02 | 2026-02-13 |
+| 5-second fallback to random on no OTD match | Enough time to read message before auto-switching | 03-02 | 2026-02-13 |
 
 ### Blockers/Concerns
 
@@ -81,18 +88,17 @@ Progress: [████████████████░░░░] 80% (Ph
 
 ## Session Continuity
 
-**Last session:** 2026-02-13 22:48 UTC
-**Status:** Phase 3 in progress -- 03-01 complete
+**Last session:** 2026-02-13 22:52 UTC
+**Status:** Phase 3 in progress -- 03-01 and 03-02 complete
 **Resume file:** None
 
 **Next steps when resuming:**
-1. Execute 03-02-PLAN.md (On This Day feature)
-2. Execute 03-03-PLAN.md (Portrait Pairs feature)
-3. Deploy Phase 3 to VPS
-4. iPad device testing (parallel manual activity)
+1. Execute 03-03-PLAN.md (Portrait Pairs feature)
+2. Deploy Phase 3 to VPS
+3. iPad device testing (parallel manual activity)
 
 ---
 
-**Project Status:** Phase 3 in progress -- Settings page shipped
+**Project Status:** Phase 3 in progress -- On This Day mode shipped
 **Deployment:** https://okno.moonacle.com
 **GitHub:** https://github.com/samshennan/okno
