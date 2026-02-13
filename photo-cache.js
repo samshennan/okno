@@ -123,6 +123,32 @@ function getOnThisDayCount() {
   return getOnThisDayItems().length;
 }
 
+// Get portrait items (height > width) from cache
+function getPortraitItems() {
+  return cache.mediaItems.filter(item => {
+    // Picker API stores dimensions in mediaFile.mediaFileMetadata
+    const metadata = item.mediaFile?.mediaFileMetadata;
+    if (!metadata) return false;
+    const width = parseInt(metadata.width, 10);
+    const height = parseInt(metadata.height, 10);
+    if (isNaN(width) || isNaN(height)) return false;
+    return height > width;
+  });
+}
+
+// Get random portrait item from cache
+function getRandomPortraitItem() {
+  const portraits = getPortraitItems();
+  if (portraits.length === 0) return null;
+  const randomIndex = Math.floor(Math.random() * portraits.length);
+  return portraits[randomIndex];
+}
+
+// Get count of portrait photos in cache
+function getPortraitCount() {
+  return getPortraitItems().length;
+}
+
 // Get cache size
 function size() {
   return cache.mediaItems.length;
@@ -216,6 +242,8 @@ module.exports = {
   getRandomItem,
   getRandomOnThisDayItem,
   getOnThisDayCount,
+  getRandomPortraitItem,
+  getPortraitCount,
   setItems,
   size,
   getSessionId,
