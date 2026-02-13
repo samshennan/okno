@@ -199,26 +199,26 @@ Explicitly not building these features:
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| AUTH-01 | Phase 1: Backend + Deployment | Pending |
-| AUTH-02 | Phase 1: Backend + Deployment | Pending |
-| AUTH-03 | Phase 1: Backend + Deployment | Pending |
-| AUTH-04 | Phase 1: Backend + Deployment | Pending |
-| DISP-01 | Phase 2: Slideshow + PWA | Pending |
-| DISP-02 | Phase 2: Slideshow + PWA | Pending |
-| DISP-03 | Phase 2: Slideshow + PWA | Pending |
-| DISP-04 | Phase 2: Slideshow + PWA | Pending |
-| DISP-05 | Phase 2: Slideshow + PWA | Pending |
-| DISP-06 | Phase 2: Slideshow + PWA | Pending |
-| PWA-01 | Phase 2: Slideshow + PWA | Pending |
-| PWA-02 | Phase 2: Slideshow + PWA | Pending |
-| PWA-03 | Phase 2: Slideshow + PWA | Pending |
-| INFRA-01 | Phase 1: Backend + Deployment | Pending |
-| INFRA-02 | Phase 1: Backend + Deployment | Pending |
-| INFRA-03 | Phase 2: Slideshow + PWA | Pending |
-| INFRA-04 | Phase 1: Backend + Deployment | Pending |
-| ADV-01 | Phase 3: Advanced Features | Pending |
-| ADV-02 | Phase 3: Advanced Features | Pending |
-| ADV-03 | Phase 3: Advanced Features | Pending |
+| AUTH-01 | Phase 1: Backend + Deployment | Complete |
+| AUTH-02 | Phase 1: Backend + Deployment | Complete |
+| AUTH-03 | Phase 1: Backend + Deployment | Complete |
+| AUTH-04 | Phase 1: Backend + Deployment | Complete |
+| DISP-01 | Phase 2: Slideshow + PWA | Complete |
+| DISP-02 | Phase 2: Slideshow + PWA | Complete |
+| DISP-03 | Phase 2: Slideshow + PWA | Complete |
+| DISP-04 | Phase 2: Slideshow + PWA | Complete |
+| DISP-05 | Phase 2: Slideshow + PWA | Complete |
+| DISP-06 | Phase 2: Slideshow + PWA | Complete |
+| PWA-01 | Phase 2: Slideshow + PWA | Complete |
+| PWA-02 | Phase 2: Slideshow + PWA | Complete |
+| PWA-03 | Phase 2: Slideshow + PWA | Complete |
+| INFRA-01 | Phase 1: Backend + Deployment | Complete |
+| INFRA-02 | Phase 1: Backend + Deployment | Complete |
+| INFRA-03 | Phase 2: Slideshow + PWA | Complete |
+| INFRA-04 | Phase 1: Backend + Deployment | Complete |
+| ADV-01 | Phase 3: Advanced Features | Complete |
+| ADV-02 | Phase 3: Advanced Features | Complete |
+| ADV-03 | Phase 3: Advanced Features | Complete |
 
 ---
 

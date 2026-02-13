@@ -12,9 +12,9 @@ Okno goes from zero to working digital photo frame in three phases. Phase 1 buil
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Backend + Deployment** - OAuth, Picker API, photo serving, and production infrastructure
-- [ ] **Phase 2: Slideshow + PWA** - Fullscreen slideshow display with smooth transitions, screen wake, and error resilience
-- [ ] **Phase 3: Advanced Features** - On This Day mode, portrait pairs, and settings page
+- [x] **Phase 1: Backend + Deployment** - OAuth, Picker API, photo serving, and production infrastructure
+- [x] **Phase 2: Slideshow + PWA** - Fullscreen slideshow display with smooth transitions, screen wake, and error resilience
+- [x] **Phase 3: Advanced Features** - On This Day mode, portrait pairs, and settings page
 
 ## Phase Details
 
@@ -31,11 +31,11 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 5 plans
 
 Plans:
-- [ ] 01-01-PLAN.md — Project setup + OAuth authentication with token persistence
-- [ ] 01-02-PLAN.md — Picker API integration + photo cache with baseUrl refresh
-- [ ] 01-03-PLAN.md — Random photo serving (image proxy) + health diagnostics
-- [ ] 01-04-PLAN.md — VPS deployment with nginx/PM2/SSL/1Password secrets
-- [ ] 01-05-PLAN.md — Human verification of all Phase 1 success criteria
+- [x] 01-01-PLAN.md — Project setup + OAuth authentication with token persistence
+- [x] 01-02-PLAN.md — Picker API integration + photo cache with baseUrl refresh
+- [x] 01-03-PLAN.md — Random photo serving (image proxy) + health diagnostics
+- [x] 01-04-PLAN.md — VPS deployment with nginx/PM2/SSL/1Password secrets
+- [x] 01-05-PLAN.md — Human verification of all Phase 1 success criteria
 
 ### Phase 2: Slideshow + PWA
 **Goal**: iPad displays a beautiful, hands-off slideshow that runs indefinitely without interaction, loading flicker, or screen dimming
@@ -50,9 +50,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 02-01-PLAN.md — PWA manifest + Service Worker (foundation for offline support)
-- [ ] 02-02-PLAN.md — NoSleep.js integration + exponential backoff retry (screen wake + resilience)
-- [ ] 02-03-PLAN.md — Human verification of all Phase 2 success criteria
+- [x] 02-01-PLAN.md — PWA manifest + Service Worker (foundation for offline support)
+- [x] 02-02-PLAN.md — NoSleep.js integration + exponential backoff retry (screen wake + resilience)
+- [x] 02-03-PLAN.md — Human verification of all Phase 2 success criteria
 
 ### Phase 3: Advanced Features
 **Goal**: Okno goes beyond basic slideshow with emotionally powerful features that match premium commercial frames
@@ -62,10 +62,12 @@ Plans:
   1. User can enable "On This Day" mode and the slideshow shows only photos taken on today's month+day across all years
   2. When two consecutive portrait photos appear, they display side-by-side in landscape orientation instead of one at a time
   3. User can visit `/settings` and configure slideshow interval, toggle On This Day mode, and toggle portrait pair mode without touching code
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 03-01: TBD
+- [x] 03-01-PLAN.md — Settings page + config persistence (foundation for feature toggles)
+- [x] 03-02-PLAN.md — "On This Day" mode (filter to today's month+day across all years)
+- [x] 03-03-PLAN.md — Portrait pair mode (side-by-side portrait display)
 
 ## Progress
 
@@ -74,6 +76,6 @@ Phases execute in numeric order: 1 -> 2 -> 3
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Backend + Deployment | 0/5 | Ready to execute | - |
-| 2. Slideshow + PWA | 0/3 | Ready to execute | - |
-| 3. Advanced Features | 0/TBD | Not started | - |
+| 1. Backend + Deployment | 5/5 | ✓ Complete | 2026-02-10 |
+| 2. Slideshow + PWA | 3/3 | ✓ Complete | 2026-02-13 |
+| 3. Advanced Features | 3/3 | ✓ Complete | 2026-02-13 |
