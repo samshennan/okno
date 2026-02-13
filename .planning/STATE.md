@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-08)
 
 **Core value:** Display random photos from Google Photos on an iPad in a beautiful, hands-off way that requires no interaction after initial setup.
-**Current focus:** v0.1.1 - Post-launch improvements and Phase 2 planning
+**Current focus:** Phase 2 verification — slideshow working, picker bug outstanding
 
 ## Current Position
 
-**Phase: 2 of 7 (Slideshow + PWA)**
-Plan: 2 of 3 in phase
-Status: In progress - Building PWA capabilities
-Last activity: 2026-02-11 - Completed 02-02-PLAN.md (Screen Wake Lock + Network Resilience)
+**Phase: 2 of 3 (Slideshow + PWA)**
+Plan: 3 of 3 in phase (human verification — partially complete)
+Status: Slideshow working, iPad device testing + picker bug remaining
+Last activity: 2026-02-13 - Fixed CSP bugs, visual polish, deployed 3x
 
-Progress: [██████████░░░░░░░░░░] 50% (Phase 1 complete, Phase 2 started)
+Progress: [████████████░░░░░░░░] 60% (Phase 1 done, Phase 2 near-complete)
 
 ## What We Shipped
 
@@ -41,6 +41,17 @@ Progress: [██████████░░░░░░░░░░] 50% (Ph
 - ✅ iOS-specific meta tags for Add to Home Screen (02-01)
 - ✅ NoSleep.js screen wake lock for indefinite operation (02-02)
 - ✅ Exponential backoff retry for network resilience (02-02)
+
+### Bug Fixes & Polish (2026-02-13)
+- ✅ CSP fix: blob: in img-src (slideshow was showing loading spinner)
+- ✅ CSP fix: connect-src for CDN (SW fetch governed by connect-src, not script-src)
+- ✅ Service Worker: skip cross-origin requests (was crashing on CDN fetches)
+- ✅ CSP: added Google Fonts + unpkg.com for Lucide icons
+- ✅ Pinned Lucide icons to v0.564.0 (was @latest)
+- ✅ Visual polish: Inter font, Lucide icons, custom SVG logo
+- ✅ Feedback form: JSON error handling, defensive file cleanup
+- ✅ Auth status: fallback to token check when session flag missing
+- ✅ 1Password CLI installed on MacBook (autonomous VPS deploys)
 
 ## Performance Metrics
 
@@ -82,6 +93,9 @@ Progress: [██████████░░░░░░░░░░] 50% (Ph
 | NoSleep.js over Wake Lock API | Wake Lock API broken in iOS PWAs until iOS 18.4 | 02-02 | 2026-02-11 |
 | Exponential backoff (7 retries, 10ms-640ms) | Balances fast recovery with server kindness | 02-02 | 2026-02-11 |
 | Blob URLs for photo loading | Prevents cache issues with expired baseUrls | 02-02 | 2026-02-11 |
+| Inter font + Lucide icons (pinned v0.564.0) | Professional look, consistent design language | 02 | 2026-02-13 |
+| SW skip cross-origin requests | Prevents CSP cascade failures from CDN interception | 02 | 2026-02-13 |
+| Client-side primary for multi-user (future) | Zero personal data on VPS, browser is the vault | future | 2026-02-13 |
 
 ### Technical Debt
 
@@ -156,20 +170,25 @@ See: ROADMAP.md for full feature roadmap
 
 ## Session Continuity
 
-**Last session:** 2026-02-11 19:39 UTC
-**Status:** Phase 02 Plan 02 complete (Screen Wake Lock + Network Resilience)
-**Resume file:** None - continue to 02-03 next
+**Last session:** 2026-02-13 21:00 UTC
+**Status:** Phase 02 Plan 03 partially verified — slideshow working, picker bug outstanding
+**Resume file:** .planning/phases/02-slideshow-pwa/.continue-here.md
 
 **Current state:**
-- Production app running at okno.moonacle.com
-- PWA fully functional with screen wake lock and network resilience
-- iPad can run as always-on photo frame without intervention
-- Ready for Phase 02 Plan 03 or production testing
+- Production app running at okno.moonacle.com with visual polish
+- Slideshow confirmed working (photos load, transitions smooth, controls functional)
+- 1Password CLI + SSH key auth enables autonomous deploys
+- 6 photos cached — slideshow works but picker can't add NEW photos
+
+**KNOWN BUG:** Google Picker `mediaItemsSet` stays false after photo selection
+- Enhanced logging deployed (picker.js:106-114) but not yet captured
+- Need user to retry picker flow to get diagnostic data
 
 **Next steps when resuming:**
-1. Test on actual iPad device - verify PWA installation + screen wake lock
-2. Test network resilience with weak WiFi or airplane mode
-3. Continue to Phase 02 Plan 03 (photo management) or Phase 3 planning
+1. Debug picker bug — retry flow, capture full session JSON from server logs
+2. iPad real-device test — PWA install, wake lock 2+ hours, Guided Access
+3. Complete 02-03-SUMMARY.md once all verification criteria pass
+4. Phase 3: Advanced Features (On This Day, portrait pairs, settings page)
 
 ---
 
