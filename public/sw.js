@@ -56,8 +56,8 @@ self.addEventListener('fetch', (event) => {
         })
     );
   }
-  // Cache-first for static assets
-  else {
+  // Cache-first for static assets (same-origin only)
+  else if (url.origin === self.location.origin) {
     event.respondWith(
       caches.match(event.request).then((response) => {
         return response || fetch(event.request);
