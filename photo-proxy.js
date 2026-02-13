@@ -25,6 +25,7 @@ const logger = winston.createLogger({
 router.get('/random', async (req, res) => {
   try {
     const onThisDay = req.query.onThisDay === 'true';
+    const wantPortrait = req.query.portrait === 'true';
     let item;
 
     if (onThisDay) {
@@ -37,6 +38,12 @@ router.get('/random', async (req, res) => {
           message: 'No photos from this day in history',
           count: 0
         });
+      }
+    } else if (wantPortrait) {
+      item = photoCache.getRandomPortraitItem();
+      // Fall back to any random item if no portraits available
+      if (!item) {
+        item = photoCache.getRandomItem();
       }
     } else {
       item = photoCache.getRandomItem();
@@ -104,6 +111,13 @@ router.get('/random', async (req, res) => {
       res.set('X-Photo-OnThisDay', 'true');
       res.set('X-Photo-OnThisDayCount', String(photoCache.getOnThisDayCount()));
     }
+
+    // Portrait detection header based on item metadata
+    const metadata = item.mediaFile?.mediaFileMetadata;
+    const itemWidth = metadata ? parseInt(metadata.width, 10) : 0;
+    const itemHeight = metadata ? parseInt(metadata.height, 10) : 0;
+    const isPortrait = itemHeight > itemWidth;
+    res.set('X-Photo-IsPortrait', String(isPortrait));
 
     // Convert response to buffer and send
     const arrayBuffer = await imageResponse.arrayBuffer();
