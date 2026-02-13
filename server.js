@@ -100,7 +100,26 @@ app.use('/api/health', healthRouter);
 const feedbackRouter = require('./feedback');
 app.use('/api/feedback', feedbackRouter);
 
-logger.info('Photo, health, and feedback routes mounted');
+// Mount config module and API routes
+const config = require('./config');
+config.loadConfig();
+logger.info('Config loaded:', config.getConfig());
+
+app.get('/api/config', (req, res) => {
+  res.json(config.getConfig());
+});
+
+app.post('/api/config', (req, res) => {
+  const updates = req.body;
+  if (!updates || typeof updates !== 'object') {
+    return res.status(400).json({ error: 'Request body must be a JSON object' });
+  }
+  const updated = config.saveConfig(updates);
+  logger.info('Config updated:', updated);
+  res.json(updated);
+});
+
+logger.info('Photo, health, feedback, and config routes mounted');
 
 // Root route now served by static index.html in public/
 // (removed inline HTML, using public/index.html instead)
