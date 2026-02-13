@@ -183,7 +183,7 @@ router.get('/callback', async (req, res) => {
 router.get('/status', (req, res) => {
   const credentials = oAuth2Client.credentials;
   res.json({
-    authenticated: !!req.session.authenticated,
+    authenticated: !!req.session.authenticated || (!!credentials.access_token && !!credentials.refresh_token),
     hasTokens: !!credentials.access_token,
     hasRefreshToken: !!credentials.refresh_token,
     tokenExpiry: credentials.expiry_date

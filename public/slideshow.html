@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -11,7 +12,7 @@
   <meta name="apple-mobile-web-app-title" content="Okno">
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
   <link rel="manifest" href="/manifest.json">
-  
+
   <!-- NoSleep.js required for iOS PWAs - Wake Lock API broken until iOS 18.4 (WebKit bug #254545) -->
   <script src="https://cdn.jsdelivr.net/npm/nosleep.js@0.12.0/dist/NoSleep.min.js"></script>
   <style>
@@ -45,13 +46,15 @@
       left: 0;
       width: 100%;
       height: 100%;
-      object-fit: cover; /* Default: fill screen, crop if needed */
+      object-fit: cover;
+      /* Default: fill screen, crop if needed */
       opacity: 0;
       transition: opacity 1s ease-in-out;
     }
 
     .photo.contain-mode {
-      object-fit: contain; /* Show full photo with black bars */
+      object-fit: contain;
+      /* Show full photo with black bars */
     }
 
     .photo.active {
@@ -98,7 +101,9 @@
     }
 
     @keyframes spin {
-      to { transform: rotate(360deg); }
+      to {
+        transform: rotate(360deg);
+      }
     }
 
     #error {
@@ -136,7 +141,7 @@
       padding: 10px;
       border-radius: 16px;
       box-shadow: -6px -6px 16px rgba(255, 255, 255, 0.6),
-                  6px 6px 16px rgba(0, 0, 0, 0.15);
+        6px 6px 16px rgba(0, 0, 0, 0.15);
     }
 
     #controls.visible {
@@ -157,19 +162,19 @@
       letter-spacing: -0.01em;
       transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
       box-shadow: -4px -4px 10px rgba(255, 255, 255, 0.8),
-                  4px 4px 10px rgba(0, 0, 0, 0.2);
+        4px 4px 10px rgba(0, 0, 0, 0.2);
     }
 
     button:hover {
       transform: translateY(-2px);
       box-shadow: -6px -6px 14px rgba(255, 255, 255, 0.9),
-                  6px 6px 14px rgba(0, 0, 0, 0.25);
+        6px 6px 14px rgba(0, 0, 0, 0.25);
     }
 
     button:active {
       transform: translateY(0);
       box-shadow: inset -3px -3px 6px rgba(0, 0, 0, 0.15),
-                  inset 3px 3px 6px rgba(255, 255, 255, 0.7);
+        inset 3px 3px 6px rgba(255, 255, 255, 0.7);
     }
 
     button.small {
@@ -182,21 +187,21 @@
       background: #E0E0E5;
       color: #3A4A42;
       box-shadow: -4px -4px 10px rgba(255, 255, 255, 0.6),
-                  4px 4px 10px rgba(0, 0, 0, 0.25);
+        4px 4px 10px rgba(0, 0, 0, 0.25);
     }
 
     button.secondary-action:hover {
       background: #D5D5DA;
       transform: translateY(-2px);
       box-shadow: -6px -6px 14px rgba(255, 255, 255, 0.7),
-                  6px 6px 14px rgba(0, 0, 0, 0.3);
+        6px 6px 14px rgba(0, 0, 0, 0.3);
     }
 
     button.secondary-action:active {
       background: #E0E0E5;
       transform: translateY(0);
       box-shadow: inset -3px -3px 6px rgba(0, 0, 0, 0.2),
-                  inset 3px 3px 6px rgba(255, 255, 255, 0.5);
+        inset 3px 3px 6px rgba(255, 255, 255, 0.5);
     }
 
     /* Active Button State - Sunken with Color */
@@ -204,9 +209,9 @@
       background: #8FB5A5;
       color: #FFFFFF;
       box-shadow: inset -3px -3px 6px rgba(125, 165, 148, 0.4),
-                  inset 3px 3px 6px rgba(255, 255, 255, 0.2),
-                  -2px -2px 6px rgba(255, 255, 255, 0.3),
-                  2px 2px 6px rgba(143, 181, 165, 0.4);
+        inset 3px 3px 6px rgba(255, 255, 255, 0.2),
+        -2px -2px 6px rgba(255, 255, 255, 0.3),
+        2px 2px 6px rgba(143, 181, 165, 0.4);
     }
 
     button.active:hover {
@@ -231,7 +236,7 @@
       padding: 10px;
       border-radius: 16px;
       box-shadow: -6px -6px 16px rgba(255, 255, 255, 0.6),
-                  6px 6px 16px rgba(0, 0, 0, 0.15);
+        6px 6px 16px rgba(0, 0, 0, 0.15);
     }
 
     #intervalControls.visible {
@@ -256,7 +261,7 @@
       padding: 10px;
       border-radius: 16px;
       box-shadow: -6px -6px 16px rgba(255, 255, 255, 0.6),
-                  6px 6px 16px rgba(0, 0, 0, 0.15);
+        6px 6px 16px rgba(0, 0, 0, 0.15);
     }
 
     #displayModeControls.visible {
@@ -281,7 +286,7 @@
       border-radius: 12px;
       pointer-events: none;
       box-shadow: -4px -4px 10px rgba(255, 255, 255, 0.7),
-                  4px 4px 10px rgba(0, 0, 0, 0.15);
+        4px 4px 10px rgba(0, 0, 0, 0.15);
     }
 
     #info.visible {
@@ -316,7 +321,8 @@
     }
 
     /* Hide keyboard help on mobile/iPad */
-    @media (max-width: 768px), (pointer: coarse) {
+    @media (max-width: 768px),
+    (pointer: coarse) {
       #keyboardHelp {
         display: none !important;
       }
@@ -346,13 +352,15 @@
     }
 
     /* Show sleep reminder only on mobile/iPad */
-    @media (max-width: 768px), (pointer: coarse) {
+    @media (max-width: 768px),
+    (pointer: coarse) {
       #sleepReminder {
         display: block;
       }
     }
   </style>
 </head>
+
 <body>
   <div id="loading">
     <div class="spinner"></div>
@@ -380,9 +388,12 @@
   </div>
 
   <div id="displayModeControls">
-    <button class="small" onclick="setDisplayMode('contain')" data-mode="contain" title="Full photo, black bars">Show All</button>
-    <button class="small" onclick="setDisplayMode('cover')" data-mode="cover" title="Zoom to fill, may crop edges">Fill Screen</button>
-    <button class="small" onclick="setDisplayMode('dual')" data-mode="dual" title="2 portraits together">2 Portraits</button>
+    <button class="small" onclick="setDisplayMode('contain')" data-mode="contain" title="Full photo, black bars">Show
+      All</button>
+    <button class="small" onclick="setDisplayMode('cover')" data-mode="cover" title="Zoom to fill, may crop edges">Fill
+      Screen</button>
+    <button class="small" onclick="setDisplayMode('dual')" data-mode="dual" title="2 portraits together">2
+      Portraits</button>
   </div>
 
   <div id="info">
@@ -421,21 +432,40 @@
     let pendingPortrait = null; // For dual mode: holds first portrait photo
 
     // Screen wake lock using NoSleep.js (Wake Lock API broken in iOS PWAs)
-    const noSleep = new NoSleep();
+    let noSleep = null;
+    try {
+      if (typeof NoSleep !== 'undefined') {
+        noSleep = new NoSleep();
+        console.log('NoSleep.js initialized');
+      } else {
+        console.warn('NoSleep.js not loaded - wake lock will be unavailable');
+      }
+    } catch (e) {
+      console.error('Failed to initialize NoSleep:', e);
+    }
+
     let wakeLockEnabled = false;
 
     function enableWakeLock() {
-      if (!wakeLockEnabled) {
-        noSleep.enable();
-        wakeLockEnabled = true;
-        console.log('Screen wake lock enabled via NoSleep.js');
+      if (!wakeLockEnabled && noSleep) {
+        try {
+          noSleep.enable();
+          wakeLockEnabled = true;
+          console.log('Screen wake lock enabled via NoSleep.js');
+        } catch (e) {
+          console.error('Failed to enable wake lock:', e);
+        }
       }
     }
 
     function exitSlideshow() {
-      if (wakeLockEnabled) {
-        noSleep.disable();
-        wakeLockEnabled = false;
+      if (wakeLockEnabled && noSleep) {
+        try {
+          noSleep.disable();
+          wakeLockEnabled = false;
+        } catch (e) {
+          console.error('Failed to disable wake lock:', e);
+        }
       }
       window.location.href = '/';
     }
@@ -862,4 +892,5 @@
     }
   </script>
 </body>
+
 </html>
