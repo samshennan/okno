@@ -403,12 +403,12 @@
         <div class="setting-label">
           <div class="icon"><i data-lucide="calendar-heart"></i></div>
           <div class="text">
-            <span class="name">On This Day <span class="badge-coming-soon">Coming Soon</span></span>
-            <span class="description">Show photos taken on today's date in past years</span>
+            <span class="name">On This Day</span>
+            <span class="description" id="onThisDayDesc">Show photos taken on today's date in past years</span>
           </div>
         </div>
         <label class="toggle">
-          <input type="checkbox" id="onThisDay" disabled>
+          <input type="checkbox" id="onThisDay" onchange="settings.onThisDay = this.checked">
           <span class="toggle-slider"></span>
         </label>
       </div>
@@ -478,7 +478,7 @@
         btn.classList.toggle('active', btn.dataset.value === settings.displayMode);
       });
 
-      // Toggles (disabled but show current state)
+      // Toggles
       document.getElementById('onThisDay').checked = settings.onThisDay;
       document.getElementById('portraitPairs').checked = settings.portraitPairs;
     }
@@ -529,8 +529,28 @@
       setTimeout(() => toast.classList.remove('visible'), 2500);
     }
 
+    // Fetch On This Day photo count for today
+    async function fetchOnThisDayCount() {
+      try {
+        const res = await fetch('/api/photo/random?onThisDay=true');
+        if (res.ok) {
+          const count = res.headers.get('X-Photo-OnThisDayCount');
+          if (count) {
+            document.getElementById('onThisDayDesc').textContent =
+              `${count} photo${count === '1' ? '' : 's'} from today across all years`;
+          }
+        } else if (res.status === 404) {
+          document.getElementById('onThisDayDesc').textContent =
+            'No photos from today in your library';
+        }
+      } catch {
+        // Silently fail - description stays at default
+      }
+    }
+
     // Initialize
     loadSettings();
+    fetchOnThisDayCount();
     lucide.createIcons();
   </script>
 </body>
