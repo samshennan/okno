@@ -326,6 +326,66 @@
       font-size: 0.9em;
     }
 
+    /* On This Day indicator */
+    #onThisDayIndicator {
+      position: fixed;
+      top: 1rem;
+      left: 1rem;
+      display: none;
+      align-items: center;
+      gap: 8px;
+      z-index: 50;
+      background: rgba(0, 0, 0, 0.55);
+      backdrop-filter: blur(12px);
+      padding: 8px 14px;
+      border-radius: 10px;
+      font-size: 0.813rem;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.9);
+      pointer-events: none;
+      transition: opacity 0.5s;
+    }
+
+    #onThisDayIndicator.visible {
+      display: flex;
+    }
+
+    #onThisDayIndicator .otd-icon {
+      font-size: 1rem;
+      line-height: 1;
+    }
+
+    /* On This Day fallback message overlay */
+    #onThisDayMessage {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      z-index: 20;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(12px);
+      padding: 2rem 3rem;
+      border-radius: 16px;
+      display: none;
+      max-width: 400px;
+    }
+
+    #onThisDayMessage.visible {
+      display: block;
+    }
+
+    #onThisDayMessage h3 {
+      font-size: 1.25rem;
+      font-weight: 500;
+      margin-bottom: 0.5rem;
+    }
+
+    #onThisDayMessage p {
+      font-size: 0.875rem;
+      color: rgba(255, 255, 255, 0.7);
+    }
+
     /* Hide keyboard help on mobile/iPad */
     @media (max-width: 768px),
     (pointer: coarse) {
@@ -380,6 +440,18 @@
   </div>
 
   <div id="slideshow"></div>
+
+  <!-- On This Day indicator (top-left, always visible when active) -->
+  <div id="onThisDayIndicator">
+    <span class="otd-icon"><i data-lucide="calendar-heart" style="width:16px;height:16px;"></i></span>
+    <span id="onThisDayDate"></span>
+  </div>
+
+  <!-- On This Day fallback message -->
+  <div id="onThisDayMessage">
+    <h3 id="onThisDayMsgText">No photos from today in history</h3>
+    <p>Switching to all photos...</p>
+  </div>
 
   <div id="sleepReminder">
     Screen wake enabled - photo frame will run indefinitely
@@ -437,6 +509,8 @@
     let currentIntervalSeconds = 30; // Default 30 seconds (matches config.js default)
     let displayMode = 'cover'; // 'cover', 'contain', or 'dual'
     let pendingPortrait = null; // For dual mode: holds first portrait photo
+    let onThisDayEnabled = false; // On This Day mode
+    let onThisDayFallback = false; // True when OTD had no photos and we fell back to random
 
     // App config loaded from server (available to future features via window.appConfig)
     window.appConfig = null;
@@ -498,6 +572,9 @@
           }
           if (window.appConfig.displayMode && ['cover', 'contain', 'dual'].includes(window.appConfig.displayMode)) {
             displayMode = window.appConfig.displayMode;
+          }
+          if (window.appConfig.onThisDay === true) {
+            onThisDayEnabled = true;
           }
         }
       } catch (err) {
@@ -621,10 +698,40 @@
       img.className = 'photo preload';
 
       try {
-        // Use retry wrapper instead of direct fetch
-        const response = await fetchWithRetry(`/api/photo/random?t=${Date.now()}`);
+        // Build URL with On This Day param if enabled (and not already in fallback)
+        let url = `/api/photo/random?t=${Date.now()}`;
+        if (onThisDayEnabled && !onThisDayFallback) {
+          url += '&onThisDay=true';
+        }
+
+        // Use retry wrapper instead of direct fetch - but handle 404 for On This Day
+        let response;
+        try {
+          response = await fetchWithRetry(url);
+        } catch (err) {
+          // Check if this was an On This Day 404 (no photos for today)
+          if (onThisDayEnabled && !onThisDayFallback) {
+            console.log('On This Day: no photos for today, falling back to random');
+            showOnThisDayMessage('No photos from today in history');
+            onThisDayFallback = true;
+
+            // Fall back to random after 5 seconds
+            setTimeout(() => {
+              loadPhoto(currentIndex);
+            }, 5000);
+            return null;
+          }
+          throw err;
+        }
+
+        // Store create time for OTD indicator
+        const createTime = response.headers.get('X-Photo-CreateTime');
+        const onThisDayCount = response.headers.get('X-Photo-OnThisDayCount');
+
         const blob = await response.blob();
         img.src = URL.createObjectURL(blob);
+        img.dataset.createTime = createTime || '';
+        img.dataset.onThisDayCount = onThisDayCount || '';
 
         // Apply display mode class
         if (displayMode === 'contain') {
@@ -636,6 +743,13 @@
           img.onload = resolve;
           img.onerror = reject;
         });
+
+        // Update On This Day indicator
+        if (onThisDayEnabled && !onThisDayFallback && createTime) {
+          updateOnThisDayIndicator(createTime, onThisDayCount);
+        } else {
+          hideOnThisDayIndicator();
+        }
 
         return img;
       } catch (error) {
@@ -731,6 +845,37 @@
           });
         }, 1500); // Increased from 1000ms to give retries time to complete
       }, 50);
+    }
+
+    // On This Day helpers
+    function updateOnThisDayIndicator(createTimeISO, count) {
+      const indicator = document.getElementById('onThisDayIndicator');
+      const dateEl = document.getElementById('onThisDayDate');
+
+      try {
+        const d = new Date(createTimeISO);
+        const formatted = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        dateEl.textContent = formatted + (count ? ` (${count} photos)` : '');
+      } catch {
+        dateEl.textContent = 'On This Day';
+      }
+
+      indicator.classList.add('visible');
+    }
+
+    function hideOnThisDayIndicator() {
+      document.getElementById('onThisDayIndicator').classList.remove('visible');
+    }
+
+    function showOnThisDayMessage(text) {
+      const msg = document.getElementById('onThisDayMessage');
+      document.getElementById('onThisDayMsgText').textContent = text;
+      msg.classList.add('visible');
+
+      // Hide after 5 seconds
+      setTimeout(() => {
+        msg.classList.remove('visible');
+      }, 5000);
     }
 
     function startSlideshow() {
