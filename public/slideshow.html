@@ -509,6 +509,7 @@
     let currentIntervalSeconds = 30; // Default 30 seconds (matches config.js default)
     let displayMode = 'cover'; // 'cover', 'contain', or 'dual'
     let pendingPortrait = null; // For dual mode: holds first portrait photo
+    let portraitPairsEnabled = false; // Portrait pairs mode from config
     let onThisDayEnabled = false; // On This Day mode
     let onThisDayFallback = false; // True when OTD had no photos and we fell back to random
 
@@ -575,6 +576,9 @@
           }
           if (window.appConfig.onThisDay === true) {
             onThisDayEnabled = true;
+          }
+          if (window.appConfig.portraitPairs === true) {
+            portraitPairsEnabled = true;
           }
         }
       } catch (err) {
@@ -669,7 +673,17 @@
         // Check if portrait (taller than wide)
         const isPortrait = img.naturalHeight > img.naturalWidth;
 
-        // Handle dual portrait mode
+        // Portrait pairs: when enabled and photo is portrait, fetch a guaranteed portrait companion
+        if (portraitPairsEnabled && isPortrait) {
+          const companion = await createPhotoElement({ portrait: true });
+          if (companion) {
+            await showDualPortraits(img, companion);
+            return;
+          }
+          // If companion fetch failed, show single photo
+        }
+
+        // Handle legacy dual display mode (manual "2 Portraits" button)
         if (displayMode === 'dual' && isPortrait) {
           if (!pendingPortrait) {
             // First portrait - save it and load another
@@ -693,15 +707,18 @@
       }
     }
 
-    async function createPhotoElement() {
+    async function createPhotoElement(options = {}) {
       const img = document.createElement('img');
       img.className = 'photo preload';
 
       try {
-        // Build URL with On This Day param if enabled (and not already in fallback)
+        // Build URL with query params
         let url = `/api/photo/random?t=${Date.now()}`;
         if (onThisDayEnabled && !onThisDayFallback) {
           url += '&onThisDay=true';
+        }
+        if (options.portrait) {
+          url += '&portrait=true';
         }
 
         // Use retry wrapper instead of direct fetch - but handle 404 for On This Day
