@@ -203,13 +203,15 @@ ${reason}
     // Clean up uploaded file if there was an error
     if (req.file) {
       try {
-        fs.unlinkSync(req.file.path);
+        if (fs.existsSync(req.file.path)) {
+          fs.unlinkSync(req.file.path);
+        }
       } catch (unlinkError) {
         logger.error(`Error cleaning up file: ${unlinkError.message}`);
       }
     }
 
-    res.status(500).json({
+    return res.status(500).json({
       error: 'Failed to submit feedback',
       details: error.message
     });
