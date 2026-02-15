@@ -8,6 +8,19 @@ Okno is a self-hosted web app that turns an old iPad into a Google Photos digita
 
 Display random photos from Google Photos library on an iPad in a beautiful, hands-off way that requires no interaction after initial setup. The slideshow must be smooth, reliable, and work indefinitely in kiosk mode.
 
+## Current Milestone: v1.1 "Make It Shine"
+
+**Goal:** Elevate Okno from functional MVP to portfolio-quality showcase with cinematic visual effects, bug fixes from QA testing, Stripe donate integration, and a demo mode for interviewer walkthroughs.
+
+**Target features:**
+- Bug fixes from v1.0 QA (picker merge overwrite, session timeout, On This Day fallback, 502 resilience)
+- Ken Burns cinematic zoom/pan effect (toggleable)
+- Blurred background fill instead of black bars (toggleable)
+- Photo date and clock overlays (toggleable)
+- Stripe donate button (existing moonacle account)
+- Demo mode (works without Google auth, sample photos)
+- Polished GitHub README with architecture diagrams and screenshots
+
 ## Current State
 
 **Version:** v1.0 shipped 2026-02-15
@@ -38,17 +51,29 @@ Display random photos from Google Photos library on an iPad in a beautiful, hand
 
 ### Active
 
-(None — next milestone requirements TBD via `/gsd:new-milestone`)
+- [ ] Fix picker session batch overwrite (merge instead of replace)
+- [ ] Fix picker session timeout UX (countdown warning)
+- [ ] Fix On This Day fallback visibility (black screen bug)
+- [ ] Fix 502 resilience on photo random endpoint
+- [ ] Fix dual mode letterboxing for landscape photos
+- [ ] Fix calendar indicator when On This Day photo not loaded
+- [ ] Ken Burns cinematic zoom/pan effect with toggle
+- [ ] Blurred background fill instead of black bars with toggle
+- [ ] Photo date overlay with toggle
+- [ ] Clock overlay with toggle
+- [ ] Stripe donate button (moonacle account)
+- [ ] Demo mode (sample photos, no Google auth required)
+- [ ] Polished GitHub README with architecture diagrams and screenshots
 
 ### Out of Scope
 
-- Ken Burns effect and blurred backgrounds (visual polish) — deferred to v2
-- Clock/date/photo date overlays — deferred to v2
-- Album filtering, date range filtering, favorites mode — deferred to v2
+- Album filtering, date range filtering, favorites mode — deferred to v2.0
+- Photo management grid — deferred to v2.0
+- Multi-user support (per-user accounts) — deferred to v2.0 (infra built with toggle)
+- Multi-device support (wife's iPad) — deferred to v2.0
 - Weather widget — not core to photo frame purpose
 - Short video playback — photos only for now
 - Screenshot/non-photo filtering — not critical for personal library
-- Multi-device support (wife's iPad) — deferred to future milestone
 - Shared upload page — read-only Google Photos integration
 - Native iOS app — PWA + Guided Access sufficient, avoids $100 developer fee
 - Face recognition / AI curation — massive scope, Google Photos already does this
@@ -89,6 +114,14 @@ Display random photos from Google Photos library on an iPad in a beautiful, hand
 - No config.json schema migration logic
 - Picker session expiry not explicitly detected
 
+**QA Bugs (from v1.0 testing session):**
+- BUG-1: Picker session timeout after ~30 min (CRITICAL UX — user loses selection)
+- BUG-2: Second picker batch overwrites first (DATA LOSS — merge needed)
+- BUG-3: On This Day fallback message invisible (black screen)
+- BUG-4: Calendar indicator missing when photo not loaded
+- BUG-5: 502 errors on /api/photo/random during fallback
+- BUG-6: Dual mode forces landscape photos side-by-side (letterboxing)
+
 ## Constraints
 
 - **Tech stack**: Node.js + Express backend, vanilla HTML/CSS/JS frontend
@@ -117,4 +150,4 @@ Display random photos from Google Photos library on an iPad in a beautiful, hand
 | Backend-assisted portrait pairing | Eliminates recursive frontend guessing | ✓ Good — clean architecture |
 
 ---
-*Last updated: 2026-02-15 after v1.0 milestone*
+*Last updated: 2026-02-15 after v1.1 milestone start*

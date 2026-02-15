@@ -5,17 +5,17 @@
 See: .planning/PROJECT.md (updated 2026-02-15)
 
 **Core value:** Display random photos from Google Photos on an iPad in a beautiful, hands-off way that requires no interaction after initial setup.
-**Current focus:** v1.0 milestone complete — planning next milestone
+**Current focus:** v1.1 "Make It Shine" — visual polish, bug fixes, portfolio artifacts
 
 ## Current Position
 
-**Milestone:** v1.0 MVP shipped 2026-02-15
-Phase: All complete (3 of 3)
-Plan: All complete (11 of 11)
-Status: Milestone archived
-Last activity: 2026-02-15 — v1.0 milestone completion
+**Milestone:** v1.1 "Make It Shine"
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-02-15 — Milestone v1.1 started
 
-Progress: [████████████████████] 100% (v1.0 complete)
+Progress: [░░░░░░░░░░░░░░░░░░░░] 0%
 
 ## What We Shipped
 
@@ -42,20 +42,27 @@ See PROJECT.md for full decision log (12 decisions, all marked ✓ Good).
 - Google Picker API has no "Select All" option (manual selection only)
 - 2000 photo limit from Google Picker API (need Library API for >2000)
 - Single-tenant design limits public use
-- iPad device testing pending (6 items from v1.0 audit)
+- 6 QA bugs identified (BUG-1 through BUG-6) — addressed in v1.1
+
+### QA Results (from v1.0 testing)
+
+**Passed:** Settings persistence, portrait pairs, fallback to single, mode switching, URL override
+**Partial:** Network resilience (recovered from 502s after manual cache refresh)
+**Bugs found:** 6 (picker overwrite, session timeout, OTD fallback, calendar indicator, 502 resilience, dual mode letterboxing)
 
 ## Session Continuity
 
 **Last session:** 2026-02-15
-**Status:** v1.0 milestone archived
+**Status:** Defining v1.1 requirements
 **Resume file:** None
 
 **Next steps when resuming:**
-1. `/gsd:new-milestone` to define v2 scope and requirements
-2. iPad device testing (can proceed in parallel)
+1. Complete requirements definition
+2. Create roadmap with phases
+3. `/gsd:plan-phase [N]` to start execution
 
 ---
 
-**Project Status:** v1.0 shipped — ready for next milestone
+**Project Status:** v1.1 milestone started — defining requirements
 **Deployment:** https://okno.moonacle.com
 **GitHub:** https://github.com/samshennan/okno
