@@ -10,6 +10,10 @@ const defaults = {
   onThisDay: false,       // On This Day feature toggle
   portraitPairs: false,    // Portrait pair detection toggle
   transitionTime: 1,      // Photo transition duration in seconds
+  kenBurns: true,          // Gentle zoom and pan on each photo
+  blurredBackground: true, // Fill black bars with blurred version of photo
+  showPhotoDate: true,     // Show when photo was taken
+  showClock: false,        // Show current time on slideshow
 };
 
 // In-memory config (populated on first load)
