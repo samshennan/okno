@@ -18,17 +18,17 @@ Requirements for "Make It Shine" milestone. Visual polish, bug fixes, portfolio 
 
 ### Visual Effects
 
-- [ ] **VISUAL-01**: Ken Burns cinematic zoom/pan effect on slideshow photos with randomized direction
-- [ ] **VISUAL-02**: Ken Burns effect toggleable via settings page
-- [ ] **VISUAL-03**: Blurred background fill instead of black bars for non-filling photos
-- [ ] **VISUAL-04**: Blurred background toggleable via settings page
-- [ ] **VISUAL-05**: Ken Burns respects `prefers-reduced-motion` accessibility setting
+- [x] **VISUAL-01**: Ken Burns cinematic zoom/pan effect on slideshow photos with randomized direction
+- [x] **VISUAL-02**: Ken Burns effect toggleable via settings page
+- [x] **VISUAL-03**: Blurred background fill instead of black bars for non-filling photos
+- [x] **VISUAL-04**: Blurred background toggleable via settings page
+- [x] **VISUAL-05**: Ken Burns respects `prefers-reduced-motion` accessibility setting
 
 ### Overlays
 
-- [ ] **OVERLAY-01**: Photo date overlay showing when each photo was taken (e.g. "March 2019")
-- [ ] **OVERLAY-02**: Clock overlay showing current time (updates every minute)
-- [ ] **OVERLAY-03**: Both overlays independently toggleable via settings page
+- [x] **OVERLAY-01**: Photo date overlay showing when each photo was taken (e.g. "March 2019")
+- [x] **OVERLAY-02**: Clock overlay showing current time (updates every minute)
+- [x] **OVERLAY-03**: Both overlays independently toggleable via settings page
 
 ### Payments
 
@@ -94,14 +94,14 @@ Deferred to v2.0 milestone.
 | BUGFIX-05 | Phase 4 | Complete |
 | BUGFIX-06 | Phase 4 | Complete |
 | DEPLOY-01 | Phase 4 | Complete |
-| VISUAL-01 | Phase 5 | Pending |
-| VISUAL-02 | Phase 5 | Pending |
-| VISUAL-03 | Phase 5 | Pending |
-| VISUAL-04 | Phase 5 | Pending |
-| VISUAL-05 | Phase 5 | Pending |
-| OVERLAY-01 | Phase 5 | Pending |
-| OVERLAY-02 | Phase 5 | Pending |
-| OVERLAY-03 | Phase 5 | Pending |
+| VISUAL-01 | Phase 5 | Complete |
+| VISUAL-02 | Phase 5 | Complete |
+| VISUAL-03 | Phase 5 | Complete |
+| VISUAL-04 | Phase 5 | Complete |
+| VISUAL-05 | Phase 5 | Complete |
+| OVERLAY-01 | Phase 5 | Complete |
+| OVERLAY-02 | Phase 5 | Complete |
+| OVERLAY-03 | Phase 5 | Complete |
 | PAY-01 | Phase 6 | Pending |
 | PAY-02 | Phase 6 | Pending |
 | DEMO-01 | Phase 6 | Pending |
