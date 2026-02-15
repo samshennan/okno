@@ -90,6 +90,13 @@ Plans:
 
 **Research Flag:** MODERATE -- sample photo curation (royalty-free licensing), auth bypass security review.
 
+**Plans:** 3 plans
+
+Plans:
+- [ ] 06-01-PLAN.md -- Stripe donate button on settings page + "Try Demo" button on home page
+- [ ] 06-02-PLAN.md -- Demo backend (sample photos + API endpoints)
+- [ ] 06-03-PLAN.md -- Demo slideshow page + end-of-demo CTA + SW cache v1.3
+
 ---
 
 ### Phase 7: README + Portfolio Polish
@@ -149,5 +156,5 @@ Plans:
 | 3. Advanced Features | v1.0 | 3/3 | Complete | 2026-02-13 |
 | 4. Bug Fixes + Stability | v1.1 | 3/3 | Complete | 2026-02-15 |
 | 5. Visual Effects + Overlays | v1.1 | 3/3 | Complete | 2026-02-15 |
-| 6. Stripe + Demo Mode | v1.1 | 0/? | Not Started | -- |
+| 6. Stripe + Demo Mode | v1.1 | 0/3 | Planned | -- |
 | 7. README + Portfolio Polish | v1.1 | 0/? | Not Started | -- |
