@@ -863,7 +863,16 @@
                 Sign in with Google
               </button>
             </a>
+            <div style="margin-top: 16px;">
+              <a href="/demo" style="text-decoration: none;">
+                <button class="secondary">
+                  <i data-lucide="play-circle" style="width:16px;height:16px;vertical-align:middle;margin-right:6px;"></i>Try Demo
+                </button>
+              </a>
+              <p style="margin-top: 8px; font-size: 0.8rem; color: rgba(90, 107, 98, 0.55);">See Okno in action with sample photos</p>
+            </div>
           `;
+          lucide.createIcons();
         }
       } catch (error) {
         statusEl.className = 'status error';
