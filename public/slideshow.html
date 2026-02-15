@@ -583,6 +583,13 @@
     let onThisDayEnabled = false; // On This Day mode
     let onThisDayFallback = false; // True when OTD had no photos and we fell back to random
 
+    // Ken Burns state
+    let kenBurnsEnabled = true; // from config, updated in loadAppConfig
+    const KB_PRESETS = ['kb-zoom-in-center', 'kb-zoom-in-tl', 'kb-zoom-in-br',
+                        'kb-zoom-out-center', 'kb-drift-right', 'kb-drift-left'];
+    let lastPresetIndex = -1;
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
     // App config loaded from server (available to future features via window.appConfig)
     window.appConfig = null;
 
@@ -612,6 +619,62 @@
         }
       }
     }
+
+    // Ken Burns helpers
+    function shouldApplyKenBurns() {
+      return kenBurnsEnabled && !prefersReducedMotion.matches;
+    }
+
+    function nextKenBurnsPreset() {
+      let index;
+      do {
+        index = Math.floor(Math.random() * KB_PRESETS.length);
+      } while (index === lastPresetIndex);
+      lastPresetIndex = index;
+      return KB_PRESETS[index];
+    }
+
+    function applyKenBurns(photoEl) {
+      if (!shouldApplyKenBurns()) return;
+      const preset = nextKenBurnsPreset();
+      photoEl.classList.add('kenburns');
+      // Duration matches slideshow interval so animation completes just as next photo loads
+      photoEl.style.animationName = preset;
+      photoEl.style.animationDuration = currentIntervalSeconds + 's';
+    }
+
+    function stopKenBurns(photoEl) {
+      photoEl.style.animation = 'none';
+      photoEl.style.transform = 'none';
+      photoEl.classList.remove('kenburns');
+    }
+
+    // GPU teardown: stop animations, de-promote layers, revoke blob URLs, remove from DOM
+    function teardownAndRemove(element) {
+      // Step 1: Stop animations
+      element.style.animation = 'none';
+      // Step 2: Reset transform (hints compositor to release layer)
+      element.style.transform = 'none';
+      // Step 3: De-promote from compositor
+      element.style.willChange = 'auto';
+      // Step 4: Revoke blob URLs
+      const img = element.tagName === 'IMG' ? element : element.querySelector('.photo');
+      if (img && img.src && img.src.startsWith('blob:')) {
+        URL.revokeObjectURL(img.src);
+      }
+      // Step 5: Remove from DOM
+      element.remove();
+    }
+
+    // Respond to OS-level reduced motion preference changes at runtime
+    prefersReducedMotion.addEventListener('change', (e) => {
+      if (e.matches) {
+        // Immediately stop any running Ken Burns animations
+        document.querySelectorAll('.photo.kenburns').forEach(el => {
+          stopKenBurns(el);
+        });
+      }
+    });
 
     function exitSlideshow() {
       if (wakeLockEnabled && noSleep) {
@@ -652,6 +715,9 @@
           }
           if (window.appConfig.transitionTime) {
             document.documentElement.style.setProperty('--transition-time', window.appConfig.transitionTime + 's');
+          }
+          if (window.appConfig.kenBurns === false) {
+            kenBurnsEnabled = false;
           }
         }
       } catch (err) {
@@ -883,25 +949,26 @@
 
 
     async function showSinglePhoto(img) {
-      // Hide On This Day fallback message if visible (photo loaded, message no longer needed)
+      // Hide On This Day fallback message if visible
       const otdMsg = document.getElementById('onThisDayMessage');
       if (otdMsg) otdMsg.classList.remove('visible');
+
+      // STEP 1: Stop Ken Burns on ALL current photos BEFORE crossfade
+      slideshowEl.querySelectorAll('.photo.kenburns').forEach(el => {
+        stopKenBurns(el);
+      });
 
       // Remove old photos that aren't active (cleanup from >1 cycle ago)
       const oldPhotos = slideshowEl.querySelectorAll('.photo');
       oldPhotos.forEach(photo => {
         if (!photo.classList.contains('active') && !photo.classList.contains('preload')) {
-          // Revoke blob URL before removing
-          if (photo.src && photo.src.startsWith('blob:')) {
-            URL.revokeObjectURL(photo.src);
-          }
-          photo.remove();
+          teardownAndRemove(photo);
         }
       });
 
       slideshowEl.appendChild(img);
 
-      // Trigger transition
+      // STEP 2: Trigger crossfade
       setTimeout(() => {
         const allPhotos = slideshowEl.querySelectorAll('.photo');
         allPhotos.forEach(photo => photo.classList.remove('active'));
@@ -912,30 +979,33 @@
         currentIndex = (currentIndex + 1) % photoCount;
         currentIndexEl.textContent = currentIndex + 1;
 
-        // Clean up old photos after transition completes (1.5s to account for network delays)
+        // STEP 3: Start Ken Burns on new photo AFTER crossfade begins
+        // Small delay so the photo is visible first, animation starts smoothly
+        setTimeout(() => {
+          applyKenBurns(img);
+        }, 100);
+
+        // STEP 4: Clean up old photos after transition completes
         setTimeout(() => {
           const oldPhotos = slideshowEl.querySelectorAll('.photo:not(.active)');
           oldPhotos.forEach(photo => {
-            // Revoke blob URL before removing
-            if (photo.src && photo.src.startsWith('blob:')) {
-              URL.revokeObjectURL(photo.src);
-            }
-            photo.remove();
+            teardownAndRemove(photo);
           });
-        }, 1500); // Increased from 1000ms to give retries time to complete
+        }, 1500);
       }, 50);
     }
 
     async function showDualPortraits(img1, img2) {
+      // STEP 1: Stop Ken Burns on ALL current photos BEFORE crossfade
+      slideshowEl.querySelectorAll('.photo.kenburns').forEach(el => {
+        stopKenBurns(el);
+      });
+
       // Remove old photos that aren't active (cleanup from >1 cycle ago)
       const oldPhotos = slideshowEl.querySelectorAll('.photo');
       oldPhotos.forEach(photo => {
         if (!photo.classList.contains('active') && !photo.classList.contains('preload')) {
-          // Revoke blob URL before removing
-          if (photo.src && photo.src.startsWith('blob:')) {
-            URL.revokeObjectURL(photo.src);
-          }
-          photo.remove();
+          teardownAndRemove(photo);
         }
       });
 
@@ -946,7 +1016,7 @@
       slideshowEl.appendChild(img1);
       slideshowEl.appendChild(img2);
 
-      // Trigger transition
+      // STEP 2: Trigger crossfade
       setTimeout(() => {
         const allPhotos = slideshowEl.querySelectorAll('.photo');
         allPhotos.forEach(photo => photo.classList.remove('active'));
@@ -959,17 +1029,19 @@
         currentIndex = (currentIndex + 2) % photoCount;
         currentIndexEl.textContent = currentIndex + 1;
 
-        // Clean up old photos after transition completes (1.5s to account for network delays)
+        // STEP 3: Start Ken Burns on EACH portrait independently (different presets)
+        setTimeout(() => {
+          applyKenBurns(img1);
+          applyKenBurns(img2); // Gets next preset automatically (different from img1)
+        }, 100);
+
+        // STEP 4: Clean up old photos after transition completes
         setTimeout(() => {
           const oldPhotos = slideshowEl.querySelectorAll('.photo:not(.active)');
           oldPhotos.forEach(photo => {
-            // Revoke blob URL before removing
-            if (photo.src && photo.src.startsWith('blob:')) {
-              URL.revokeObjectURL(photo.src);
-            }
-            photo.remove();
+            teardownAndRemove(photo);
           });
-        }, 1500); // Increased from 1000ms to give retries time to complete
+        }, 1500);
       }, 50);
     }
 
