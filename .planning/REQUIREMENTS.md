@@ -9,12 +9,12 @@ Requirements for "Make It Shine" milestone. Visual polish, bug fixes, portfolio 
 
 ### Bug Fixes
 
-- [ ] **BUGFIX-01**: Picker session batch merge — new selections append to existing cache instead of replacing
-- [ ] **BUGFIX-02**: Picker session timeout warning — countdown timer visible during photo selection
-- [ ] **BUGFIX-03**: On This Day fallback visibility — "No photos from today" message visible on screen (not black)
-- [ ] **BUGFIX-04**: Calendar indicator display — shows correctly even when On This Day photo hasn't loaded
-- [ ] **BUGFIX-05**: Random photo 502 resilience — graceful fallback when backend returns 502 during mode switch
-- [ ] **BUGFIX-06**: Dual mode landscape handling — landscape photos display properly in dual mode (no letterboxing)
+- [ ] **BUGFIX-01**: Picker session batch merge -- new selections append to existing cache instead of replacing
+- [ ] **BUGFIX-02**: Picker session timeout warning -- countdown timer visible during photo selection
+- [ ] **BUGFIX-03**: On This Day fallback visibility -- "No photos from today" message visible on screen (not black)
+- [ ] **BUGFIX-04**: Calendar indicator display -- shows correctly even when On This Day photo hasn't loaded
+- [ ] **BUGFIX-05**: Random photo 502 resilience -- graceful fallback when backend returns 502 during mode switch
+- [ ] **BUGFIX-06**: Dual mode landscape handling -- landscape photos display properly in dual mode (no letterboxing)
 
 ### Visual Effects
 
@@ -87,37 +87,37 @@ Deferred to v2.0 milestone.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| BUGFIX-01 | TBD | Pending |
-| BUGFIX-02 | TBD | Pending |
-| BUGFIX-03 | TBD | Pending |
-| BUGFIX-04 | TBD | Pending |
-| BUGFIX-05 | TBD | Pending |
-| BUGFIX-06 | TBD | Pending |
-| VISUAL-01 | TBD | Pending |
-| VISUAL-02 | TBD | Pending |
-| VISUAL-03 | TBD | Pending |
-| VISUAL-04 | TBD | Pending |
-| VISUAL-05 | TBD | Pending |
-| OVERLAY-01 | TBD | Pending |
-| OVERLAY-02 | TBD | Pending |
-| OVERLAY-03 | TBD | Pending |
-| PAY-01 | TBD | Pending |
-| PAY-02 | TBD | Pending |
-| DEMO-01 | TBD | Pending |
-| DEMO-02 | TBD | Pending |
-| DEMO-03 | TBD | Pending |
-| DEMO-04 | TBD | Pending |
-| PORT-01 | TBD | Pending |
-| PORT-02 | TBD | Pending |
-| PORT-03 | TBD | Pending |
-| PORT-04 | TBD | Pending |
-| DEPLOY-01 | TBD | Pending |
+| BUGFIX-01 | Phase 4 | Pending |
+| BUGFIX-02 | Phase 4 | Pending |
+| BUGFIX-03 | Phase 4 | Pending |
+| BUGFIX-04 | Phase 4 | Pending |
+| BUGFIX-05 | Phase 4 | Pending |
+| BUGFIX-06 | Phase 4 | Pending |
+| DEPLOY-01 | Phase 4 | Pending |
+| VISUAL-01 | Phase 5 | Pending |
+| VISUAL-02 | Phase 5 | Pending |
+| VISUAL-03 | Phase 5 | Pending |
+| VISUAL-04 | Phase 5 | Pending |
+| VISUAL-05 | Phase 5 | Pending |
+| OVERLAY-01 | Phase 5 | Pending |
+| OVERLAY-02 | Phase 5 | Pending |
+| OVERLAY-03 | Phase 5 | Pending |
+| PAY-01 | Phase 6 | Pending |
+| PAY-02 | Phase 6 | Pending |
+| DEMO-01 | Phase 6 | Pending |
+| DEMO-02 | Phase 6 | Pending |
+| DEMO-03 | Phase 6 | Pending |
+| DEMO-04 | Phase 6 | Pending |
+| PORT-01 | Phase 7 | Pending |
+| PORT-02 | Phase 7 | Pending |
+| PORT-03 | Phase 7 | Pending |
+| PORT-04 | Phase 7 | Pending |
 
 **Coverage:**
 - v1.1 requirements: 25 total
-- Mapped to phases: 0
-- Unmapped: 25
+- Mapped to phases: 25
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-02-15*
-*Last updated: 2026-02-15 after initial definition*
+*Last updated: 2026-02-15 after roadmap creation (phase assignments added)*
