@@ -9,6 +9,7 @@ const defaults = {
   displayMode: 'cover',   // 'cover' | 'contain' | 'dual'
   onThisDay: false,       // On This Day feature toggle
   portraitPairs: false,    // Portrait pair detection toggle
+  transitionTime: 1,      // Photo transition duration in seconds
 };
 
 // In-memory config (populated on first load)

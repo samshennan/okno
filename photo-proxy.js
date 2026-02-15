@@ -29,7 +29,13 @@ router.get('/random', async (req, res) => {
     let item;
 
     if (onThisDay) {
-      item = photoCache.getRandomOnThisDayItem();
+      try {
+        item = photoCache.getRandomOnThisDayItem();
+      } catch (err) {
+        logger.error('Error getting On This Day item', { error: err.message });
+        // Fall through to 404 logic
+        item = null;
+      }
 
       // No photos match today's date
       if (!item) {
