@@ -55,7 +55,7 @@
       object-fit: cover;
       /* Default: fill screen, crop if needed */
       opacity: 0;
-      transition: opacity 1s ease-in-out;
+      transition: opacity var(--transition-time, 1s) ease-in-out;
     }
 
     .photo.contain-mode {
@@ -223,6 +223,24 @@
     button.active:hover {
       background: #7DA594;
       transform: translateY(-1px);
+    }
+
+    /* Progress Bar */
+    #progressBarContainer {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.1);
+      z-index: 50;
+    }
+
+    #progressBar {
+      height: 100%;
+      background: linear-gradient(90deg, #8FB5A5 0%, #7DA594 100%);
+      width: 0%;
+      transition: width 100ms linear;
     }
 
     /* Neumorphic Interval Controls */
@@ -453,6 +471,11 @@
     <p>Switching to all photos...</p>
   </div>
 
+  <!-- Progress Bar -->
+  <div id="progressBarContainer">
+    <div id="progressBar"></div>
+  </div>
+
   <div id="sleepReminder">
     Screen wake enabled - photo frame will run indefinitely
   </div>
@@ -479,8 +502,9 @@
   </div>
 
   <div id="keyboardHelp">
-    <kbd>Space</kbd> Play/Pause &nbsp;
-    <kbd>←</kbd><kbd>→</kbd> Prev/Next &nbsp;
+    <kbd>Space</kbd> / <kbd>P</kbd> Play/Pause &nbsp;
+    <kbd>S</kbd> / <kbd>→</kbd> Next &nbsp;
+    <kbd>←</kbd> Prev &nbsp;
     <kbd>Esc</kbd> Exit
   </div>
 
@@ -579,6 +603,9 @@
           }
           if (window.appConfig.portraitPairs === true) {
             portraitPairsEnabled = true;
+          }
+          if (window.appConfig.transitionTime) {
+            document.documentElement.style.setProperty('--transition-time', window.appConfig.transitionTime + 's');
           }
         }
       } catch (err) {
@@ -927,6 +954,32 @@
       // No auto-hide -- message stays visible until first fallback photo loads (hidden in showSinglePhoto)
     }
 
+    // Progress bar state
+    let progressAnimationHandle = null;
+    const progressBarEl = document.getElementById('progressBar');
+
+    function startProgressBar() {
+      stopProgressBar();
+      progressBarEl.style.transition = 'none';
+      progressBarEl.style.width = '0%';
+      // Force reflow so the reset takes effect before starting animation
+      progressBarEl.offsetWidth;
+      progressBarEl.style.transition = `width ${currentIntervalSeconds}s linear`;
+      progressBarEl.style.width = '100%';
+    }
+
+    function stopProgressBar() {
+      // Freeze at current position
+      const computed = getComputedStyle(progressBarEl);
+      progressBarEl.style.transition = 'none';
+      progressBarEl.style.width = computed.width;
+    }
+
+    function resetProgressBar() {
+      progressBarEl.style.transition = 'none';
+      progressBarEl.style.width = '0%';
+    }
+
     function startSlideshow() {
       if (intervalHandle) {
         clearInterval(intervalHandle);
@@ -935,10 +988,12 @@
       intervalHandle = setInterval(() => {
         if (isPlaying) {
           loadPhoto(currentIndex);
+          startProgressBar();
         }
       }, intervalMs);
       isPlaying = true;
       playPauseBtn.textContent = 'Pause';
+      startProgressBar();
     }
 
     function stopSlideshow() {
@@ -948,6 +1003,7 @@
       }
       isPlaying = false;
       playPauseBtn.textContent = 'Play';
+      stopProgressBar();
     }
 
     function togglePlayPause() {
@@ -960,11 +1016,18 @@
 
     function nextPhoto() {
       loadPhoto(currentIndex);
+      if (isPlaying) {
+        // Restart interval timer and progress bar from scratch
+        startSlideshow();
+      }
     }
 
     function previousPhoto() {
       // Just load a new random photo (we don't track history)
       loadPhoto(currentIndex);
+      if (isPlaying) {
+        startSlideshow();
+      }
     }
 
     function showError(message) {
@@ -1101,6 +1164,10 @@
       if (e.key === ' ' || e.key === 'Spacebar') {
         e.preventDefault();
         togglePlayPause();
+      } else if (e.key === 'p' || e.key === 'P') {
+        togglePlayPause();
+      } else if (e.key === 's' || e.key === 'S') {
+        nextPhoto();
       } else if (e.key === 'ArrowRight') {
         nextPhoto();
       } else if (e.key === 'ArrowLeft') {

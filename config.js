@@ -71,6 +71,9 @@ function saveConfig(updates) {
     if (key === 'displayMode' && !['cover', 'contain', 'dual'].includes(value)) {
       continue; // Must be a valid display mode
     }
+    if (key === 'transitionTime' && (value < 0.5 || value > 5)) {
+      continue; // Transition time must be 0.5-5 seconds
+    }
 
     validated[key] = value;
   }

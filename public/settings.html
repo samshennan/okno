@@ -392,6 +392,23 @@
           <button data-value="dual" onclick="setDisplayMode_('dual')">Dual</button>
         </div>
       </div>
+
+      <!-- Transition Time -->
+      <div class="setting-row interval-row">
+        <div class="setting-label">
+          <div class="icon"><i data-lucide="blend"></i></div>
+          <div class="text">
+            <span class="name">Transition Time</span>
+            <span class="description">Crossfade duration between photos</span>
+          </div>
+        </div>
+        <div class="btn-group" id="transitionTimeGroup">
+          <button data-value="0.5" onclick="setTransitionTime_(0.5)">0.5s</button>
+          <button data-value="1" onclick="setTransitionTime_(1)">1s</button>
+          <button data-value="2" onclick="setTransitionTime_(2)">2s</button>
+          <button data-value="3" onclick="setTransitionTime_(3)">3s</button>
+        </div>
+      </div>
     </div>
 
     <!-- Features Section -->
@@ -450,6 +467,7 @@
       displayMode: 'cover',
       onThisDay: false,
       portraitPairs: false,
+      transitionTime: 1,
     };
 
     // Load current config from server
@@ -478,6 +496,11 @@
         btn.classList.toggle('active', btn.dataset.value === settings.displayMode);
       });
 
+      // Transition time buttons
+      document.querySelectorAll('#transitionTimeGroup button').forEach(btn => {
+        btn.classList.toggle('active', parseFloat(btn.dataset.value) === settings.transitionTime);
+      });
+
       // Toggles
       document.getElementById('onThisDay').checked = settings.onThisDay;
       document.getElementById('portraitPairs').checked = settings.portraitPairs;
@@ -495,6 +518,13 @@
       settings.displayMode = mode;
       document.querySelectorAll('#displayModeGroup button').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.value === mode);
+      });
+    }
+
+    function setTransitionTime_(seconds) {
+      settings.transitionTime = seconds;
+      document.querySelectorAll('#transitionTimeGroup button').forEach(btn => {
+        btn.classList.toggle('active', parseFloat(btn.dataset.value) === seconds);
       });
     }
 
