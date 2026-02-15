@@ -1,5 +1,5 @@
-const CACHE_VERSION = 'okno-v1.1';
-const PHOTO_CACHE = 'okno-photos-v1.1';
+const CACHE_VERSION = 'okno-v1.2';
+const PHOTO_CACHE = 'okno-photos-v1.2';
 
 const STATIC_ASSETS = [
   '/slideshow.html',
