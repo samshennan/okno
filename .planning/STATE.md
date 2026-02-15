@@ -11,12 +11,12 @@ See: .planning/PROJECT.md (updated 2026-02-15)
 
 **Milestone:** v1.1 "Make It Shine"
 Phase: 4 -- Bug Fixes + Stability
-Plan: 01 of 03 complete
+Plan: 02 of 03 complete
 Status: In progress
-Last activity: 2026-02-15 -- Completed 04-01-PLAN.md (Picker merge + countdown)
+Last activity: 2026-02-15 -- Completed 04-02-PLAN.md (Slideshow error handling)
 
-Progress: [####################--------------------------------------------] 3/7 phases from v1.0 + 1/4 v1.1 phases
-v1.1:     [#####░░░░░░░░░░░░░░░] 1/3 plans in Phase 4
+Progress: [####################--------------------------------------------] 3/7 phases from v1.0 + 2/4 v1.1 phases
+v1.1:     [##########░░░░░░░░░░] 2/3 plans in Phase 4
 
 ## What We Shipped
 
@@ -35,7 +35,7 @@ v1.1:     [#####░░░░░░░░░░░░░░░] 1/3 plans in Phas
 
 | Phase | Goal | Reqs | Status |
 |-------|------|------|--------|
-| 4. Bug Fixes + Stability | Reliable, bug-free slideshow | 7 | Plan 01/03 done |
+| 4. Bug Fixes + Stability | Reliable, bug-free slideshow | 7 | Plan 02/03 done |
 | 5. Visual Effects + Overlays | Cinematic viewing experience | 8 | Not Started |
 | 6. Stripe + Demo Mode | Visitor demo + donation | 6 | Not Started |
 | 7. README + Portfolio Polish | Portfolio-quality GitHub presence | 4 | Not Started |
@@ -59,6 +59,11 @@ See PROJECT.md for full decision log (12 decisions, all marked Good).
 - Countdown uses inline styles matching existing index.html pattern
 - Six cleanup call sites for clearPickerCountdown() to prevent memory leaks
 
+**Phase 4 Plan 02 decisions:**
+- 502 refresh triggered in fetchWithRetry (centralized), not in createPhotoElement
+- OTD fallback loads random photo immediately (no 5s wait), message hides when photo appears
+- Dual mode landscape flushes pending portrait as single (no photo waste)
+
 ### Blockers/Concerns
 
 **Active:**
@@ -80,16 +85,15 @@ See PROJECT.md for full decision log (12 decisions, all marked Good).
 ## Session Continuity
 
 **Last session:** 2026-02-15
-**Status:** Completed 04-01-PLAN.md (Picker merge + countdown)
+**Status:** Completed 04-02-PLAN.md (Slideshow error handling)
 **Resume file:** None
 
 **Next steps when resuming:**
-1. Execute 04-02-PLAN.md (next plan in Phase 4)
-2. Execute 04-03-PLAN.md (final plan in Phase 4)
-3. `/gsd:plan-phase 5` -- Plan visual effects (8 requirements, DEEP research needed)
+1. Execute 04-03-PLAN.md (final plan in Phase 4)
+2. `/gsd:plan-phase 5` -- Plan visual effects (8 requirements, DEEP research needed)
 
 ---
 
-**Project Status:** Phase 4 in progress -- Plan 01 complete, 2 plans remaining
+**Project Status:** Phase 4 in progress -- Plan 02 complete, 1 plan remaining
 **Deployment:** https://okno.moonacle.com
 **GitHub:** https://github.com/samshennan/okno
