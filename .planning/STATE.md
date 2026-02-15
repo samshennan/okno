@@ -11,12 +11,12 @@ See: .planning/PROJECT.md (updated 2026-02-15)
 
 **Milestone:** v1.1 "Make It Shine"
 Phase: 5 of 7 (Visual Effects + Overlays)
-Plan: 1 of 3 in current phase
+Plan: 2 of 3 in current phase
 Status: In progress
-Last activity: 2026-02-15 -- Completed 05-01-PLAN.md
+Last activity: 2026-02-15 -- Completed 05-02-PLAN.md
 
-Progress: [####################--------------------------------------------] 3/7 phases from v1.0 + Phase 5: 1/3 plans
-v1.1:     [███████░░░░░░░░░░░░░] 1/3 plans in Phase 5
+Progress: [####################--------------------------------------------] 3/7 phases from v1.0 + Phase 5: 2/3 plans
+v1.1:     [█████████████░░░░░░░] 2/3 plans in Phase 5
 
 ## What We Shipped
 
@@ -45,7 +45,7 @@ v1.1:     [███████░░░░░░░░░░░░░] 1/3 pla
 | Phase | Goal | Reqs | Status |
 |-------|------|------|--------|
 | 4. Bug Fixes + Stability | Reliable, bug-free slideshow | 7 | COMPLETE (3/3 plans) |
-| 5. Visual Effects + Overlays | Cinematic viewing experience | 8 | In Progress (1/3 plans) |
+| 5. Visual Effects + Overlays | Cinematic viewing experience | 8 | In Progress (2/3 plans) |
 | 6. Stripe + Demo Mode | Visitor demo + donation | 6 | Not Started |
 | 7. README + Portfolio Polish | Portfolio-quality GitHub presence | 4 | Not Started |
 
@@ -82,6 +82,12 @@ See PROJECT.md for full decision log (12 decisions, all marked Good).
 - Visual Effects and Overlays sections placed between Slideshow and Features on settings page
 - No additional validation code -- existing typeof check handles boolean enforcement
 
+**Phase 5 Plan 02 decisions:**
+- 8% max zoom (scale 1.08) for subtle cinematic feel without distortion
+- 100ms delay before Ken Burns start so crossfade begins first (deliberate, cinematic feel)
+- Animation duration matches slideshow interval for complete motion arc per photo
+- teardownAndRemove() consolidates all cleanup into one GPU-safe function
+
 ### Blockers/Concerns
 
 **Active:**
@@ -103,14 +109,14 @@ See PROJECT.md for full decision log (12 decisions, all marked Good).
 ## Session Continuity
 
 **Last session:** 2026-02-15
-**Stopped at:** Completed 05-01-PLAN.md
+**Stopped at:** Completed 05-02-PLAN.md
 **Resume file:** None
 
 **Next steps when resuming:**
-1. Execute 05-02-PLAN.md (Ken Burns + blurred background implementation)
+1. Execute 05-03-PLAN.md (blurred background + overlays)
 
 ---
 
-**Project Status:** Phase 5 in progress -- 1/3 plans complete
+**Project Status:** Phase 5 in progress -- 2/3 plans complete
 **Deployment:** https://okno.moonacle.com
 **GitHub:** https://github.com/samshennan/okno
