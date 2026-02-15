@@ -127,10 +127,10 @@ Display random photos from Google Photos library on an iPad in a beautiful, hand
 - **Tech stack**: Node.js + Express backend, vanilla HTML/CSS/JS frontend
 - **API**: Google Photos Picker API (Library API deprecated March 2025)
 - **Hosting**: VPS with nginx, PM2, Let's Encrypt SSL
-- **Platform**: iPad Pro 1st Gen running iOS 16.x in Safari PWA mode
+- **Platform**: iPad Pro 1st Gen running iOS 16.x — Chrome, Brave, or Safari (multi-browser support preferred)
 - **Budget**: $0 — existing VPS, free Google APIs
 - **Security**: API keys in .env (gitignored), email allowlist for access control
-- **Safari compatibility**: iOS 16.x Safari (NoSleep.js for screen wake, not Wake Lock API)
+- **Browser compatibility**: Multi-browser (Chrome/Brave/Safari on iOS 16.x). NoSleep.js for screen wake. Visual effects should work across all three browsers.
 
 ## Key Decisions
 
