@@ -1,423 +1,553 @@
-# Stack Research
+# Stack Research: v1.1 "Make It Shine"
 
-**Domain:** Self-hosted Google Photos digital photo frame web app
 **Project:** Okno
-**Researched:** 2026-02-08
-**Confidence:** MEDIUM-HIGH (critical API change verified; some library behaviors based on community reports)
+**Researched:** 2026-02-15
+**Scope:** Stack ADDITIONS for v1.1 features only (Ken Burns, blurred backgrounds, overlays, Stripe, demo mode, README tooling)
+**Overall confidence:** MEDIUM-HIGH (CSS features verified against codebase patterns; Stripe approach based on training data -- web verification unavailable)
+
+**Note:** Web search and web fetch tools were unavailable during this research session. Stripe version numbers and README tooling versions should be validated before implementation. Confidence levels reflect this limitation.
 
 ---
 
-## Critical Finding: Google Photos API Scope Removal
+## Existing Stack (Validated in v1.0 -- DO NOT CHANGE)
 
-> **This changes everything about the architecture.** As of April 1, 2025, Google removed the `photoslibrary.readonly`, `photoslibrary.sharing`, and `photoslibrary` scopes from the Library API. You can NO LONGER browse a user's entire photo library via API. Calls using removed scopes return `403 PERMISSION_DENIED`.
-
-**What replaced it:** The **Google Photos Picker API** — a session-based flow where the user manually selects photos/albums through Google's own UI, then your app gets temporary access to those selected items.
-
-**Impact on Okno:**
-- No more "fetch all photos and display random ones" pattern
-- User must go through a Picker session to select photos/albums to share with the app
-- After selection, the app gets access to those specific media items
-- Base URLs for photos expire after **60 minutes** — must be refreshed
-- Sessions have an `expireTime` (exact duration undocumented, but sessions are meant to be short-lived for the selection phase)
-- Once items are selected, you can re-list them using the session ID until the session expires
-
-**Architectural implication:** The app needs a "setup flow" where the user picks photos via the Picker, then the server stores session data and periodically refreshes base URLs for the slideshow. This is a fundamentally different pattern from the old "fetch everything" approach.
-
-**Confidence:** HIGH — verified via official Google documentation at developers.google.com/photos/overview/authorization and developers.google.com/photos/picker/guides/get-started-picker
+| Technology | Version | Status |
+|------------|---------|--------|
+| Node.js | 22.x LTS | Validated |
+| Express | 4.18.x (package.json says ^4.18.2) | Validated |
+| google-auth-library | 9.14.x | Validated |
+| Vanilla HTML/CSS/JS | No build step | Validated |
+| NoSleep.js | 0.12.0 (CDN) | Validated |
+| Lucide Icons | 0.564.0 (CDN) | Validated |
+| Inter font | Google Fonts | Validated |
+| PM2 + nginx + Let's Encrypt | Production | Validated |
+| File-based persistence | JSON files | Validated |
 
 ---
 
-## Recommended Stack
+## New Stack Additions for v1.1
 
-### Core Technologies
+### 1. Ken Burns Cinematic Zoom/Pan Effect
 
-| Technology | Version | Purpose | Why Recommended |
-|------------|---------|---------|-----------------|
-| Node.js | 22.x LTS (Jod) | Runtime | Active LTS through April 2027. Required by Express 5.x (Node 18+). Native `--env-file` support eliminates need for dotenv. |
-| Express | 5.x (5.2.1) | Web framework | Now the default on npm since March 2025. Improved security, async error handling, simplified codebase. Drop-in replacement for Express 4 patterns. |
-| google-auth-library | 10.x (10.5.0) | OAuth 2.0 | Official Google auth library. Handles token refresh automatically — when refresh_token is present, library auto-obtains new access_tokens. On 401/403, automatically requests new token and replays request. |
-| nginx | Latest stable | Reverse proxy + SSL | Handles SSL termination, static file serving, rate limiting. Certbot integration for free Let's Encrypt SSL. Standard production pattern. |
-| PM2 | 6.x (6.0.14) | Process manager | Keeps Node.js alive, auto-restart on crash, startup scripts for boot persistence. 100M+ downloads, battle-tested. |
+**Recommendation:** Pure CSS `@keyframes` animation with `transform: scale() translate()`. No library needed.
 
-**Confidence:** HIGH — all versions verified via npm and official sources (Feb 2026)
+**Why CSS-only:**
+- The existing codebase already uses CSS transitions for crossfade (`transition: opacity 1s ease-in-out` on `.photo` class)
+- CSS `transform` animations are GPU-accelerated on iOS Safari -- they use the compositor thread, not the main thread
+- The existing photo elements are `<img>` tags with `position: absolute` -- perfect for applying transform animations
+- No JavaScript animation library needed; Ken Burns is inherently a slow, smooth zoom/pan that CSS handles natively
+- Zero dependencies added
 
-### Google Photos API Integration
+**Implementation approach:**
+```css
+@keyframes kenburns-1 {
+  from { transform: scale(1.0) translate(0, 0); }
+  to   { transform: scale(1.15) translate(-2%, -1%); }
+}
 
-| Component | Details | Notes |
-|-----------|---------|-------|
-| Picker API endpoint | `https://photospicker.googleapis.com` | New REST API replacing Library API read-only access |
-| OAuth scope | `https://www.googleapis.com/auth/photospicker.mediaitems.readonly` | Only scope needed — creates sessions, lists selected media items |
-| Session flow | Create session -> User picks via pickerUri -> Poll until mediaItemsSet=true -> List media items | Server-side REST calls, no client SDK needed |
-| Media item access | Base URLs with `=w{width}-h{height}` params | Base URLs expire after **60 minutes** — must refresh periodically |
-| API quotas | 10,000 requests/day general; 75,000/day media bytes; 100,000/min rate limit | Generous for single-user digital frame |
+@keyframes kenburns-2 {
+  from { transform: scale(1.05) translate(2%, 0); }
+  to   { transform: scale(1.15) translate(-1%, -2%); }
+}
 
-**Confidence:** HIGH — verified via official Picker API documentation
+/* Multiple variants prevent repetitive feel */
+@keyframes kenburns-3 {
+  from { transform: scale(1.1) translate(-1%, 1%); }
+  to   { transform: scale(1.0) translate(1%, -1%); }
+}
 
-### Supporting Libraries
+.photo.kenburns {
+  animation: kenburns-1 30s ease-in-out forwards;
+  will-change: transform;
+}
+```
 
-| Library | Version | Purpose | When to Use |
-|---------|---------|---------|-------------|
-| helmet | 8.x (8.1.0) | HTTP security headers | Always. Express best practice — wraps 15 security middlewares. Prevents XSS, clickjacking, etc. |
-| express-session | 1.18.x | Server-side session storage | Store OAuth tokens and Picker session data server-side. Never expose tokens to client. |
-| express-rate-limit | 8.x (8.2.1) | API rate limiting | Protect OAuth callback and API routes from abuse. |
-| NoSleep.js | 0.12.0 | Prevent screen sleep (iOS) | **PRIMARY screen wake strategy** — see critical note below about Wake Lock API bug. Uses hidden video playback hack. |
+**Key design decisions:**
+- Scale range: 1.0x to 1.15x (subtle, not jarring). Going beyond 1.2x reveals compression artifacts at iPad Pro resolution
+- Duration: Match slideshow interval (e.g., 30s interval = 30s animation). JS sets `animation-duration` dynamically
+- Multiple keyframe variants: Randomly assign `kenburns-1`, `kenburns-2`, etc. via JS class toggle to prevent monotony
+- `will-change: transform` tells the browser to promote the element to its own compositing layer -- critical for smooth animation on A9X chip
+- Must use `object-fit: cover` (not `contain`) during Ken Burns to avoid revealing edges during zoom
+- The existing `.photo` class already has `object-fit: cover` as default, so this works naturally
 
-**Confidence:** HIGH for helmet, express-session, express-rate-limit (verified npm). MEDIUM for NoSleep.js (last release Dec 2020, but still the standard approach; see Wake Lock section).
+**iOS 16 Safari compatibility:**
+- **HIGH confidence.** CSS `transform`, `scale()`, and `translate()` have been supported in Safari since iOS 9. `@keyframes` supported since iOS 7. `will-change` supported since iOS 9.3.
+- The existing codebase already uses `@keyframes spin` and CSS transitions extensively -- these are proven patterns in this app's target environment
 
-### Development Tools
+**What NOT to use:**
+| Avoid | Why |
+|-------|-----|
+| GSAP / anime.js / any JS animation library | Unnecessary dependency for a slow zoom/pan. Adds KB to bundle. CSS does this natively with GPU acceleration. |
+| `requestAnimationFrame` JS loop | More complex, uses main thread, no benefit over CSS for smooth constant-speed animation |
+| Canvas-based rendering | Massive complexity increase. `<img>` + CSS transform is simpler and equally performant |
+| Web Animations API | Supported on iOS 16 but adds complexity over CSS keyframes for this use case. No benefit. |
 
-| Tool | Purpose | Notes |
-|------|---------|-------|
-| nodemon | Auto-restart on file changes | Dev only. `npm install -D nodemon`. Use `"dev": "nodemon server.js"` in package.json. |
-| Node.js `--env-file` | Load .env file natively | Node 22 LTS has native support. No dotenv dependency needed. Use `node --env-file=.env server.js` |
+**Integration points:**
+- Toggle via `config.js` (add `kenBurns: false` to defaults)
+- Toggle via `settings.html` (add toggle row in Features section)
+- JS in `slideshow.html` adds/removes `.kenburns` class based on config
+- When Ken Burns is active, force `object-fit: cover` regardless of display mode setting (contain mode + Ken Burns = ugly edge reveal)
 
-**Confidence:** HIGH
-
----
-
-## Critical: Wake Lock on iPad Pro 1st Gen (iOS 16.x)
-
-> **The Screen Wake Lock API does NOT work in PWAs (Home Screen web apps) on iOS 16.x.** This is a confirmed WebKit bug (#254545) that was only fixed in iOS/iPadOS 18.4 (March 31, 2025). The iPad Pro 1st Gen maxes out at iPadOS 16.x and will NEVER get this fix.
-
-**What this means for Okno:**
-- The native `navigator.wakeLock` API works in Safari browser mode on iOS 16.4+ but is **broken in installed PWAs**
-- Since Okno runs as a Home Screen PWA, the Wake Lock API is useless
-- **NoSleep.js is the PRIMARY strategy, not a fallback** — its hidden video playback trick is the only reliable way to prevent screen sleep in a PWA on iOS 16
-
-**NoSleep.js caveats in PWA mode:**
-- Must be triggered by user interaction (tap) — cannot auto-enable on page load
-- Need to recreate the NoSleep instance before each `enable()` call for reliability in PWAs
-- If the PWA goes to background, NoSleep is disabled — re-enable on `visibilitychange` event
-- The library is old (v0.12.0, Dec 2020) but the video hack still works because browsers won't sleep during video playback
-
-**Recommended fallback stack:**
-1. User taps screen to start slideshow -> triggers `noSleep.enable()`
-2. On `visibilitychange` back to visible -> recreate NoSleep instance, re-enable
-3. Additionally: iPad Settings > Display & Brightness > Auto-Lock > Never (belt and suspenders)
-4. Consider: iPad Guided Access mode (triple-click Home) with "Mirror Display Auto-Lock" enabled — prevents sleep at OS level
-
-**Confidence:** HIGH — WebKit bug #254545 confirmed resolved only in 18.4; iPad Pro 1st Gen max iOS verified as 16.x
+**Confidence:** HIGH -- CSS animations are the most well-understood web technology. The specific approach is proven in digital signage apps.
 
 ---
 
-## PWA on iOS 16.x Safari — Manifest & Configuration
+### 2. Blurred Background Fill (Instead of Black Bars)
 
-### Required HTML Meta Tags
+**Recommendation:** Pure CSS using a duplicate `<img>` element behind the main photo, with `filter: blur()` and `object-fit: cover`. No library needed.
 
+**Why this approach:**
+- The existing slideshow already manages `<img>` elements in the `#slideshow` container
+- Blurred background fill requires: (1) a background layer showing the same image scaled to fill + heavily blurred, (2) a foreground layer showing the actual photo with `object-fit: contain`
+- This is a two-element pattern, not a single-element CSS trick
+- `backdrop-filter: blur()` alone cannot achieve this (it blurs what's behind, not the element itself)
+
+**Implementation approach:**
 ```html
-<!-- PWA manifest -->
-<link rel="manifest" href="/manifest.json">
-
-<!-- iOS-specific (still required on iOS 16) -->
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-touch-fullscreen" content="yes">
-<link rel="apple-touch-icon" href="/icons/icon-180.png">
-
-<!-- Viewport for fullscreen -->
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- For each photo transition, create two elements: -->
+<img class="photo-bg blurred" src="same-blob-url" />
+<img class="photo active" src="same-blob-url" />
 ```
 
-### manifest.json
+```css
+.photo-bg.blurred {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  filter: blur(30px) brightness(0.6);
+  transform: scale(1.1); /* Prevent blur edge artifacts */
+  z-index: 0;
+}
 
-```json
-{
-  "name": "Okno Photo Frame",
-  "short_name": "Okno",
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#000000",
-  "theme_color": "#000000",
-  "icons": [
-    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
-  ]
+.photo.contain-with-blur {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  object-fit: contain;
+  z-index: 1;
 }
 ```
 
-### iOS 16 PWA Limitations
+**Key design decisions:**
+- `blur(30px)` -- heavy enough to obscure details, light enough to keep color atmosphere. Range 20-40px is the sweet spot.
+- `brightness(0.6)` -- dims the background so it doesn't compete with the foreground. The existing app has a dark feel (black background). Dimming the blur maintains this.
+- `transform: scale(1.1)` on the blurred background -- prevents a visible "edge" where blur meets the container boundary. The 10% oversize is cropped by `overflow: hidden` on the parent.
+- The same blob URL is used for both elements -- no extra network request. The browser reuses the decoded image data.
+- Only applies when display mode is `contain` (showing full photo). In `cover` mode there are no black bars to fill.
 
-| Feature | Status on iOS 16 | Workaround |
-|---------|-------------------|------------|
-| `display: standalone` | Supported since 11.3 | Works |
-| `display: fullscreen` | Falls back to standalone | iPad only since iOS 8 — use standalone |
-| Manifest icons | Supported since 15.4 | Keep `apple-touch-icon` link as fallback |
-| `background_color` | NOT supported | Use CSS `body { background: #000 }` |
-| `orientation` lock | NOT supported | Use CSS media queries + JS |
-| Splash screen | Only via `apple-touch-startup-image` links | Must create per-resolution images or skip |
-| Service Workers | Supported since 11.3 | Use for offline caching |
-| Push notifications | 16.4+ only, PWA must be installed first | Not needed for photo frame |
-| Storage limit | ~50MB for PWA cache | Don't cache photos in service worker — stream from server |
-| Screen Wake Lock | **BROKEN in PWA mode** (fixed in 18.4) | NoSleep.js video hack |
+**iOS 16 Safari compatibility:**
+- **HIGH confidence.** `filter: blur()` has been supported in Safari since iOS 9.3. The app already uses `backdrop-filter: blur(20px)` on control panels (line 146, 240 of slideshow.html), proving blur works in this exact environment.
+- `filter` on `<img>` is different from `backdrop-filter` but equally well-supported.
 
-**Confidence:** HIGH — verified via firt.dev/notes/pwa-ios/ and WebKit bug tracker
+**Memory consideration:**
+- Two `<img>` elements per photo slide instead of one. However, both reference the same blob URL, so the decoded image data is shared. The blurred version uses GPU compositing for the blur, which costs some GPU memory on the A9X but is well within limits for a single blurred image.
+- During transitions, there may be 4 img elements briefly (2 outgoing + 2 incoming). The existing cleanup logic in `showSinglePhoto()` already handles removing old elements after transition. Extend this to also remove the corresponding `.photo-bg` element.
 
----
+**What NOT to use:**
+| Avoid | Why |
+|-------|-----|
+| Canvas + StackBlur / custom blur | Massively more complex. Requires drawing image to canvas, running blur algorithm, extracting as data URL. CSS `filter: blur()` does this in one line with GPU acceleration. |
+| SVG `feGaussianBlur` filter | Works but more complex to wire up than CSS `filter`. No advantage. |
+| Server-side blur (sharp) | Doubles image processing load. The server already proxies every photo. Adding blur server-side would double bandwidth. Client-side CSS blur is free. |
+| `backdrop-filter` on a single element | `backdrop-filter` blurs what's BEHIND the element, not the element itself. You'd need a transparent container with the image somehow positioned behind it -- more convoluted than two `<img>` elements. |
 
-## Google Photos Picker API — Architecture Pattern
+**Integration points:**
+- Toggle via `config.js` (add `blurredBackground: false` to defaults)
+- Toggle via `settings.html` (add toggle row in Features section)
+- When enabled + display mode is `contain`, `createPhotoElement()` returns two elements (or the caller creates the background element from the same blob URL)
+- When enabled + display mode is `cover`, blurred background is unnecessary (no black bars) -- skip creating the extra element
+- When combined with Ken Burns: both elements (bg + fg) get the Ken Burns animation class, ensuring they move in sync
 
-### The Setup Flow (One-Time per Photo Selection)
-
-```
-1. User opens Okno web app
-2. App redirects to Google OAuth consent (if not authenticated)
-3. User grants photospicker.mediaitems.readonly scope
-4. Server creates Picker session via POST /v1/sessions
-5. User is shown pickerUri link (opens Google Photos in new tab)
-6. User selects photos/albums in Google Photos UI
-7. Server polls GET /v1/sessions/{id} until mediaItemsSet=true
-8. Server calls GET /v1/mediaItems?sessionId={id} to get selected items
-9. Server stores media item IDs and metadata in memory/file
-10. Slideshow begins
-```
-
-### The Slideshow Flow (Continuous)
-
-```
-1. Server picks random media item from stored list
-2. Server fetches fresh baseUrl (they expire every 60 min)
-3. Server proxies image to client with size params: baseUrl + =w{width}-h{height}
-4. Client displays image with CSS transitions
-5. Timer advances to next photo
-6. Repeat from step 1
-```
-
-### Base URL Refresh Strategy
-
-Base URLs expire after 60 minutes. Two approaches:
-
-**Option A: Server-side proxy (recommended)**
-- Client requests `/api/photo/next` from Express server
-- Server fetches fresh baseUrl from Picker API, appends size params, proxies bytes to client
-- Pros: Client never sees Google URLs; server controls caching; handles expiry transparently
-- Cons: All image traffic flows through server
-
-**Option B: Client-side refresh**
-- Server provides fresh baseUrl to client via API
-- Client loads image directly from Google
-- Pros: Less server bandwidth
-- Cons: Exposes Google URLs to client; harder to handle expiry gracefully
-
-**Recommendation: Option A** — for a single-user photo frame, bandwidth isn't a concern, and it keeps the client dead simple (just show images from your own server).
-
-**Confidence:** HIGH for the flow; MEDIUM for optimal refresh timing (session expireTime not documented precisely)
+**Confidence:** HIGH -- the dual-image-with-blur pattern is the standard approach used by Apple TV, Google Photos desktop, and most digital signage products. The CSS properties are proven in the existing codebase.
 
 ---
 
-## Token Refresh & Security
+### 3. Photo Date and Clock Overlays
 
-### OAuth 2.0 Token Handling
+**Recommendation:** Pure HTML/CSS overlays with vanilla JS for date formatting and clock updates. No library needed.
 
-```
-google-auth-library handles this automatically:
+**Date overlay approach:**
+- The existing `createPhotoElement()` function already reads `X-Photo-CreateTime` from response headers (line 746, slideshow.html) and stores it as `img.dataset.createTime`
+- When a new photo is shown, read `dataset.createTime`, format with `Date.toLocaleDateString()`, and update a fixed-position `<div>` overlay
+- Use the same neumorphic style as the existing `#info` panel (bottom-left corner)
 
-1. Store refresh_token on first OAuth consent (only returned ONCE)
-2. Library auto-refreshes access_token when expired
-3. On 401/403, library retries with fresh token
-4. Store tokens server-side in express-session (or encrypted file)
-```
+**Clock overlay approach:**
+- A simple `setInterval(() => { ... }, 1000)` updates a clock `<div>` every second (or every minute to save repaints)
+- Use `Date.toLocaleTimeString()` for formatting
+- Position: bottom-right corner (opposite the info panel) or top-right corner
 
-### Security Best Practices
+**Implementation approach:**
+```html
+<!-- Add to slideshow.html body -->
+<div id="dateOverlay" class="overlay">
+  <span id="photoDate"></span>
+</div>
 
-| Practice | Implementation | Why |
-|----------|---------------|-----|
-| Tokens server-side only | Store in express-session, never send to client | Tokens grant access to user's Google Photos |
-| .env for secrets | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `SESSION_SECRET` in .env | Never commit secrets |
-| .gitignore | Add `.env`, `node_modules/`, `tokens.json` | Prevent accidental exposure |
-| helmet middleware | `app.use(helmet())` | Sets 15 security headers automatically |
-| HTTPS only | nginx + Let's Encrypt via Certbot | Required for OAuth redirect URIs; required for service workers |
-| Rate limiting | `express-rate-limit` on `/auth/*` routes | Prevent OAuth abuse |
-| Cookie security | `{ secure: true, httpOnly: true, sameSite: 'lax' }` | Prevent session hijacking |
-| No `--env-file` in production | Use PM2 ecosystem config or systemd env | PM2 can load env from ecosystem.config.js |
-
-**Confidence:** HIGH — standard patterns verified across multiple sources
-
-### Refresh Token Persistence
-
-The refresh_token is only returned on the **first** OAuth authorization. If lost, user must re-authorize. Options for persistence:
-
-| Approach | Pros | Cons | Recommendation |
-|----------|------|------|----------------|
-| In-memory (express-session default) | Simple | Lost on restart | NOT for production |
-| File-based (JSON) | Survives restart | Manual encryption needed | Good for single-user |
-| SQLite | Structured, queryable | Overkill for one user | Skip for MVP |
-| Environment variable | Survives restart | Manual management | Acceptable for single user |
-
-**Recommendation:** File-based JSON storage (`tokens.json`) with restrictive file permissions (`chmod 600`). Encrypted at rest if possible. For a single-user self-hosted app, this is the pragmatic choice.
-
----
-
-## Photo Caching Strategy
-
-### Why Cache
-
-- Base URLs expire every 60 min — can't re-fetch endlessly
-- Network failures shouldn't kill the slideshow
-- Pre-fetching next image enables smooth transitions
-
-### Recommended Approach: In-Memory LRU + File Buffer
-
-| Layer | What | Size | TTL |
-|-------|------|------|-----|
-| **Metadata cache** | Media item list from Picker session (IDs, mimeTypes) | Tiny (~KB) | Until new Picker session |
-| **URL cache** | Fresh baseUrls mapped to media item IDs | Tiny (~KB) | 55 min (refresh before 60-min expiry) |
-| **Image buffer** | Next 2-3 images pre-fetched as Buffers | ~15-30MB | Until displayed |
-| **Current image** | Currently displayed image | ~5-10MB | Until next transition |
-
-### Implementation Notes
-
-- Use a simple `Map` or object for URL cache — no need for lru-cache library for single-user
-- Pre-fetch next 2-3 images while current one displays (double-buffer pattern)
-- If URL refresh fails, serve from buffer (graceful degradation)
-- Don't cache to disk unless needed — in-memory is simpler and sufficient for single user
-- Node.js default memory is ~1.5GB — holding 3-5 images in memory is trivial
-- Use `Buffer` for image data, not base64 strings (less memory overhead)
-
-**Confidence:** MEDIUM — standard patterns, but optimal buffer sizes depend on actual photo resolutions
-
----
-
-## Installation
-
-```bash
-# Core dependencies
-npm install express google-auth-library helmet express-session express-rate-limit
-
-# Frontend (served as static files, no install needed)
-# NoSleep.js — include via CDN or copy to /public/js/
-# <script src="https://cdnjs.cloudflare.com/ajax/libs/nosleep/0.12.0/NoSleep.min.js"></script>
-# OR download and self-host (recommended for reliability)
-
-# Dev dependencies
-npm install -D nodemon
+<div id="clockOverlay" class="overlay">
+  <span id="clockTime"></span>
+</div>
 ```
 
-### package.json Scripts
+```css
+.overlay {
+  position: fixed;
+  z-index: 50;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.85);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+  transition: opacity 0.5s;
+}
 
-```json
-{
-  "scripts": {
-    "start": "node --env-file=.env server.js",
-    "dev": "nodemon --env-file=.env server.js"
-  }
+#dateOverlay {
+  bottom: 1.5rem;
+  left: 1.5rem;
+}
+
+#clockOverlay {
+  bottom: 1.5rem;
+  right: 1.5rem;
 }
 ```
 
-### PM2 Production Start
+**Key design decisions:**
+- Semi-transparent white text with dark text-shadow -- readable on both light and dark photos without a background box. This matches how professional digital frames display metadata.
+- `pointer-events: none` -- overlays should not interfere with tap-to-show-controls behavior
+- z-index 50 -- above photos (z-index 0-1) but below controls (z-index 100). Same as existing `#onThisDayIndicator`.
+- Update clock every 60 seconds (not every second) -- reduces repaints. Minute-level precision is sufficient for a photo frame.
+- Date formatting: `"Jan 15, 2019"` style using `toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })` -- the same format already used in the On This Day indicator (line 874).
 
-```bash
-# ecosystem.config.js handles env vars in production
-pm2 start ecosystem.config.js
-pm2 save
-pm2 startup
+**What NOT to use:**
+| Avoid | Why |
+|-------|-----|
+| moment.js / luxon / date-fns | Unnecessary dependency for `toLocaleDateString()` and `toLocaleTimeString()`. These are built into every browser since IE11. |
+| Canvas text rendering | Massively overengineered for text overlays. HTML/CSS is the right tool. |
+
+**Integration points:**
+- Toggle via `config.js` (add `showDate: false` and `showClock: false` to defaults)
+- Toggle via `settings.html` (two toggle rows in Features section)
+- Date overlay updates in `showSinglePhoto()` and `showDualPortraits()` after setting the active class
+- Clock overlay starts in `init()` if enabled; stopped on exit
+
+**Confidence:** HIGH -- uses the same patterns already present in the codebase (date formatting in On This Day indicator, fixed-position overlays, pointer-events: none).
+
+---
+
+### 4. Stripe Donate Button
+
+**Recommendation:** Stripe Payment Links. No server-side code. No npm package. Just a URL.
+
+**Why Payment Links over other Stripe products:**
+
+| Stripe Product | Server Code Needed | JS SDK Needed | Complexity | Fit for Donate Button |
+|----------------|-------------------|---------------|------------|----------------------|
+| **Payment Links** | None | None | Trivial -- just a URL | PERFECT |
+| Checkout Sessions | Yes (create session server-side) | Optional (redirect or embedded) | Medium | Overkill |
+| Elements | Yes (create PaymentIntent server-side) | Yes (Stripe.js + Elements) | High | Way overkill |
+| Embedded Checkout | Yes (create session server-side) | Yes (Stripe.js) | Medium-High | Overkill |
+
+**How Payment Links work:**
+1. Create a Payment Link in the Stripe Dashboard (no code)
+2. Set it as a one-time donation product with flexible amount (or fixed amounts)
+3. Get a URL like `https://buy.stripe.com/live_xxxxxxxxxxxx`
+4. Put that URL in an `<a>` tag on your page
+5. Clicking it opens Stripe's hosted payment page. No CSP changes needed (it navigates away, not in an iframe).
+6. After payment, Stripe redirects back to a URL you specify
+
+**Implementation approach:**
+```html
+<!-- In index.html, replace the existing PayPal placeholder -->
+<a href="https://buy.stripe.com/YOUR_PAYMENT_LINK_ID"
+   target="_blank"
+   rel="noopener noreferrer"
+   style="text-decoration: none;">
+  <button class="modal-btn modal-btn-primary" style="margin: 0;">
+    <i data-lucide="heart" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 6px;"></i>
+    Support Development
+  </button>
+</a>
 ```
+
+**Key design decisions:**
+- **No npm packages.** Stripe Payment Links require zero backend integration. The existing `index.html` already has a donation section in the feedback modal (lines 1165-1193) with a PayPal placeholder URL. Simply replace the PayPal URL with a Stripe Payment Link URL.
+- **No CSP changes.** Payment Links open in a new tab (or navigate away). Unlike Stripe.js/Elements which need `js.stripe.com` in CSP, Payment Links are just a redirect.
+- **No server routes.** No `/api/create-checkout-session` needed. No webhook handling needed for a simple donate button.
+- **Flexible amounts.** Stripe Payment Links support "customer chooses what to pay" mode -- ideal for donations.
+- **Existing Stripe account.** The project context mentions "existing moonacle account" -- just create the Payment Link in that dashboard.
+
+**What NOT to use:**
+| Avoid | Why |
+|-------|-----|
+| `stripe` npm package | Server-side SDK for creating Checkout Sessions, PaymentIntents, etc. Total overkill for a donate link. Adds ~1MB dependency. |
+| `@stripe/stripe-js` | Client-side SDK for Elements and embedded Checkout. Not needed when using Payment Links. |
+| Stripe Elements | Embeds a payment form in your page. Requires server-side PaymentIntent creation, webhook handling, CSP changes. Massively overengineered for a donate button. |
+| Stripe Checkout Sessions | Requires server-side session creation, webhook verification, success/cancel page handling. Only needed for programmatic payment flows (e.g., subscriptions, cart checkout). |
+| PayPal (existing placeholder) | Stripe is the better developer experience. Payment Links are simpler than PayPal buttons. The project already has a Stripe (moonacle) account. |
+
+**Integration points:**
+- Replace PayPal link in `index.html` feedback modal donation section
+- Store the Payment Link URL in `.env` as `STRIPE_PAYMENT_LINK` and serve via `/api/config` -- OR just hardcode it in the HTML (it's a public URL, not a secret)
+- Consider adding a small "Buy me a coffee" style button in the footer of `index.html` (in addition to the modal)
+
+**Confidence:** MEDIUM -- Stripe Payment Links are a well-established product (launched ~2021), but I could not verify current documentation during this session. The zero-code approach is based on training data. Validate that Payment Links support "customer chooses amount" before creating the link.
+
+---
+
+### 5. Demo Mode (Works Without Google Auth)
+
+**Recommendation:** Bundle 8-12 sample photos in `/public/demo/` and add a demo-specific code path in `photo-proxy.js`. No new libraries needed.
+
+**Why bundled sample photos:**
+- Demo mode must work without Google OAuth -- the entire Picker API flow is bypassed
+- The photo proxy (`/api/photo/random`) currently requires `oAuth2Client.getAccessToken()` -- demo mode needs a path that skips this
+- Bundling photos as static files in the repo means demo mode works immediately on clone, with zero setup
+
+**Implementation approach:**
+
+**Server-side (`photo-proxy.js`):**
+```javascript
+// At the top of GET /random handler:
+const config = require('./config');
+if (config.getConfig().demoMode || !photoCache.size()) {
+  // Serve from /public/demo/ directory
+  const demoPhotos = fs.readdirSync('./public/demo')
+    .filter(f => /\.(jpg|jpeg|png|webp)$/i.test(f));
+  const randomFile = demoPhotos[Math.floor(Math.random() * demoPhotos.length)];
+  return res.sendFile(path.join(__dirname, 'public', 'demo', randomFile));
+}
+```
+
+**Frontend (`index.html`):**
+- Add a "Try Demo" button visible when NOT authenticated
+- Clicking it sets `demoMode=true` via `/api/config` and redirects to `/slideshow.html`
+- Or simpler: just navigate to `/slideshow.html?demo=true` and have the slideshow check this param
+
+**Sample photos:**
+- 8-12 high-quality landscape and portrait photos (mix ensures portrait pairs and Ken Burns work in demo)
+- Include photos with varied dates in EXIF to demonstrate "On This Day" and date overlays
+- License: use freely-licensed photos from Unsplash (CC0 / Unsplash License) or take original photos
+- Size: ~500KB-1MB each at 2048x1536 resolution (iPad Pro native). Total: ~6-12MB in repo
+- File format: JPEG (universal browser support, smaller than PNG for photos)
+
+**Key design decisions:**
+- **No external photo service.** Using Unsplash API or similar would add an external dependency and API key requirement. Bundled photos are fully self-contained.
+- **Same slideshow code path.** Demo mode should use the same `slideshow.html` with the same transitions, Ken Burns, blurred backgrounds, etc. Only the photo SOURCE differs.
+- **Auto-detect demo mode.** If no Google auth is configured (no `GOOGLE_CLIENT_ID` in env), automatically enter demo mode. This makes the GitHub clone experience seamless.
+- **Hardcoded metadata.** Demo photos need `createTime` metadata for date overlays. Either embed EXIF data in the JPEGs, or create a `demo-metadata.json` mapping filenames to dates.
+
+**What NOT to use:**
+| Avoid | Why |
+|-------|-----|
+| Unsplash API / Pexels API | Adds external dependency, API key requirement, network dependency. Defeats "works on clone" goal. |
+| Lorem Picsum (`picsum.photos`) | External dependency. Goes down occasionally. Not reliable for demo. |
+| Generating placeholder images | Ugly. Doesn't demonstrate the actual product experience. |
+| Large photo set (>20 photos) | Bloats the repo. 8-12 photos is enough to demonstrate all features. |
+
+**Integration points:**
+- Add `demoMode: false` to `config.js` defaults
+- Modify `photo-proxy.js` to check for demo mode before accessing Google API
+- Modify `index.html` to show "Try Demo" button when unauthenticated
+- Modify `auth.js` status endpoint to indicate demo availability
+- Create `/public/demo/` directory with sample photos
+- Create `/public/demo/metadata.json` with createTime data for each photo
+- Add `public/demo/` to `.gitignore` exception (photos SHOULD be committed)
+
+**Confidence:** HIGH -- this is a straightforward server-side routing change. No new technologies needed.
+
+---
+
+### 6. Polished GitHub README (Architecture Diagrams, Badges)
+
+**Recommendation:** Mermaid diagrams (native GitHub rendering) + shields.io badges + manual screenshots. No build step.
+
+**Architecture diagrams -- Mermaid:**
+```markdown
+```mermaid
+graph LR
+    iPad[iPad PWA] -->|HTTPS| Nginx[nginx]
+    Nginx -->|proxy_pass| Express[Express Server]
+    Express -->|OAuth 2.0| Google[Google Photos API]
+    Express -->|Cache| JSON[(cache.json)]
+```
+```
+
+**Why Mermaid:**
+- GitHub renders Mermaid diagrams natively in markdown since February 2022 -- no image files needed
+- Diagrams are version-controlled as text (not binary PNGs)
+- Easy to update when architecture changes
+- Supports flowcharts, sequence diagrams, and C4-style component diagrams
+- No build step, no external tools, no CI/CD needed
+
+**Badges -- shields.io:**
+```markdown
+![Node.js](https://img.shields.io/badge/Node.js-22.x-green)
+![Express](https://img.shields.io/badge/Express-4.x-blue)
+![License](https://img.shields.io/badge/License-ISC-yellow)
+![Platform](https://img.shields.io/badge/Platform-iPad%20PWA-lightgrey)
+```
+
+**Why shields.io:**
+- Industry standard for GitHub README badges
+- No account needed -- badges are generated from URL parameters
+- Static badges for version/platform, dynamic badges possible for CI status later
+- Free, reliable CDN
+
+**Screenshots:**
+- Take actual screenshots of the app on iPad (or iPad Simulator)
+- Store in `/docs/screenshots/` (not in `/public/` -- no need to serve them)
+- Reference in README as `![Screenshot](docs/screenshots/slideshow.png)`
+- Compress with ImageOptim or similar before committing (keep under 500KB each)
+
+**What NOT to use:**
+| Avoid | Why |
+|-------|-----|
+| draw.io / Lucidchart / Figma diagrams exported as PNG | Binary files are not version-controlled well. Text-based Mermaid is superior for a developer README. |
+| Storybook / component docs | Overkill for a vanilla JS app with 3 HTML pages. |
+| Auto-generated API docs (Swagger/OpenAPI) | The API is ~5 endpoints. A markdown table is clearer than a Swagger UI setup. |
+| README generator tools | They produce generic templates. A hand-crafted README shows product taste -- which is the point for a portfolio piece. |
+| GitHub Actions for badge generation | Overkill when shields.io static badges work fine. Add dynamic CI badges later if testing is added. |
+
+**Integration points:**
+- Write directly in `README.md` at repo root
+- Create `/docs/screenshots/` for screenshot images
+- Mermaid diagrams are inline in the markdown -- no separate files needed
+- Consider sections: Overview, Screenshots, Architecture, Setup, Configuration, Demo Mode, Tech Stack, Contributing
+
+**Confidence:** HIGH -- Mermaid + shields.io are mature, well-documented tools. GitHub Mermaid rendering has been stable for 4+ years.
+
+---
+
+## Complete Stack Addition Summary
+
+| Feature | New Dependencies | Libraries | Lines of Code (est.) |
+|---------|-----------------|-----------|---------------------|
+| Ken Burns effect | 0 | None (pure CSS) | ~50 CSS + ~30 JS |
+| Blurred backgrounds | 0 | None (pure CSS + HTML) | ~30 CSS + ~40 JS |
+| Date/clock overlays | 0 | None (pure HTML/CSS/JS) | ~20 CSS + ~40 JS |
+| Stripe donate | 0 | None (URL only) | ~5 HTML |
+| Demo mode | 0 | None | ~30 JS (server) + ~20 JS (client) |
+| README polish | 0 | None | ~200 markdown |
+
+**Total new npm dependencies: ZERO.**
+
+This is intentional and aligned with the project's constraint of "no build step, no React, vanilla JS." Every v1.1 feature is achievable with the existing stack plus CSS animations and simple server-side routing.
+
+---
+
+## CSP (Content Security Policy) Changes
+
+The existing Helmet CSP configuration in `server.js` needs NO changes for v1.1:
+- Ken Burns, blur, overlays: Pure CSS/HTML -- no CSP implications
+- Stripe Payment Links: Opens in new tab (navigation, not embedded) -- no CSP implications
+- Demo mode: Serves files from same origin -- no CSP implications
+
+If Stripe Checkout Sessions were used (they should NOT be), `js.stripe.com` would need to be added to `script-src` and `frame-src`. Payment Links avoid this entirely.
+
+---
+
+## Service Worker Changes
+
+The existing `sw.js` may need minor updates:
+- Add demo photo paths to `STATIC_ASSETS` if you want demo mode to work offline
+- No other changes needed for v1.1 features
+
+---
+
+## Config Schema Additions
+
+The `config.js` module needs new keys in its `defaults` object:
+
+```javascript
+const defaults = {
+  // Existing
+  interval: 30,
+  displayMode: 'cover',
+  onThisDay: false,
+  portraitPairs: false,
+  // New for v1.1
+  kenBurns: false,
+  blurredBackground: false,
+  showDate: false,
+  showClock: false,
+  demoMode: false,
+};
+```
+
+The existing `saveConfig()` validation logic (type-checking against defaults, skipping unknown keys) will automatically support these new boolean keys with no code changes to the validation itself -- just add them to `defaults`.
+
+---
+
+## Performance Budget
+
+For iPad Pro 1st Gen (A9X, 2GB RAM, iOS 16):
+
+| Feature | GPU Impact | Memory Impact | Risk |
+|---------|-----------|---------------|------|
+| Ken Burns (CSS transform) | Low -- single compositing layer | Negligible | LOW |
+| Blurred background (CSS filter) | Medium -- blur shader on GPU | ~5-10MB extra GPU texture | LOW |
+| Both combined | Medium -- two compositing layers + blur | ~10-15MB GPU | LOW-MEDIUM |
+| Date/clock overlays | Negligible | Negligible | NONE |
+| Demo mode | None (same photo pipeline) | Same as normal mode | NONE |
+
+**Critical consideration:** When Ken Burns + blurred background are BOTH active on a DUAL portrait display, there are potentially 6 elements being composited (2 blurred bg + 2 foreground + 2 with Ken Burns animation). On the A9X chip, this could cause frame drops. Recommend testing this combination specifically and potentially disabling Ken Burns in dual-portrait mode.
 
 ---
 
 ## Alternatives Considered
 
-| Recommended | Alternative | When to Use Alternative |
-|-------------|-------------|-------------------------|
-| Express 5.x | Fastify | If you need maximum performance. But Express has better Google API sample code and ecosystem familiarity for vibe-coding. |
-| google-auth-library | passport + passport-google-oauth20 | If you need multi-provider auth. Passport adds unnecessary complexity for single-provider Google OAuth. |
-| express-session (memory store) | connect-session-knex, connect-redis | If you have multiple users or need session persistence across restarts. Overkill for single-user frame. |
-| Node.js native --env-file | dotenv (17.x) | If stuck on Node < 20.6. With Node 22 LTS, native support is cleaner with zero dependencies. |
-| NoSleep.js | Native Wake Lock API | If targeting iOS 18.4+ only. iPad Pro 1st Gen can't use it — stuck on iOS 16. |
-| File-based token storage | SQLite via better-sqlite3 | If you add multiple users or need structured queries. MVP doesn't need it. |
-| In-memory image buffer | Redis for image cache | If you scale to multiple server instances. Single PM2 process doesn't need it. |
-| googleapis (monolith) | google-auth-library + manual REST | googleapis package is 170+ MB and includes ALL Google APIs. For Picker API only, use google-auth-library for auth + direct REST calls (fetch/axios) to photospicker.googleapis.com. Much lighter. |
+| Category | Recommended | Alternative | Why Not |
+|----------|-------------|-------------|---------|
+| Ken Burns animation | Pure CSS @keyframes | GSAP (GreenSock) | 25KB library for something CSS does natively. No benefit for slow zoom/pan. |
+| Blurred background | CSS `filter: blur()` on duplicate `<img>` | Canvas + StackBlur | Massive complexity increase. CSS blur is GPU-accelerated and one line. |
+| Blurred background | CSS `filter: blur()` on duplicate `<img>` | Server-side blur via sharp | sharp is already a devDependency. But server-side blur doubles bandwidth and adds latency. Client CSS blur is instant and free. |
+| Date formatting | `toLocaleDateString()` | date-fns / luxon | Zero-dependency approach. Intl API is fully supported on iOS 16 Safari. |
+| Stripe integration | Payment Links (URL) | Stripe Checkout Sessions | Payment Links: 0 code, 0 dependencies. Checkout: server route + webhook + npm package. For a donate button, Payment Links is correct. |
+| Stripe integration | Payment Links (URL) | Buy Me a Coffee / Ko-fi | Third-party platforms take higher cut (~5-8%). Stripe Payment Links: 2.9% + 30c. Plus, the project already has a Stripe account. |
+| Demo photos | Bundled in repo | Unsplash API | External dependency defeats "works on clone" goal. Bundled photos are self-contained. |
+| Architecture diagrams | Mermaid (text) | PNG exports from Figma | Text diagrams are version-controlled, diff-friendly, and render natively on GitHub. |
+| README badges | shields.io | Custom SVGs | shields.io is the industry standard. No reason to reinvent. |
 
 ---
 
-## What NOT to Use
+## Risk Assessment
 
-| Avoid | Why | Use Instead |
-|-------|-----|-------------|
-| `googleapis` npm package (full) | 170+ MB monolith package containing ALL Google API clients. Massive install, slow startup. Picker API isn't even included as a dedicated client yet. | `google-auth-library` for OAuth + native `fetch()` (Node 22 has it built-in) for Picker API REST calls |
-| `photoslibrary.readonly` scope | **Removed April 1, 2025.** Returns 403 PERMISSION_DENIED. | `photospicker.mediaitems.readonly` scope with Picker API |
-| `googlephotos` npm package | Last published 4 years ago. Uses old Library API scopes that no longer work. | Direct REST calls to Picker API |
-| React/Vue/any framework | Adds build step, increases complexity, no benefit for a fullscreen image slideshow. Old Safari compatibility risk. | Vanilla HTML/CSS/JS — zero build step, works everywhere |
-| dotenv | Unnecessary dependency with Node 22 LTS. | `node --env-file=.env` (native) |
-| Wake Lock API as primary strategy | Broken in PWA mode on iOS 16.x. Fixed only in 18.4. iPad Pro 1st Gen can't run 18.4. | NoSleep.js video hack as primary, Guided Access as OS-level backup |
-| Service worker for photo caching | iOS limits PWA cache to ~50MB. Photos would fill this instantly. Eviction is aggressive. | Server-side proxy with in-memory buffer |
-| passport.js | Adds auth abstraction layer with strategies/serialization. Overkill when you have exactly one OAuth provider and one user. | google-auth-library directly |
-| `apple-mobile-web-app-capable` without manifest | Legacy-only approach. | Use both: manifest.json for standards compliance + meta tag for iOS backward compat |
-
----
-
-## Stack Patterns by Variant
-
-**If the user only has a few albums to display:**
-- Use Picker API to select an album once
-- Store selected media item list server-side
-- Refresh base URLs every ~55 minutes via cron/setInterval
-- Slideshow picks randomly from stored list
-
-**If the user wants photos to rotate/change selection periodically:**
-- Build a "re-pick" feature: button in admin UI triggers new Picker session
-- Or: schedule periodic re-pick prompts (e.g., weekly notification)
-- Each new session replaces the stored media item list
-
-**If base URL refresh becomes unreliable:**
-- Download photos to server disk on first fetch (within 60-min window)
-- Serve from local disk cache
-- Trade-off: disk space vs API dependency
-- Consider: 1000 photos at 5MB each = 5GB disk — manageable on most VPS
-
----
-
-## Version Compatibility
-
-| Package | Compatible With | Notes |
-|---------|-----------------|-------|
-| Express 5.x | Node.js 18+ | Node 22 LTS recommended |
-| google-auth-library 10.x | Node.js 14+ | Works with Node 22 |
-| helmet 8.x | Express 4.x or 5.x | Compatible with both |
-| express-session 1.18.x | Express 4.x or 5.x | Verify middleware order with Express 5 |
-| express-rate-limit 8.x | Express 4.x or 5.x | Uses new Express 5 async patterns |
-| NoSleep.js 0.12.0 | All browsers | Vanilla JS, no framework dependency |
-| PM2 6.x | Node.js 16+ | Compatible with Node 22 |
-| certbot | nginx 1.18+ | Auto-renewal via systemd timer |
-
----
-
-## iPad Pro 1st Gen Specific Considerations
-
-| Constraint | Implication | Mitigation |
-|------------|-------------|------------|
-| Max iPadOS 16.7.x | No iOS 17/18 features | Test all features against Safari 16 |
-| Wake Lock broken in PWA | Screen will sleep | NoSleep.js + Auto-Lock=Never + Guided Access |
-| 2GB RAM (12.9") / 2GB RAM (9.7") | Limited browser memory | Don't preload more than 3-5 images |
-| A9X chip | Adequate for image display | CSS transitions over JS animations for perf |
-| 2732x2048 (12.9") / 2048x1536 (9.7") | High-res display | Request images at native resolution via baseUrl params |
-| Safari 16 JS engine | Modern JS supported (ES2020+) | Avoid top-level await in scripts; use async IIFE |
-| No Web Bluetooth, no USB | Can't programmatically control brightness | User must set brightness manually in Settings |
+| Risk | Likelihood | Impact | Mitigation |
+|------|-----------|--------|------------|
+| Ken Burns + blur causes frame drops on A9X | Medium | Low (toggle off) | Both features are independently toggleable. Test on actual iPad. If laggy, disable blur during Ken Burns automatically. |
+| Stripe Payment Links pricing/UX changes | Low | Low | Payment Links are a stable Stripe product. If deprecated, switch to Checkout Sessions (more code but straightforward). |
+| Demo photos increase repo size significantly | Low | Low | 8-12 photos at ~500KB each = ~6MB. Git handles this fine. Use `.gitattributes` with LFS if it grows beyond 50MB (it won't). |
+| Mermaid rendering breaks on GitHub | Very Low | Very Low | Mermaid has been stable on GitHub since 2022. Fallback: render to PNG and embed as image. |
+| CSS `will-change` causes excessive memory use | Low | Medium | Only apply `will-change: transform` to the active photo element, not all photos. Remove it after transition completes. |
 
 ---
 
 ## Sources
 
-### HIGH Confidence (Official Documentation)
-- [Google Photos API Authorization Scopes](https://developers.google.com/photos/overview/authorization) — verified scope removal and replacements
-- [Google Photos Picker API Getting Started](https://developers.google.com/photos/picker/guides/get-started-picker) — session flow, pickerUri, polling
-- [Picker API Sessions Reference](https://developers.google.com/photos/picker/reference/rest/v1/sessions) — session JSON structure, expireTime, pollingConfig
-- [Picker API Media Items Guide](https://developers.google.com/photos/picker/guides/media-items) — baseUrl, size params, 60-min expiry
-- [Google Photos API Quotas](https://developers.google.com/photos/overview/api-limits-quotas) — 10K requests/day, 75K media bytes/day
-- [WebKit Bug #254545](https://bugs.webkit.org/show_bug.cgi?id=254545) — Wake Lock broken in PWAs, fixed in iOS 18.4
+### HIGH Confidence (Verified from Existing Codebase)
+- Existing CSS transitions and keyframes in `slideshow.html` -- proven patterns on target device
+- Existing `backdrop-filter: blur(20px)` usage in slideshow controls -- proves CSS blur works on iOS 16 Safari
+- Existing `X-Photo-CreateTime` header in `photo-proxy.js` -- date data already available for overlays
+- Existing `config.js` pattern with type-validated defaults -- proven extension pattern
+- Existing PayPal donation placeholder in `index.html` feedback modal -- integration point verified
 
-### MEDIUM Confidence (npm + Community Verified)
-- [Express 5.1.0 Release Announcement](https://expressjs.com/2025/03/31/v5-1-latest-release.html) — Express 5 now default on npm
-- [google-auth-library npm](https://www.npmjs.com/package/google-auth-library) — v10.5.0, auto token refresh
-- [NoSleep.js GitHub](https://github.com/richtr/NoSleep.js) — v0.12.0, video hack mechanism
-- [firt.dev iOS PWA Compatibility](https://firt.dev/notes/pwa-ios/) — comprehensive iOS PWA feature matrix
-- [Node.js Releases](https://nodejs.org/en/about/previous-releases) — Node 22 LTS through April 2027
+### MEDIUM Confidence (Training Data -- Could Not Web-Verify)
+- Stripe Payment Links support "customer chooses amount" -- based on training data, needs dashboard verification
+- Stripe Payment Links current URL format (`buy.stripe.com/...`) -- verify in Stripe dashboard
+- shields.io badge URL format -- stable for years but verify specific badge syntax
+- Mermaid diagram syntax for GitHub -- stable since 2022 but verify complex diagrams render correctly
 
-### LOW Confidence (Community Reports, Needs Validation)
-- NoSleep.js reliability in iOS 16 PWA mode — multiple GitHub issues report intermittent failures; recreating instance before each enable() is a community-reported workaround
-- Google Photos Picker API session expireTime exact duration — not documented; needs empirical testing
-- Whether Picker API allows selecting an "entire album" vs individual photos — documentation unclear; needs testing
+### Items To Validate Before Implementation
+- [ ] Stripe Payment Link "flexible pricing" option still available in dashboard
+- [ ] shields.io badge URLs still work (test one in browser)
+- [ ] CSS `filter: blur(30px)` performance on actual iPad Pro 1st Gen with large images
+- [ ] Ken Burns animation smoothness at 30-second duration on A9X chip
+- [ ] Mermaid C4 diagram syntax renders on GitHub (basic flowcharts definitely work)
 
 ---
 
-*Stack research for: Okno — Self-hosted Google Photos digital photo frame*
-*Researched: 2026-02-08*
+*Stack research for: Okno v1.1 "Make It Shine"*
+*Researched: 2026-02-15*
+*Key finding: Zero new npm dependencies needed. All v1.1 features achievable with pure CSS, vanilla JS, and a Stripe URL.*

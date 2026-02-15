@@ -1,543 +1,535 @@
-# Pitfalls Research
+# Domain Pitfalls: v1.1 "Make It Shine"
 
-**Domain:** Self-hosted Google Photos digital photo frame (Node.js + vanilla JS PWA)
-**Researched:** 2026-02-08
-**Confidence:** HIGH (verified against official Google documentation, WebKit bug tracker, and community reports)
+**Domain:** Adding visual polish, Stripe payments, and demo mode to an existing 24/7 photo frame PWA
+**Target hardware:** iPad Pro 1st Gen (A9X chip, 4GB RAM, iOS 16.x, Safari WebKit)
+**Researched:** 2026-02-15
+**Confidence:** MEDIUM -- based on deep codebase analysis and known WebKit/Safari behavior patterns. WebSearch/WebFetch unavailable during research; all claims derive from training data and should be validated against official docs during implementation.
+
+**Key context:** This app runs 24/7 in Guided Access kiosk mode. Any performance regression means the photo frame dies silently with nobody watching. Every pitfall below is evaluated through the lens of "will this cause a crash or memory leak after 48+ hours of continuous operation?"
 
 ---
 
 ## Critical Pitfalls
 
-### Pitfall 1: Using the Deprecated Library API Instead of the Picker API
+These cause crashes, memory exhaustion, or security holes.
 
-**Severity:** CRITICAL -- project will not work at all
+### Pitfall 1: Ken Burns CSS Transform Animation Creates Unbounded GPU Memory on iOS Safari
+
+**Severity:** CRITICAL -- frame crashes after hours of continuous Ken Burns animation
 
 **What goes wrong:**
-The Google Photos Library API `photoslibrary.readonly` scope was **deprecated on March 31, 2025**. API calls using this scope now return `403 PERMISSION_DENIED`. Many tutorials, blog posts, and example projects still reference the old Library API. Building against the old API means the project is dead on arrival.
+Ken Burns effect requires CSS `transform: scale()` with `transition` or `@keyframes` animation on full-screen images. On iOS Safari (especially older devices like iPad Pro 1st Gen with A9X), each animated element that uses `transform` gets promoted to its own GPU compositing layer. A 2732x2048 image at retina resolution consumes ~21MB of GPU texture memory per compositing layer. With the A/B swap pattern (two images during crossfade), you briefly have TWO animated GPU layers (~42MB). If the old layer is not properly decommissioned, GPU memory accumulates over hundreds of transitions.
+
+The A9X GPU has limited VRAM shared with system RAM (from the 4GB total). After hundreds of Ken Burns cycles, the WebKit process gets killed by iOS's jetsam (out-of-memory killer) with no warning and no error -- the PWA simply restarts from scratch.
 
 **Why it happens:**
-Most Google Photos digital photo frame tutorials were written before March 2025. Claude's training data, Stack Overflow answers, and GitHub repos all reference `photoslibrary.googleapis.com` with the old readonly scope. The old flow was simpler: OAuth, list albums, fetch photos. The new Picker API has a fundamentally different architecture.
+- CSS `transform` triggers GPU layer promotion. `will-change: transform` makes this explicit, but Safari often promotes implicitly.
+- The Ken Burns animation is CONTINUOUS -- the image is always scaling/panning during the entire display interval (30-300 seconds). This is not a brief transition; it holds a GPU layer for the entire duration.
+- The current A/B swap pattern (see `showSinglePhoto()` in `slideshow.html`) removes old `<img>` elements after 1.5 seconds. But removing the DOM element does NOT guarantee the GPU texture is freed synchronously. WebKit's compositor may hold stale textures.
+- Blob URLs (`URL.createObjectURL`) already consume memory; adding GPU textures on top compounds the pressure.
 
 **How to avoid:**
-- Use the **Google Photos Picker API** (`photospicker.googleapis.com/v1/`) with the `photospicker.mediaitems.readonly` scope
-- The Picker API uses a **session-based workflow**: create session -> user selects photos via `pickerUri` -> poll session -> retrieve media items
-- Do NOT reference any code using `photoslibrary.readonly`, `photoslibrary.sharing`, or `photoslibrary` scopes -- they are dead
-- Key endpoints: `sessions.create`, `sessions.get`, `mediaItems.list` (with sessionId)
+1. **Single animated element, not two.** Never run Ken Burns on both the incoming and outgoing image. The outgoing image should have its animation STOPPED (set `animation: none` or remove the class) before the incoming image starts animating. This halves peak GPU memory.
+2. **Force GPU layer teardown.** After removing the old image from DOM, explicitly set `img.style.transform = 'none'` and `img.style.willChange = 'auto'` BEFORE calling `img.remove()`. This hints to WebKit to release the compositing layer.
+3. **Use `transform: scale()` NOT `zoom`.** The CSS `zoom` property is not GPU-accelerated on Safari and triggers full repaint instead.
+4. **Keep scale range modest.** A Ken Burns zoom from 1.0 to 1.15 (15% zoom) looks cinematic without requiring massive texture resampling. Going to 1.3+ means the GPU must render a much larger texture.
+5. **Request smaller images when Ken Burns is active.** Currently the proxy fetches `=w2048-h1536`. With Ken Burns at 1.15x scale, you need at most `=w2356-h1766` to avoid pixelation. Do NOT fetch 4K images -- the A9X cannot handle continuous animation of 4K textures.
+6. **Add a memory watchdog.** Check `performance.memory.usedJSHeapSize` (if available on Safari) every 10 transitions. If memory exceeds a threshold (e.g., 200MB), disable Ken Burns and fall back to static display. Better to lose the effect than crash.
 
 **Warning signs:**
-- Any tutorial referencing `photoslibrary.googleapis.com/v1/mediaItems` for listing user library
-- Any code using scopes: `photoslibrary.readonly`, `photoslibrary.sharing`, `photoslibrary`
-- Getting `403 PERMISSION_DENIED` from Google Photos API
+- PWA restarts itself after 2-8 hours with no error in the console
+- Safari Web Inspector shows increasing "Compositing Layers" count
+- Memory graph in Web Inspector climbs steadily without plateauing
+- Images flicker or show white frames during transitions
 
-**Phase to address:** Phase 1 (project foundation) -- this is the fundamental API choice. Get this wrong and nothing else matters.
+**Detection during development:**
+- Safari Web Inspector > Layers panel -- watch compositing layer count during transitions
+- Safari Web Inspector > Timelines > Memory -- should plateau, not climb
+- Run slideshow for 30+ minutes in Safari on the actual iPad, not Chrome desktop
 
-**Weekend MVP trade-off:** NO shortcut possible. Must use Picker API from day one.
+**Phase to address:** Ken Burns implementation phase -- must be baked into the animation approach from the start, not bolted on after.
 
-**Sources:**
-- [Google Photos API Updates (official)](https://developers.google.com/photos/support/updates)
-- [Google Developer Blog announcement](https://developers.googleblog.com/en/google-photos-picker-api-launch-and-library-api-updates/)
-- [Picker API getting started (official)](https://developers.google.com/photos/picker/guides/get-started-picker)
+**Confidence:** MEDIUM -- GPU layer behavior is well-documented for Safari but exact thresholds depend on iOS version and device. Must validate on actual iPad Pro 1st Gen.
 
 ---
 
-### Pitfall 2: Storing baseUrls Instead of Media Item IDs
+### Pitfall 2: CSS `filter: blur()` on Full-Screen Background Triggers Continuous Repaint on iOS 16.x Safari
 
-**Severity:** CRITICAL -- photos stop loading within 60 minutes
+**Severity:** CRITICAL -- causes persistent jank, battery drain, and potential crash
 
 **What goes wrong:**
-Base URLs for photos/videos expire after approximately 60 minutes. Developers cache baseUrls in a database or in-memory store, then try to load images hours or days later. Result: broken images everywhere. The URLs can expire even sooner if the user revokes app permissions.
+The blurred background feature requires placing a copy of the current photo behind the main image, scaled to cover the full viewport, and applying `filter: blur(20px)` or similar. On iOS 16.x Safari, `filter: blur()` has several known issues:
+
+1. **No GPU acceleration for `filter: blur()` on `<img>` elements in some contexts.** Safari may fall back to software rendering for the blur, which means the CPU recomputes the blur on every paint -- including during Ken Burns animation, crossfade transitions, or any compositor invalidation.
+2. **Blur radius proportional to cost.** A `blur(20px)` on a 2732x2048 image requires sampling a 40x40 pixel kernel for every output pixel. Even GPU-accelerated, this is expensive. Software-rendered, it is catastrophic.
+3. **Interaction with `backdrop-filter` already in use.** The current codebase uses `backdrop-filter: blur(12px)` and `backdrop-filter: blur(20px)` on control panels (`#controls`, `#intervalControls`, `#displayModeControls`, `#onThisDayIndicator`). Adding another full-screen blur underneath creates multiple blur passes.
+4. **The blur must update every time the photo changes.** Unlike a static blur, the slideshow swaps photos every 10-300 seconds. Each swap requires re-blurring a new full-screen image.
 
 **Why it happens:**
-Storing the full URL feels natural -- it's how you'd handle any other image URL. The 60-minute expiry is aggressive and unusual. Most CDN URLs are permanent or have multi-day TTLs.
+- Safari on iOS 16 has known performance issues with CSS filters on large elements
+- The iPad Pro 1st Gen (A9X, 2015) has a much weaker GPU than modern iPads
+- The combination of Ken Burns animation + blur background + crossfade transition creates a triple-stacked GPU workload
 
 **How to avoid:**
-- Store only `media item IDs` (these are permanent)
-- Build a **baseUrl refresh cycle** on the backend: fetch fresh baseUrls from the Picker API before serving to the frontend
-- Implement a server-side cache with a **50-minute TTL** (10-minute safety margin before the 60-minute expiry)
-- Append size parameters to baseUrls: `=w1920-h1080` for display, `=w256-h256-c` for thumbnails
-- Never store or persist baseUrls across server restarts
+1. **Pre-blur on the server, not in CSS.** The backend photo proxy already fetches and pipes the image. Add a server-side blur endpoint that returns a pre-blurred, heavily compressed, small version (e.g., `=w200-h150` from Google, then gaussian blur in sharp/canvas). Serve this as a separate background image. CSS blur becomes unnecessary.
+2. **If using CSS blur: blur a TINY image, not the full-res one.** Load the background image at very low resolution (e.g., `=w64-h48`), apply `filter: blur(30px)`, and scale it up with `object-fit: cover`. Blurring a 64x48 image costs effectively nothing. The visual result is indistinguishable from blurring a full-res image because blur destroys high-frequency detail anyway.
+3. **Use a static canvas element, not a live CSS filter.** Draw the blurred image once to a `<canvas>` using `CanvasRenderingContext2D.filter = 'blur(20px)'`, then leave the canvas static. This computes the blur once on photo change, not continuously.
+4. **Never apply `filter: blur()` to an element that is also being animated with `transform`.** The combination forces Safari to recompute the blur on every animation frame (because the layer is being transformed). If Ken Burns is running on the foreground, the background blur must be on a completely separate, static element.
+5. **Make blur toggleable independently of Ken Burns.** If users want both, fine -- but if performance suffers, they can disable blur while keeping Ken Burns or vice versa.
 
 **Warning signs:**
-- Broken image icons after the frame has been running for an hour
-- Images that work initially but fail on the second rotation through the slideshow
-- `403` or `404` errors when loading image URLs from cache
+- FPS drops below 30 during photo transitions (check Safari Timelines)
+- iPad gets warm/hot during slideshow operation
+- Scrolling or UI interactions become laggy even when controls are visible
+- Battery drain is dramatically higher with blur enabled
 
-**Phase to address:** Backend API layer -- the photo-serving endpoint must always return fresh URLs.
+**Detection during development:**
+- Safari Web Inspector > Timelines > Rendering Frames -- green = good, yellow/red = jank
+- If frame rate dips below 30fps consistently, the blur approach needs revision
+- Test with both Ken Burns AND blur enabled simultaneously -- the combo is worse than either alone
 
-**Weekend MVP trade-off:** Even in MVP, you must handle this. Simplest approach: fetch fresh baseUrls on every slideshow rotation, cache for max 50 minutes.
+**Phase to address:** Blurred background implementation phase. Choose the blur approach (CSS vs server-side vs canvas) upfront.
 
-**Sources:**
-- [Google Photos API Best Practices (official)](https://developers.google.com/photos/overview/best-practices)
-- [Picker API media items (official)](https://developers.google.com/photos/picker/guides/media-items)
-- [Base urls expire before 60 minutes (Google Issue Tracker)](https://issuetracker.google.com/issues/165028980)
+**Confidence:** MEDIUM -- CSS filter performance on Safari is notoriously device-dependent. The "blur a tiny image" approach is well-established but needs validation on iOS 16.x specifically.
 
 ---
 
-### Pitfall 3: OAuth Testing Mode -- Refresh Tokens Expire After 7 Days
+### Pitfall 3: Ken Burns + Blur + Crossfade Triple-Stack During Photo Transitions
 
-**Severity:** CRITICAL -- photo frame stops working after exactly one week
+**Severity:** CRITICAL -- peak GPU/CPU load during transitions can trigger jetsam kill
 
 **What goes wrong:**
-When your Google Cloud project's OAuth consent screen is in "Testing" publishing status, refresh tokens expire after **exactly 7 days**. The photo frame works perfectly for a week, then silently stops loading photos. You re-authorize, it works for another week, then breaks again.
+During a photo transition with all v1.1 features enabled, the following happens simultaneously in a ~1 second window:
+
+1. **Outgoing photo:** Ken Burns animation still running + CSS opacity fading to 0
+2. **Incoming photo:** Ken Burns animation starting + CSS opacity fading to 1
+3. **Outgoing background blur:** Fading out (or being replaced)
+4. **Incoming background blur:** Fading in
+
+That is potentially 4 full-screen elements, at least 2 with active transform animations, at least 2 with blur filters, all compositing simultaneously. On an iPad Pro 1st Gen, this is a GPU and memory budget far beyond what the device can handle smoothly.
 
 **Why it happens:**
-Developers naturally start in "Testing" mode during development. Google's documentation buries this limitation. The 7-day expiry is specifically tied to publishing status, not the token itself. Most developers don't connect "my tokens stopped working" to their consent screen configuration.
+Each feature was designed independently and seems reasonable in isolation. Ken Burns alone is fine. Blur alone is fine. But the transition moment where OLD and NEW overlap is where all the costs stack.
 
 **How to avoid:**
-- Set your OAuth consent screen publishing status to **"In Production"** in Google Cloud Console
-- For personal/self-hosted use (<100 users), you do NOT need Google verification -- users click through the "unverified app" warning once
-- Always implement **refresh token persistence** (store encrypted on disk, not just in memory)
-- Implement token refresh error handling: catch `invalid_grant` errors and trigger re-authorization flow
-- Use `access_type: 'offline'` AND `prompt: 'consent'` on the first authorization to guarantee you receive a refresh token
+1. **Sequential, not simultaneous transitions.** When transitioning with Ken Burns:
+   - STOP Ken Burns on outgoing image (set `animation: none`, `transform: none`)
+   - Cross-fade (opacity transition -- cheap, no blur involved)
+   - START Ken Burns on incoming image only after crossfade completes
+   - Update background blur AFTER crossfade, not during
+   This serialization doubles the perceived transition time (~2s instead of ~1s) but prevents the GPU spike.
+
+2. **The background blur should NOT animate during crossfade.** Keep the OLD background blur visible during the entire crossfade, then swap to the NEW background blur instantly (no fade) after the crossfade is complete. One less animated element.
+
+3. **Budget your compositing layers.** The rule of thumb for iPad Pro 1st Gen: no more than 2 GPU-promoted layers at any time during normal operation. During transitions, allow briefly 3, but never 4+.
+
+4. **Consider a transition blackout approach.** Instead of crossfading directly between two Ken Burns images, briefly fade to a blurred version (which is the background), hold for 0.5s, then fade in the new image with Ken Burns starting. This is cinematically beautiful and only ever has 1-2 GPU layers active.
 
 **Warning signs:**
-- OAuth consent screen shows "Testing" in Google Cloud Console
-- `invalid_grant` error exactly 7 days after authorization
-- Refresh token works intermittently (works after re-auth, fails a week later)
+- Visible frame drops specifically DURING transitions, not during static Ken Burns
+- Occasional white flash or black flash during transition
+- Safari renderer falls back to software compositing (visible as "tearing" artifacts)
 
-**Phase to address:** OAuth setup phase -- must be configured correctly before any testing.
+**Phase to address:** Must be designed during Ken Burns AND blur phase planning. The transition choreography is the integration point.
 
-**Weekend MVP trade-off:** Switch to "In Production" mode immediately. Takes 2 minutes. Do NOT defer this -- you'll waste hours debugging token failures.
-
-**Sources:**
-- [Google OAuth using OAuth 2.0 (official)](https://developers.google.com/identity/protocols/oauth2)
-- [Nango: Google OAuth invalid_grant explained](https://nango.dev/blog/google-oauth-invalid-grant-token-has-been-expired-or-revoked)
-- [HomeSeer forum: refresh token expires in 7 days](https://forums.homeseer.com/forum/internet-or-network-related-plug-ins/internet-or-network-discussion/ak-google-calendar-alexbk66/1545936-refresh-token-expires-in-7-days-if-oauth-consent-screen-publishing-status-is-testing)
+**Confidence:** HIGH -- this is fundamental GPU compositing math. Stacking animated layers is expensive on any device; on a 2015 iPad it is prohibitive.
 
 ---
 
-### Pitfall 4: Picker API Requires User Interaction Every Time
+### Pitfall 4: Demo Mode Creates Authentication Bypass if Not Properly Isolated
 
-**Severity:** CRITICAL -- fundamentally changes how a "photo frame" works
-
-**What goes wrong:**
-Unlike the old Library API (which allowed background syncing of entire albums), the Picker API requires the user to **actively open a Google Photos UI and select photos** via a `pickerUri` link. You cannot programmatically list the user's library or auto-sync an album. Developers expecting "connect once, auto-update forever" will hit a wall.
-
-**Why it happens:**
-Google deliberately restricted background library access for privacy. The Picker API is designed for explicit, user-initiated selection -- not passive syncing. This is a fundamental architectural constraint, not a bug.
-
-**How to avoid:**
-- Design the UX around **explicit photo selection sessions**: user visits the app, clicks "Choose Photos," gets redirected to Google Photos picker, selects photos/albums, returns
-- Store the selected `media item IDs` persistently (these are permanent) so users don't re-pick every time
-- Build a "refresh selection" flow for when users want to add/change photos
-- Consider the Picker API session as a "photo import" step, not a "live sync" feature
-- Alternative: allow users to upload photos directly (Library API `photoslibrary.appendonly` scope still works for app-created content)
-
-**Warning signs:**
-- Architecture diagram shows "background album sync" or "auto-update from Google Photos"
-- No user-facing "select photos" button in the design
-- Expecting albums to dynamically update when user adds photos to Google Photos
-
-**Phase to address:** Architecture/design phase -- the UX must be designed around this constraint from the start.
-
-**Weekend MVP trade-off:** This is a design constraint, not a shortcut. Accept it: the frame shows a curated set of photos chosen by the user. Build the "choose photos" flow as a first-class feature.
-
-**Sources:**
-- [Picker API sessions (official)](https://developers.google.com/photos/picker/guides/sessions)
-- [Picker API user experience (official)](https://developers.google.com/photos/picker/guides/picking-experience)
-- [memoryKPR: Google Photos API deprecation impact](https://memorykpr.com/blog/google-photos-api-deprecation-what-it-means-for-third-party-apps-and-how-to-prepare/)
-
----
-
-### Pitfall 5: Wake Lock API Broken in iOS PWAs (pre-18.4)
-
-**Severity:** CRITICAL on iOS 16.x / HIGH on iOS 18.4+
+**Severity:** CRITICAL (security) -- demo mode could allow unauthenticated access to admin features or real user data
 
 **What goes wrong:**
-The Screen Wake Lock API does not work in installed PWAs (Add to Home Screen) on iOS versions before 18.4. The screen will go to sleep despite calling `navigator.wakeLock.request('screen')`. This makes the "photo frame" use case impossible on older iPads/iPhones -- the whole point is keeping the screen on.
+Demo mode needs to serve sample photos without Google OAuth. If implemented as a flag that skips authentication checks, it may accidentally:
+1. Allow unauthenticated access to `/api/config` (settings modification)
+2. Allow unauthenticated access to `/api/picker/*` (picker session management)
+3. Allow unauthenticated access to `/api/health` (system information disclosure)
+4. Allow unauthenticated access to `/api/feedback` (spam vector)
+5. Expose the real user's cached photos if the demo flag leaks to the photo proxy
+
+The current authentication model uses an email allowlist (`ALLOWED_EMAILS` in `.env`) checked during OAuth callback (see `auth.js:142-166`). But many API routes have NO authentication middleware -- they rely on the frontend only being accessible after OAuth. Demo mode must not break this assumption.
 
 **Why it happens:**
-Apple had a long-standing WebKit bug (Bug 254545) where the Wake Lock API worked in Safari browser but was broken in standalone/home-screen PWA mode. This was fixed in iOS 18.4 but many devices run older versions.
+The simplest implementation is `if (demoMode) return next()` in an auth middleware. But the app currently has no auth middleware on API routes -- authentication is only enforced at the OAuth level. Routes like `/api/config`, `/api/photo/random`, and `/api/health` are completely unprotected (by design -- single-tenant family app).
 
 **How to avoid:**
-- **Check your target device's iOS version** -- if running iOS 16.x or 17.x, Wake Lock will NOT work in PWA mode
-- Implement a **fallback: play a silent/invisible video loop** to prevent screen sleep (the classic NoSleep.js technique)
-- Wrap `navigator.wakeLock.request()` in try/catch -- it will throw on unsupported platforms
-- Re-acquire wake lock on `visibilitychange` event (lock is auto-released when tab/app is backgrounded)
-- Test in actual PWA mode (Add to Home Screen), not just Safari browser
+1. **Demo mode should be a completely separate code path, not a flag that disables auth.** The demo slideshow should serve static bundled sample images from `/public/demo/` -- never hitting `/api/photo/random` which requires real Google tokens.
+2. **Demo mode should NOT have access to any `/api/*` routes.** The demo slideshow page should be a self-contained HTML file (e.g., `/demo.html`) with embedded sample images or a separate demo endpoint.
+3. **If demo mode needs an API endpoint, create `/api/demo/photo/random`** that serves from a separate, pre-bundled photo set. Never share the real photo proxy code path.
+4. **The demo toggle should be server-side config, not a URL parameter.** If demo mode is triggered by `?demo=true`, anyone can access demo mode and potentially probe for vulnerabilities. Instead, use an environment variable or config flag: `DEMO_MODE=true`.
+5. **Demo mode should be read-only.** No access to settings modification, picker sessions, or feedback submission. The demo should only show: slideshow + overlays + a "Sign in to use your own photos" CTA.
+
+**Specific risks with current codebase:**
+- `/api/config` POST has no auth check -- demo users could modify the real user's settings
+- `/api/health` exposes `cache.totalItems`, `cache.portraitCount`, and uptime -- information disclosure
+- `server.js` has no auth middleware on any route -- demo mode cannot rely on "skipping" auth that doesn't exist
 
 **Warning signs:**
-- Screen dims/sleeps during slideshow on iPad
-- Wake Lock works in Safari but not after "Add to Home Screen"
-- Testing only in desktop Chrome (where Wake Lock always works)
+- Demo endpoint shares any code path with authenticated endpoints
+- Demo mode is controlled by a query parameter instead of server-side config
+- Demo mode can trigger Google API calls (even failed ones leak information about auth state)
+- No separate demo photo storage -- demo accesses real cache
 
-**Phase to address:** Frontend PWA phase -- implement NoSleep.js fallback alongside Wake Lock API.
+**Phase to address:** Demo mode implementation phase. Design the isolation boundary BEFORE writing code.
 
-**Weekend MVP trade-off:** Use NoSleep.js or a silent video hack from the start. Takes 10 minutes. Testing Wake Lock in PWA mode on the actual target device is essential -- do not skip.
-
-**Sources:**
-- [WebKit Bug 254545: Wake Lock in Home Screen Web Apps](https://bugs.webkit.org/show_bug.cgi?id=254545)
-- [Can I Use: Wake Lock API](https://caniuse.com/wake-lock)
-- [PWA iOS limitations guide (Brainhub)](https://brainhub.eu/library/pwa-on-ios)
+**Confidence:** HIGH -- this is straightforward security architecture. The current app has no auth middleware on routes, which is fine for single-tenant but becomes a problem the moment demo mode introduces unauthenticated access.
 
 ---
 
 ## Moderate Pitfalls
 
-### Pitfall 6: Not Handling Google's Refresh Token "First-Time Only" Behavior
+These cause degraded experience, bugs, or technical debt.
 
-**Severity:** HIGH -- breaks token refresh after first authorization
+### Pitfall 5: Blob URL Leak Rate Doubles with Background Blur Images
+
+**Severity:** HIGH -- memory leak timeline halved (crash in hours instead of days)
 
 **What goes wrong:**
-Google only returns a refresh token on the **first** authorization. Subsequent OAuth calls return only an access token. If you don't capture and store the refresh token on first auth, you'll never get another one without revoking and re-authorizing.
+The current implementation correctly revokes blob URLs when removing old photos (see `showSinglePhoto()` lines 786-789, 809-815). But the blurred background feature adds a SECOND image element per photo (the background copy). If the background blur uses a blob URL (either the same blob URL as the foreground or a separate one for the low-res version), the cleanup code must revoke BOTH blob URLs.
+
+The current cleanup code uses `slideshowEl.querySelectorAll('.photo:not(.active)')` to find old photos. If background blur elements have a different class (e.g., `.photo-bg`), they will NOT be cleaned up by the existing code.
 
 **Why it happens:**
-Most OAuth tutorials show the happy path. Google's behavior is documented but easy to miss: "Where the user has never logged in before, it will send the Refresh Token and the Access Token, but after that, every call to OAuth2 will return only the Access Token."
+The current blob URL cleanup was designed for the A/B swap pattern with exactly 2 `.photo` elements. Adding background blur elements doubles the blob URLs created per cycle but the cleanup only targets `.photo` elements.
 
 **How to avoid:**
-- Use `prompt: 'consent'` in the authorization URL to force Google to return a refresh token every time (overrides the first-time-only behavior)
-- Use `access_type: 'offline'` to request offline access
-- Persist the refresh token to disk immediately upon receipt -- before doing anything else
-- Never rely on getting a refresh token from a subsequent authorization without `prompt: 'consent'`
+1. **If background blur uses the same blob URL as foreground:** Do NOT create a second blob URL. Set `bgImg.src = foregroundImg.src` (share the same blob URL). Only revoke it when BOTH elements are removed.
+2. **If background blur uses a separate low-res blob URL:** Tag background elements with a data attribute and include them in the cleanup selector: `slideshowEl.querySelectorAll('.photo:not(.active), .photo-bg:not(.active)')`.
+3. **Better: use the tiny-image CSS blur approach** (Pitfall 2, option 2). Set `bgImg.src` to a data URI or a tiny inline base64 image. Data URIs do not create blob URLs and do not need revocation.
+4. **Audit the cleanup path.** After implementing blur backgrounds, add a console log that counts live blob URLs and DOM elements every 10 transitions. If either climbs, there is a leak.
 
 **Warning signs:**
-- Token response missing `refresh_token` field
-- Access token expires after 1 hour with no way to refresh
-- Having to revoke app access in Google Account settings to get a new refresh token
+- `performance.memory.usedJSHeapSize` climbs faster with blur enabled than without
+- DOM element count in `#slideshow` grows over time (check with `slideshowEl.childElementCount`)
+- Blob URLs accumulate in browser memory (visible in Safari Web Inspector > Resources)
 
-**Phase to address:** OAuth implementation phase.
+**Phase to address:** Blurred background implementation -- cleanup must be designed alongside creation.
 
-**Sources:**
-- [Google OAuth 2.0 (official)](https://developers.google.com/identity/protocols/oauth2)
-- [How to get refresh token (CopyProgramming)](https://copyprogramming.com/howto/stopped-getting-refresh-token-from-google-s-api)
+**Confidence:** HIGH -- this is a direct analysis of the current codebase cleanup pattern in `slideshow.html`.
 
 ---
 
-### Pitfall 7: JavaScript Memory Leaks in Long-Running Slideshow
+### Pitfall 6: Overlays (Date, Clock) Disappear or Misposition in iOS PWA Fullscreen Mode
 
-**Severity:** HIGH -- frame crashes/freezes after hours or days of continuous use
+**Severity:** HIGH -- feature appears broken on the primary target device
 
 **What goes wrong:**
-A photo slideshow that runs continuously leaks memory through: unreleased Blob URLs, detached DOM nodes from swapping images, un-cleared intervals/timeouts, and accumulated event listeners. After 24-48 hours, the PWA crashes or becomes unresponsive.
+iOS PWA fullscreen mode (`apple-mobile-web-app-capable: yes` with `black-translucent` status bar) has a different safe area than Safari browser mode. The viewport includes the status bar area and home indicator area. CSS `position: fixed` elements positioned at `top: 0` or `bottom: 0` can appear under the notch, status bar, or rounded corners on newer iPads (and under the status bar on iPad Pro 1st Gen).
+
+The current codebase already uses `viewport-fit=cover` (see `slideshow.html` line 6) and uses fixed positioning for overlays (`#onThisDayIndicator` at `top: 1rem; left: 1rem`). New date and clock overlays will face the same issue, but with the additional complexity of being always-visible (unlike controls that auto-hide).
+
+Additionally, `position: fixed` behaves differently in iOS PWA standalone mode vs Safari. In standalone mode, there is no URL bar to account for, but the safe area insets from `env(safe-area-inset-*)` may differ.
 
 **Why it happens:**
-Memory leaks are invisible in short testing sessions. You test for 10 minutes, everything works. But the frame is meant to run for days without restarting. Every slideshow transition creates garbage that needs explicit cleanup.
+- iPad Pro 1st Gen does NOT have rounded corners or a home indicator, so `safe-area-inset-bottom` is 0. BUT it does have a status bar in PWA mode that can overlay content.
+- `black-translucent` status bar style means the status bar overlays the web content -- it does NOT push content down. Content at `top: 0` appears BEHIND the status bar.
+- The current `#onThisDayIndicator` at `top: 1rem` likely works by coincidence (1rem = 16px is roughly the status bar height on iPad).
 
 **How to avoid:**
-- **Blob URLs:** Always call `URL.revokeObjectURL(url)` when transitioning away from an image
-- **DOM nodes:** Reuse a single `<img>` element or a two-image swap (A/B pattern). Never append new images without removing old ones
-- **Timers:** Use a single `setInterval` or `requestAnimationFrame` loop. Clear and re-create if slideshow settings change
-- **Image loading:** Use `img.src = ''` or `img.removeAttribute('src')` before setting new source to release the previous image from memory
-- **Event listeners:** Use `{ once: true }` option or explicitly `removeEventListener` for transitional listeners
-- **Monitor:** Ship with a simple memory telemetry endpoint (report `performance.memory.usedJSHeapSize` if available)
+1. **Use `env(safe-area-inset-top)` for top-positioned overlays.** Instead of `top: 1rem`, use `top: max(1rem, env(safe-area-inset-top, 0px))`. This ensures the overlay clears the status bar on all devices.
+2. **Test in actual PWA mode, not Safari.** Open the app from the home screen icon, not from Safari. The layout is different.
+3. **Overlay z-index must be above the Ken Burns animated layer.** Ken Burns uses `transform` which creates a new stacking context. If the overlay is not in a higher stacking context, it can appear behind the animated photo. Current photos use `z-index: 0` (preload) and `z-index: 1` (active). Overlays should use `z-index: 50+` (the existing `#onThisDayIndicator` uses `z-index: 50`, which is correct).
+4. **Clock overlay updating every second can interfere with CSS transitions.** If the clock DOM update triggers a repaint that coincides with a crossfade transition, it can cause micro-stutter. Use a separate `requestAnimationFrame` loop for clock updates, not `setInterval` with DOM writes.
+5. **Test both landscape orientations.** iPad can be rotated 180 degrees. Safe area insets may differ between left-landscape and right-landscape if the device has a camera notch (iPad Pro 1st Gen does not, but future-proofing is free).
 
 **Warning signs:**
-- Browser tab memory usage steadily climbing in Task Manager
-- PWA becoming sluggish after several hours
-- Sudden crash with no error (out-of-memory kill)
+- Overlay text partially hidden behind status bar in PWA mode
+- Overlay visible in Safari but not in PWA home screen app
+- Clock text causes visible jitter during photo crossfade transitions
+- Overlay positioning differs between landscape-left and landscape-right
 
-**Phase to address:** Frontend slideshow implementation phase.
+**Phase to address:** Overlay implementation phase. Use safe area insets from the start.
 
-**Weekend MVP trade-off:** Use the A/B image swap pattern from the start (two `<img>` elements, swap visibility). This prevents the most common leaks. Defer sophisticated memory monitoring to post-MVP.
-
-**Sources:**
-- [WebKit Bug 31253: Unbounded memory growth with images](https://bugs.webkit.org/show_bug.cgi?id=31253)
-- [Auth0: Four types of JS memory leaks](https://auth0.com/blog/four-types-of-leaks-in-your-javascript-code-and-how-to-get-rid-of-them/)
-- [MDN: Memory management](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Memory_management)
+**Confidence:** MEDIUM -- iOS PWA safe area behavior is well-documented by Apple, but the exact behavior on iPad Pro 1st Gen with iOS 16.x in landscape mode should be validated on-device.
 
 ---
 
-### Pitfall 8: iOS Safari Evicts PWA Storage After Inactivity
+### Pitfall 7: Stripe Integration Overengineered -- Payment Links Exist for This Exact Use Case
 
-**Severity:** HIGH -- stored tokens and photo selections vanish
+**Severity:** HIGH (time waste, not technical failure) -- building a full Stripe integration for a donate button is massive overkill
 
 **What goes wrong:**
-iOS Safari can automatically clear PWA storage (Cache API, IndexedDB, localStorage) if the PWA hasn't been used for a few weeks. A previously-configured photo frame that sits idle (showing photos but never interacted with by the user) may lose its stored OAuth tokens and photo selection IDs.
+Developers see "Stripe integration" and immediately think: `npm install stripe`, create checkout sessions server-side, handle webhooks, store payment state, build success/cancel pages. For a simple donate button on a personal project, this is weeks of unnecessary work that also introduces PCI compliance concerns, webhook security, and an entire payment state machine.
 
 **Why it happens:**
-Apple's Intelligent Tracking Prevention (ITP) aggressively caps "script-writable storage." WebKit applies a 7-day cap on script-writable storage for sites without recent user interaction. While there are nuances to what counts as "interaction," a photo frame running autonomously may not register as interactive.
+Most Stripe tutorials teach the full Checkout Session flow because that is what e-commerce sites need. A donate button for a portfolio project is not e-commerce.
 
 **How to avoid:**
-- Store OAuth tokens and critical data on the **server side** (Node.js backend), not in the PWA's client-side storage
-- The PWA should authenticate with the backend using a session cookie or simple token, not store Google OAuth tokens directly
-- Use the server as the source of truth for photo selection state
-- If you must use client-side storage, periodically trigger a user interaction event (though this is fragile)
+1. **Use Stripe Payment Links.** Create a Payment Link in the Stripe Dashboard (no code required). It generates a URL like `https://buy.stripe.com/xxx`. Put this URL behind an `<a>` tag. Done. No backend code, no npm packages, no webhooks, no PCI scope.
+2. **Alternatively, use the Stripe Donate Button embed.** Stripe provides an embeddable donate button that handles the entire payment flow in a modal overlay. Requires only a `<script>` tag and data attributes.
+3. **Do NOT install the `stripe` npm package for a donate button.** This pulls in server-side infrastructure for creating payment intents, managing customers, handling webhooks -- none of which are needed.
+4. **Do NOT handle any payment logic server-side.** No checkout session creation, no webhook handling, no payment confirmation. The Stripe Dashboard shows all donations.
+5. **CSP consideration:** The current Content Security Policy in `server.js` restricts scripts and connections to specific origins. Stripe's embedded button requires adding `https://js.stripe.com` to `script-src` and `https://api.stripe.com` to `connect-src`. The Payment Link approach (just an `<a>` tag) requires NO CSP changes.
+
+**The existing codebase already has a donation placeholder.** See `index.html` line 1179 -- there is already a "Donate via PayPal" link in the feedback modal. The Stripe integration is literally replacing that PayPal link with a Stripe Payment Link URL. This should take 15 minutes, not a full implementation phase.
 
 **Warning signs:**
-- Photo frame stops working after being untouched for 1-2 weeks
-- IndexedDB or localStorage data missing after iOS update
-- Service worker cache cleared unexpectedly
+- Pulling in `stripe` npm package for a donate button
+- Creating server-side endpoints for payment handling
+- Implementing webhook handlers
+- Building success/cancel redirect pages
+- Any discussion of PCI compliance for a donate button
 
-**Phase to address:** Architecture phase -- decide early that tokens live server-side.
+**Phase to address:** Can be done in any phase -- it is a URL replacement. Should NOT be its own phase or plan.
 
-**Weekend MVP trade-off:** Store tokens server-side from the start. This is both more secure and avoids iOS eviction. The PWA should be a thin display layer.
-
-**Sources:**
-- [WebKit: Updates to Storage Policy](https://webkit.org/blog/14403/updates-to-storage-policy/)
-- [Brainhub: PWA on iOS 2025](https://brainhub.eu/library/pwa-on-ios)
-- [Vinova: Safari/iOS PWA Limitations](https://vinova.sg/navigating-safari-ios-pwa-limitations/)
+**Confidence:** HIGH -- Stripe Payment Links are a well-established feature. The existing PayPal placeholder in the codebase confirms this is a trivial task.
 
 ---
 
-### Pitfall 9: API Quota Exhaustion from Aggressive Polling/Refreshing
+### Pitfall 8: Bug Fixes Silently Break Existing Features (Regression Risk)
 
-**Severity:** HIGH -- frame stops loading photos for the rest of the day
+**Severity:** HIGH -- fixing 6 bugs simultaneously can introduce regressions in stable features
 
 **What goes wrong:**
-The Library API (for app-created content) has a **10,000 requests/day** limit. The Picker API is more generous (100,000/min) but still has quotas. Developers who poll aggressively, refresh baseUrls too often, or don't implement caching will exhaust quotas. When quota is hit, API returns `429` and the frame goes dark.
+v1.1 includes fixes for 6 QA bugs (BUG-1 through BUG-6). Several of these touch core slideshow infrastructure:
+- **BUG-2 (picker merge):** Modifies `photo-cache.js` -- the cache structure changes from replace to merge. This could break `getRandomItem()`, `getRandomOnThisDayItem()`, or `getRandomPortraitItem()` if the merged cache has unexpected duplicates or structure.
+- **BUG-5 (502 resilience):** Modifies `photo-proxy.js` -- changing error handling in the photo endpoint could affect the retry logic in `slideshow.html`'s `fetchWithRetry()`.
+- **BUG-6 (dual mode letterboxing):** Modifies the CSS/JS for dual portrait display -- the same code that Ken Burns and blur will need to integrate with.
 
 **Why it happens:**
-A photo frame that refreshes baseUrls every 60 seconds for 100 photos makes 1,440 requests/day just for URL refresh. Add session polling, error retries, and metadata lookups, and you're approaching limits fast. Multiple users or debugging sessions compound this.
+The codebase has no automated tests. There is no test suite, no integration tests, no visual regression tests. Bug fixes are manually verified on a single path but can break adjacent code paths. The slideshow code has complex state interactions (display modes, portrait pairs, On This Day, crossfade timing) that are easy to disrupt.
 
 **How to avoid:**
-- **Batch baseUrl refreshes:** Refresh all photo URLs in a single paginated API call, not one per photo
-- **Cache with TTL:** Cache baseUrls server-side for 50 minutes. Only refresh the batch when the cache expires
-- **Don't poll Picker sessions more than the recommended interval:** The session response includes `pollingConfig.pollInterval` -- use it, don't poll every second
-- **Implement exponential backoff** on 429 errors (minimum 30-second delay per Google's docs)
-- **Monitor quota** in Google Cloud Console Quotas page
-- **Avoid synchronized requests:** Don't trigger API calls at fixed clock times (top of the hour, etc.) -- randomize timing
+1. **Fix bugs BEFORE adding new features.** Bug fixes should be a separate phase from Ken Burns/blur implementation. Ship the bug fixes, verify on the iPad, THEN add visual polish. This way, if Ken Burns introduces a regression, you know the bug fixes are not the cause.
+2. **Create a manual regression checklist.** After each bug fix, test ALL of these:
+   - Basic slideshow (cover mode, 30s interval)
+   - Contain mode
+   - Dual portrait mode
+   - On This Day mode (with and without matching photos)
+   - Settings persistence across page reload
+   - URL parameter override
+   - Photo transitions (no white flash, no stuck images)
+   - Blob URL cleanup (check DOM element count after 10 transitions)
+3. **Fix one bug per commit.** Do not batch all 6 bug fixes into a single commit. If a regression appears, bisecting is trivial with one-fix-per-commit.
+4. **For BUG-2 (cache merge):** After implementing merge logic, verify that `photo-cache.json` does not grow unbounded. If the user runs the picker 10 times selecting 100 photos each time, the cache should contain ~1000 unique items, not 1000 * 10 duplicates.
+5. **For BUG-5 (502 resilience):** The fix must not change the response format from `/api/photo/random`. The frontend's `createPhotoElement()` function expects either a blob response (success) or a JSON error response. If the fix changes the 502 response to return a fallback image instead of an error, the frontend's On This Day logic (which checks for 404 specifically) could break.
 
 **Warning signs:**
-- `429 Too Many Requests` errors in logs
-- Photos stop loading at a consistent time of day (quota resets daily)
-- Multiple test users/devices burning through shared project quota
+- A feature that was working in v1.0 stops working after bug fixes
+- Slideshow displays differently after bug fix deployment (e.g., photos stuck, wrong display mode)
+- Console errors that were not present before
 
-**Phase to address:** Backend API layer.
+**Phase to address:** Bug fix phase should be Phase 1 of v1.1, before any visual polish.
 
-**Weekend MVP trade-off:** Implement basic caching from the start. A simple in-memory object with timestamps is sufficient for MVP. This prevents accidental quota burn during development too.
-
-**Sources:**
-- [Google Photos API limits and quotas (official)](https://developers.google.com/photos/overview/api-limits-quotas)
-- [Google Photos Best Practices: avoid synchronized requests (official)](https://developers.google.com/photos/overview/best-practices)
-- [rclone forum: working with 10K quota](https://forum.rclone.org/t/working-with-google-photos-all-requests-quota-limit-10k/34349)
+**Confidence:** HIGH -- direct analysis of codebase interdependencies. No tests exist to catch regressions.
 
 ---
 
-### Pitfall 10: Nginx WebSocket/Proxy Misconfiguration
+### Pitfall 9: Ken Burns Animation Direction Causes Nausea-Inducing Patterns
 
-**Severity:** HIGH -- app appears broken despite backend running fine
+**Severity:** MEDIUM (UX) but HIGH (product reputation) -- a photo frame that makes people feel sick is worse than one with no effects
 
 **What goes wrong:**
-Default nginx `proxy_pass` config doesn't forward WebSocket upgrade headers. If the frontend uses WebSocket (or SSE for real-time updates), connections fail silently. Also, missing `proxy_set_header Host` causes Node.js to see wrong hostnames. Missing `proxy_set_header X-Real-IP` means all traffic appears from `127.0.0.1`.
+Random Ken Burns direction (zoom in, zoom out, pan left, pan right) creates a jarring experience when consecutive photos have opposing motion. Photo 1 zooms in, photo 2 zooms out, photo 3 pans left, photo 4 pans right -- the viewer's eye cannot settle. Over minutes of viewing, this induces motion sickness in sensitive viewers.
+
+Additionally, if the zoom origin is always center (the CSS default `transform-origin: center`), the effect looks mechanical and repetitive. Real Ken Burns effects vary the focal point.
 
 **Why it happens:**
-Basic nginx reverse proxy examples work for simple HTTP but miss WebSocket headers. Developers copy-paste minimal configs without the upgrade headers.
+Developers randomize all parameters (zoom direction, pan direction, speed) independently, creating chaotic motion. Professional Ken Burns implementations use choreographed sequences.
 
 **How to avoid:**
-```nginx
-location / {
-    proxy_pass http://localhost:3000;
-    proxy_http_version 1.1;
-    proxy_set_header Upgrade $http_upgrade;
-    proxy_set_header Connection 'upgrade';
-    proxy_set_header Host $host;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto $scheme;
-    proxy_cache_bypass $http_upgrade;
-}
-```
-
-- Always include WebSocket upgrade headers even if you think you don't need WebSockets (you might add them later)
-- Use `proxy_http_version 1.1` (HTTP/1.0 doesn't support keep-alive properly)
-- Set up SSL with Let's Encrypt/Certbot before going live (Google OAuth requires HTTPS redirect URIs)
+1. **Constrain the motion vocabulary.** Use only 4-6 predefined Ken Burns presets, each with a fixed zoom direction, transform-origin, and speed:
+   - Slow zoom in from center
+   - Slow zoom in from top-left corner
+   - Slow zoom in from bottom-right corner
+   - Slow zoom out from center
+   - Gentle pan left (translate + slight zoom)
+   - Gentle pan right (translate + slight zoom)
+2. **Never zoom out immediately after zoom in.** Use a simple state variable to avoid consecutive opposing motions.
+3. **Keep motion subtle.** 1.0 to 1.08 scale over 30 seconds is barely perceptible but adds life. 1.0 to 1.2 is noticeable but not sickening. Anything above 1.25 feels like a camera zoom, not a gentle effect.
+4. **Use `ease-in-out` timing, not `linear`.** Linear motion feels robotic. A gentle ease makes the motion feel organic.
+5. **Test with the `prefers-reduced-motion` media query.** When enabled, disable Ken Burns entirely -- do not reduce it, disable it. Some users have accessibility needs.
 
 **Warning signs:**
-- Frontend loads but can't connect to backend API
-- WebSocket connections fail with no clear error
-- OAuth redirect fails because redirect URI doesn't match (http vs https)
+- Viewer feels uncomfortable watching the slideshow for more than 5 minutes
+- Motion feels "busy" or "restless" rather than "gentle" or "cinematic"
+- Family members ask to turn off the effect
 
-**Phase to address:** Deployment/infrastructure phase.
+**Phase to address:** Ken Burns implementation. Define the motion presets during design.
 
-**Weekend MVP trade-off:** Use a known-good nginx config template. Don't write from scratch. Certbot SSL setup takes 5 minutes.
+**Confidence:** HIGH -- this is well-established UX knowledge from film/TV. The Ken Burns documentary style uses slow, gentle, predictable motion.
 
-**Sources:**
-- [PM2 Nginx production setup (official)](https://pm2.keymetrics.io/docs/tutorials/pm2-nginx-production-setup)
-- [Better Stack: Nginx reverse proxy for Node.js](https://betterstack.com/community/guides/scaling-nodejs/nodejs-reverse-proxy-nginx/)
+---
+
+### Pitfall 10: New Config Keys Break Existing config.json Without Migration
+
+**Severity:** MEDIUM -- new features silently disabled on existing deployment
+
+**What goes wrong:**
+v1.1 adds new toggleable features (Ken Burns, blur, overlays, demo mode). Each needs a config key (e.g., `kenBurns: false`, `blurBackground: false`, `showClock: false`). The existing `config.json` on the VPS was written by v1.0 and contains only `interval`, `displayMode`, `onThisDay`, and `portraitPairs`.
+
+The current `config.js` merges defaults with saved config (`{ ...defaults, ...saved }`) which DOES handle missing keys correctly -- new defaults are applied. However, the `saveConfig()` validation uses `allowedKeys = Object.keys(defaults)` to filter updates. If the `defaults` object is updated in code but the VPS still has an old `config.json`, the system works. BUT if someone manually edited `config.json` on the VPS with unknown keys, those would be silently dropped on next save.
+
+More importantly, the Settings page (`settings.html`) needs UI elements for every new config key. If the settings page is deployed but the backend defaults are not updated (deploy mismatch), toggles appear but do nothing.
+
+**Why it happens:**
+File-based config with no schema version. The merge-with-defaults pattern works for ADDING keys but does not handle RENAMING keys or REMOVING deprecated keys.
+
+**How to avoid:**
+1. **Add all new config keys to `defaults` in `config.js` before deploying any feature that reads them.** The merge pattern will provide correct defaults.
+2. **Deploy backend before frontend.** If the settings page has a Ken Burns toggle but the backend does not have `kenBurns` in defaults, the toggle will be saved and silently ignored. Deploy sequence: backend config defaults first, frontend UI second.
+3. **Keep config key names stable.** Once `kenBurns` is in config, never rename it to `kenBurnsEnabled` or `effectKenBurns`. Renaming is a breaking change without migration.
+4. **Consider adding a `configVersion` field** to config.json. On load, if `configVersion < EXPECTED_VERSION`, run a migration function that maps old keys to new ones. This is low priority for v1.1 but becomes important if config changes frequently.
+
+**Warning signs:**
+- New feature toggle is ON in settings but the feature does not activate in slideshow
+- `config.json` on VPS has fewer keys than expected after deploy
+- Settings page shows "undefined" or blank for new settings
+
+**Phase to address:** First phase of v1.1 -- update `config.js` defaults before implementing any feature.
+
+**Confidence:** HIGH -- direct analysis of `config.js` code. The merge pattern handles additions correctly but deployment ordering matters.
 
 ---
 
 ## Minor Pitfalls
 
-### Pitfall 11: Not Setting Image Size Parameters on baseUrls
+These cause annoyance or are easily fixable.
 
-**Severity:** MEDIUM -- wastes bandwidth and causes slow loading
+### Pitfall 11: Clock Overlay Creates 1-Second setInterval That Leaks Across Page Navigation
+
+**Severity:** LOW-MEDIUM -- minor memory leak, but on a 24/7 device it accumulates
 
 **What goes wrong:**
-Fetching photos at original resolution (often 4000x3000px, 5-10MB each) when the display is only 1920x1080. Slideshow loads slowly, wastes bandwidth, and uses excessive memory.
+A clock overlay updating every second requires `setInterval(() => { clockEl.textContent = new Date().toLocaleTimeString() }, 1000)`. If the slideshow page is navigated away from (e.g., user exits to settings), the interval continues running because there is no cleanup. Each time the user navigates to slideshow and back, a new interval is created without clearing the old one.
+
+In the current app, this is unlikely to be severe because the slideshow page is standalone and navigation destroys the entire page. But if the code is later refactored to SPA-style navigation (which the demo mode might introduce), leaked intervals become a real problem.
 
 **How to avoid:**
-- Always append size parameters to baseUrls: `=w1920-h1080` for full display, `=w400-h300` for thumbnails
-- Use `-c` suffix for cropped squares: `=w256-h256-c`
-- Match parameters to actual display resolution
+1. **Store the interval ID and clear it on page unload.** `window.addEventListener('beforeunload', () => clearInterval(clockIntervalId))`.
+2. **Use `requestAnimationFrame` instead of `setInterval` for visual updates.** rAF pauses when the tab is hidden, saving CPU. For a clock that only needs second-level precision, check if the second has changed before updating the DOM.
+3. **If the clock is always visible, consider CSS-only approaches.** There is no pure CSS clock, but updating via rAF is lighter than setInterval.
 
-**Phase to address:** Frontend/backend photo serving.
+**Phase to address:** Clock overlay implementation.
 
-**Sources:**
-- [Picker API media items (official)](https://developers.google.com/photos/picker/guides/media-items)
+**Confidence:** HIGH -- standard JavaScript timer management.
 
 ---
 
-### Pitfall 12: PM2 Not Configured for Auto-Restart on VPS Reboot
+### Pitfall 12: Service Worker Cache Serves Stale Slideshow HTML After v1.1 Deploy
 
-**Severity:** MEDIUM -- frame goes down after VPS restart and stays down
+**Severity:** MEDIUM -- users see v1.0 slideshow without new features after deploy
 
 **What goes wrong:**
-PM2 manages the Node.js process but doesn't auto-start after VPS reboot unless explicitly configured. Server reboots (maintenance, updates, crashes) leave the photo frame offline.
+The current Service Worker (`sw.js`) uses cache-first for static assets: `caches.match(event.request).then(response => response || fetch(event.request))`. After deploying v1.1, the iPad's PWA will continue serving the cached v1.0 `slideshow.html` until the Service Worker updates. The SW update mechanism requires: (1) the browser to detect the `sw.js` file changed (byte comparison), (2) the new SW to install, (3) the new SW to activate (requires all old tabs to close or `skipWaiting()`).
+
+The current SW uses `self.skipWaiting()` and `self.clients.claim()`, which helps. But `slideshow.html` is in the `STATIC_ASSETS` precache list. A cache-first strategy means the old HTML is served even after the new SW activates, UNTIL the new SW's precache overwrites it.
+
+**Why it happens:**
+Cache-first is correct for performance but means stale content is served during updates. The `CACHE_VERSION` constant (`'okno-v1'`) must be updated to trigger cache invalidation.
 
 **How to avoid:**
-- Run `pm2 startup` to generate the system startup script
-- Run `pm2 save` after starting your app to save the process list
-- Test with `sudo reboot` to verify it comes back
+1. **Update `CACHE_VERSION` in `sw.js` for every v1.1 deploy.** Change to `'okno-v1.1'` or `'okno-v2'`. The activate handler already deletes old caches when the version changes.
+2. **Force SW update on the iPad after deploy.** In Guided Access / PWA mode, there is no easy way to "hard refresh." Options:
+   - SSH into VPS, update sw.js, the PWA will detect the change within 24 hours (browser checks SW updates every 24h max)
+   - Add a version check endpoint: slideshow fetches `/api/version` on load, compares with a local constant, shows "update available" if mismatched
+3. **Consider switching slideshow.html to network-first.** The SW already uses network-first for `/api/photo/*`. Using network-first for the HTML page too ensures the latest version is always served when online, with cache fallback when offline.
 
-**Phase to address:** Deployment phase.
+**Warning signs:**
+- Deploy new features to VPS but iPad still shows old slideshow
+- Features appear in settings but not in slideshow (settings.html may update faster because it is not in the precache list -- actually it IS in the precache list)
+- Wait... checking: `STATIC_ASSETS` includes `/slideshow.html`, `/manifest.json`, and icons. But NOT `/index.html` or `/settings.html`. So index.html and settings.html are served with cache-first for same-origin requests, but are NOT precached. They will be cached on first visit and then served from cache on subsequent visits. This means settings.html could also be stale.
+
+**Phase to address:** First deployment of any v1.1 code. Update the SW cache version.
+
+**Confidence:** HIGH -- direct analysis of `sw.js` code.
 
 ---
 
-### Pitfall 13: OAuth Credentials Committed to Git
+### Pitfall 13: Stripe Payment Link CSP Configuration -- Button vs Link Approach Matters
 
-**Severity:** MEDIUM (security risk) -- credentials exposed if repo goes public
+**Severity:** LOW -- only relevant if using Stripe embedded button instead of Payment Link
 
 **What goes wrong:**
-Client ID, client secret, or refresh tokens committed to version control. Even in a private repo, this is risky. If the repo ever goes public, credentials are leaked and bots scrape them within minutes.
+If using Stripe's embedded donate button (JavaScript embed), the current Content Security Policy blocks it. The CSP in `server.js` allows scripts from `'self'`, `'unsafe-inline'`, `cdn.jsdelivr.net`, and `unpkg.com`. Stripe's JS SDK loads from `js.stripe.com` which is NOT in the allowed list.
+
+If using a simple Payment Link (an `<a href="https://buy.stripe.com/xxx">` tag), NO CSP changes are needed because it is just a regular link.
 
 **How to avoid:**
-- Use `.env` file for all secrets, add `.env` to `.gitignore` immediately
-- Add `.gitignore` as the very first file in the project (before `git init` if possible)
-- Use a `.env.example` file with placeholder values for documentation
-- Never log OAuth tokens to console in production
+1. **Use a Payment Link (recommended).** No CSP changes needed. The donate button is an `<a>` tag that opens Stripe's hosted page in a new tab.
+2. **If using Stripe.js embed, add to CSP:** `"script-src": [..., "https://js.stripe.com"]` and `"connect-src": [..., "https://api.stripe.com"]` and `"frame-src": [..., "https://js.stripe.com"]`.
 
-**Phase to address:** Project setup (first file created).
+**Phase to address:** Stripe implementation (should take 15 minutes with Payment Link approach).
 
-**Weekend MVP trade-off:** DO NOT cut this corner. `.gitignore` with `.env` takes 30 seconds. Leaked credentials are a real emergency.
+**Confidence:** HIGH -- direct analysis of `server.js` CSP configuration.
 
 ---
 
-## Technical Debt Patterns
+## Phase-Specific Warnings
 
-Shortcuts that seem reasonable but create long-term problems.
+| Phase Topic | Likely Pitfall | Mitigation | Priority |
+|-------------|---------------|------------|----------|
+| Bug fixes | Regressions in stable features (#8) | Fix before adding features, one bug per commit, manual regression checklist | P0 |
+| Ken Burns | GPU memory leak on 24/7 device (#1) | Single animated element, force layer teardown, modest scale range | P0 |
+| Ken Burns | Nausea from random motion (#9) | Predefined presets, never opposing consecutive motions, respect prefers-reduced-motion | P1 |
+| Blur background | CPU/GPU overload on A9X (#2) | Blur a tiny image not full-res, or pre-blur server-side | P0 |
+| Ken Burns + Blur | Triple-stack during transitions (#3) | Sequential transitions, stop old animation before starting new | P0 |
+| Blur background | Double blob URL leak rate (#5) | Share blob URLs or use data URIs for background, audit cleanup | P1 |
+| Overlays | Misposition in PWA fullscreen (#6) | Use env(safe-area-inset-*), test in actual PWA mode on iPad | P1 |
+| Clock overlay | Timer leak across navigation (#11) | Clear interval on beforeunload, prefer rAF | P2 |
+| Stripe | Overengineering a donate button (#7) | Payment Link, not full integration, 15-minute task | P1 |
+| Stripe | CSP blocks Stripe.js (#13) | Use Payment Link (no CSP change needed) | P2 |
+| Demo mode | Auth bypass vulnerability (#4) | Separate code path, separate photo storage, no API access | P0 |
+| Config | New keys without migration (#10) | Add defaults to config.js before feature deploy | P1 |
+| Deployment | Stale SW cache serves old HTML (#12) | Update CACHE_VERSION on every deploy | P1 |
 
-| Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
-|----------|-------------------|----------------|-----------------|
-| Storing tokens in plaintext JSON file | Fast to implement | Security risk if server compromised | MVP only -- encrypt in production |
-| Hardcoding slideshow interval | Skip settings UI | Can't adjust without code change | MVP -- add config endpoint later |
-| No error UI (just console.log) | Faster development | Users see blank screen with no explanation | MVP -- add basic error states post-MVP |
-| Single-user architecture | Simpler auth flow | Rewrite needed for multi-user | Acceptable for personal frame |
-| In-memory baseUrl cache only | No persistence layer needed | Cache lost on server restart (requires re-fetch, not re-auth) | Acceptable for MVP |
-| No health check endpoint | Nothing to build | Can't monitor if frame is alive | MVP -- add simple `/health` post-MVP |
+## Integration Risks with Existing A/B Swap Pattern
 
-## Integration Gotchas
+The current `showSinglePhoto()` and `showDualPortraits()` functions in `slideshow.html` form the core of the display system. v1.1 features must integrate without breaking this pattern.
 
-Common mistakes when connecting to external services.
-
-| Integration | Common Mistake | Correct Approach |
-|-------------|----------------|------------------|
-| Google OAuth | Using `response_type: 'token'` (implicit flow) | Use `response_type: 'code'` (authorization code flow) for server-side apps |
-| Google OAuth | Not including `access_type: 'offline'` | Always include for server apps that need long-lived access |
-| Google OAuth | Redirect URI mismatch (http vs https, trailing slash) | Exact match required -- copy from Google Cloud Console, include protocol |
-| Picker API | Polling session without checking `pollingConfig` | Use the `pollInterval` and `timeoutIn` values from the session response |
-| Picker API | Not handling session timeout gracefully | Session can timeout if user takes too long -- show "try again" UI |
-| Let's Encrypt | Forgetting to set up auto-renewal | Certs expire every 90 days. `certbot renew` in crontab or systemd timer |
-
-## Performance Traps
-
-Patterns that work at small scale but fail as usage grows.
-
-| Trap | Symptoms | Prevention | When It Breaks |
-|------|----------|------------|----------------|
-| Loading all photos into DOM at once | Initial load takes 30+ seconds | Lazy-load: only keep current + next photo in DOM | >50 photos |
-| No image preloading | Visible flash/loading between transitions | Preload next image while current is displaying | Always visible, annoying from photo 1 |
-| Fetching full-res for thumbnails | Slow selection UI, high data usage | Use `=w400-h300` size params on baseUrls | >10 photos in selection view |
-| Refreshing all baseUrls individually | N API calls instead of 1 | Use paginated `mediaItems.list` to refresh batch | >20 photos |
-| No request deduplication | Same photo URL fetched multiple times | Track in-flight requests, deduplicate | Multiple components requesting same photo |
-
-## Security Mistakes
-
-Domain-specific security issues beyond general web security.
-
-| Mistake | Risk | Prevention |
-|---------|------|------------|
-| Storing Google refresh token in client-side storage (localStorage/IndexedDB) | Token theft via XSS, iOS storage eviction | Store tokens server-side only. Client authenticates with backend via session cookie |
-| Exposing `/api/photos` endpoint without authentication | Anyone with the URL can view private photos | Require session token/cookie for all API endpoints |
-| Using Google OAuth client secret in frontend code | Secret visible in browser dev tools | Client secret belongs ONLY on the server. Frontend uses authorization code flow with PKCE or redirects |
-| Not validating OAuth state parameter | CSRF attack on OAuth flow | Generate random state before redirect, validate on callback |
-| Serving photos over HTTP | Photos visible to network observers | HTTPS required. Google OAuth won't redirect to HTTP in production |
-
-## UX Pitfalls
-
-Common user experience mistakes in this domain.
-
-| Pitfall | User Impact | Better Approach |
-|---------|-------------|-----------------|
-| No visual feedback during photo selection | User doesn't know if app is working | Show spinner + "waiting for photo selection" message while polling Picker session |
-| Blank screen on API error | User thinks frame is broken | Show last known good photo + subtle error indicator |
-| No offline fallback | Network outage = white screen | Cache last N photos in service worker for offline display |
-| Abrupt image transitions | Feels janky and amateurish | CSS crossfade transition (even 0.5s makes huge difference) |
-| No way to trigger re-selection without developer access | User stuck with original photo set | Add a simple settings page or long-press gesture to open admin UI |
-
-## "Looks Done But Isn't" Checklist
-
-Things that appear complete but are missing critical pieces.
-
-- [ ] **OAuth flow:** Often missing error handling for denied permissions -- verify user can cancel and retry
-- [ ] **Token refresh:** Often missing handling for `invalid_grant` -- verify the app re-prompts for auth instead of crashing
-- [ ] **Slideshow:** Often missing preloading of next image -- verify no flash between transitions
-- [ ] **Wake Lock:** Often missing re-acquisition after `visibilitychange` -- verify screen stays on after returning from background
-- [ ] **Deployment:** Often missing PM2 startup config -- verify app survives VPS reboot (`pm2 startup && pm2 save`)
-- [ ] **SSL:** Often missing auto-renewal -- verify `certbot renew --dry-run` works
-- [ ] **Picker flow:** Often missing session timeout handling -- verify graceful UX when user takes too long to pick photos
-- [ ] **Error recovery:** Often missing auto-retry on network failure -- verify slideshow resumes after Wi-Fi reconnects
+| Existing Pattern | v1.1 Feature | Integration Risk | Approach |
+|------------------|-------------|-----------------|----------|
+| `.photo.active` / `.photo.preload` class swap | Ken Burns | Ken Burns CSS class must work with both active and preload states | Add `.ken-burns` class alongside `.active`, remove on deactivation |
+| `z-index: 0` (preload) / `z-index: 1` (active) | Background blur | Blur layer must be z-index BELOW photos (z-index: -1 or 0 with DOM ordering) | Insert blur elements before photo elements in DOM |
+| `opacity: 0` -> `opacity: 1` transition (1s) | Ken Burns | Scale animation must not restart during opacity transition | Use separate CSS properties: opacity for crossfade, transform for Ken Burns |
+| Blob URL cleanup after 1.5s timeout | Blur background | Background element must also be cleaned up | Extend cleanup selector or share blob URL |
+| `createPhotoElement()` returns `<img>` | Blur background | Need to also create background element | Return both elements or create background in `showSinglePhoto()` |
+| Dual portrait mode (two images side-by-side) | Ken Burns + Blur | Two photos + two backgrounds = 4 elements | Disable blur in dual mode, or use a single shared background |
+| `displayMode` state variable | New config keys | Must not conflict with new toggle states | Keep display mode separate from effect toggles |
 
 ## Recovery Strategies
 
-When pitfalls occur despite prevention, how to recover.
+If these pitfalls are hit despite prevention:
 
 | Pitfall | Recovery Cost | Recovery Steps |
 |---------|---------------|----------------|
-| Built against deprecated Library API | HIGH (rewrite API layer) | Migrate to Picker API. Change scopes, rewrite album/photo fetching to session-based flow. Auth layer can likely be reused. |
-| Cached stale baseUrls | LOW (fix caching logic) | Add TTL check to cache. Invalidate all cached URLs. Fetch fresh batch. |
-| Tokens expired (testing mode) | LOW (config change + re-auth) | Switch consent screen to Production. Delete stored tokens. Re-authorize. |
-| Memory leak in slideshow | MEDIUM (refactor slideshow) | Switch to A/B image swap pattern. Add `URL.revokeObjectURL()` calls. Clear references. |
-| iOS storage eviction | LOW (move to server-side) | Move token storage to backend. PWA fetches session from server on load. |
-| Quota exhaustion | LOW (add caching) | Add server-side baseUrl cache with 50-min TTL. Batch API calls. Wait for daily quota reset. |
-| Nginx misconfiguration | LOW (fix config) | Apply known-good template config. Test with `nginx -t`. Restart nginx. |
-
-## Pitfall-to-Phase Mapping
-
-How roadmap phases should address these pitfalls.
-
-| Pitfall | Prevention Phase | Verification |
-|---------|------------------|--------------|
-| Deprecated Library API (#1) | Project setup / API selection | `photospicker.mediaitems.readonly` scope used, NOT `photoslibrary.readonly` |
-| baseUrl expiry (#2) | Backend API implementation | Photos still load after 2+ hours of continuous display |
-| OAuth testing mode (#3) | OAuth setup | Consent screen shows "In Production" in Cloud Console |
-| Picker requires interaction (#4) | Architecture/design | UX flow includes explicit "Choose Photos" step |
-| Wake Lock on iOS (#5) | Frontend PWA | Screen stays on for 30+ minutes on target iPad in PWA mode |
-| Refresh token first-time-only (#6) | OAuth implementation | Authorization URL includes `prompt=consent` and `access_type=offline` |
-| Memory leaks (#7) | Frontend slideshow | Memory usage stable after 4+ hours (check browser Task Manager) |
-| iOS storage eviction (#8) | Architecture | Tokens stored server-side, not in client storage |
-| API quota (#9) | Backend caching | <200 API calls/day for single-user frame |
-| Nginx config (#10) | Deployment | HTTPS works, WebSocket connects, headers forwarded correctly |
-| Image sizing (#11) | Frontend/backend | Network tab shows images at display resolution, not 4000px originals |
-| PM2 auto-restart (#12) | Deployment | `sudo reboot` followed by frame coming back online within 60 seconds |
-| Credentials in git (#13) | Project setup (first commit) | `.env` in `.gitignore`, no secrets in git history |
-
-## Sources
-
-**Official Google Documentation (HIGH confidence):**
-- [Google Photos API Updates](https://developers.google.com/photos/support/updates)
-- [Google Photos API Best Practices](https://developers.google.com/photos/overview/best-practices)
-- [Google Photos API Limits and Quotas](https://developers.google.com/photos/overview/api-limits-quotas)
-- [Picker API: Getting Started](https://developers.google.com/photos/picker/guides/get-started-picker)
-- [Picker API: Sessions](https://developers.google.com/photos/picker/guides/sessions)
-- [Picker API: Media Items](https://developers.google.com/photos/picker/guides/media-items)
-- [Google OAuth 2.0](https://developers.google.com/identity/protocols/oauth2)
-- [Unverified Apps](https://support.google.com/cloud/answer/7454865)
-
-**Bug Trackers and Issue Reports (HIGH confidence):**
-- [WebKit Bug 254545: Wake Lock in Home Screen Web Apps](https://bugs.webkit.org/show_bug.cgi?id=254545)
-- [Google Issue Tracker: baseUrl expiry](https://issuetracker.google.com/issues/165028980)
-- [WebKit Bug 31253: Unbounded memory growth with images](https://bugs.webkit.org/show_bug.cgi?id=31253)
-- [PWA-POLICE/pwa-bugs: list of PWA bugs](https://github.com/PWA-POLICE/pwa-bugs)
-
-**Community Reports (MEDIUM confidence):**
-- [memoryKPR: Google Photos API Deprecation](https://memorykpr.com/blog/google-photos-api-deprecation-what-it-means-for-third-party-apps-and-how-to-prepare/)
-- [Brainhub: PWA on iOS 2025](https://brainhub.eu/library/pwa-on-ios)
-- [WebKit: Updates to Storage Policy](https://webkit.org/blog/14403/updates-to-storage-policy/)
-- [rclone: Google Photos quota discussion](https://forum.rclone.org/t/working-with-google-photos-all-requests-quota-limit-10k/34349)
-- [Nango: Google OAuth invalid_grant](https://nango.dev/blog/google-oauth-invalid-grant-token-has-been-expired-or-revoked)
-- [Can I Use: Wake Lock API](https://caniuse.com/wake-lock)
+| GPU memory crash (#1) | LOW | Reduce scale range to 1.05, add memory watchdog, disable Ken Burns as last resort |
+| Blur jank (#2) | LOW | Switch from CSS blur to tiny-image approach (code change, not architecture change) |
+| Triple-stack crash (#3) | MEDIUM | Redesign transition choreography to be sequential (affects UX timing) |
+| Demo auth bypass (#4) | HIGH if exploited | Emergency: disable demo mode. Fix: rewrite demo as isolated code path |
+| Blob URL leak (#5) | LOW | Add cleanup for background elements, verify with DOM count monitoring |
+| Overlay misposition (#6) | LOW | Add safe area CSS, test on device |
+| Stripe overengineering (#7) | MEDIUM (wasted time) | Scrap integration code, replace with Payment Link |
+| Regressions (#8) | MEDIUM | Git bisect to find breaking commit, revert, re-fix |
+| Ken Burns motion sickness (#9) | LOW | Reduce motion range, add presets, respect prefers-reduced-motion |
+| Config key mismatch (#10) | LOW | Update defaults, redeploy |
+| Clock timer leak (#11) | LOW | Add cleanup handler |
+| Stale SW cache (#12) | LOW | Update cache version, force SW update |
+| CSP blocks Stripe (#13) | LOW | Use Payment Link instead of embed, or add CSP exception |
 
 ---
-*Pitfalls research for: Google Photos digital photo frame (Node.js + vanilla JS PWA)*
-*Researched: 2026-02-08*
+
+## Sources and Confidence Notes
+
+**HIGH Confidence (verified in codebase):**
+- All code path analysis (Pitfalls 4, 5, 7, 8, 10, 12, 13) -- based on direct reading of `slideshow.html`, `server.js`, `config.js`, `photo-proxy.js`, `auth.js`, `sw.js`
+- A/B swap pattern integration risks -- based on direct analysis of `showSinglePhoto()` and `showDualPortraits()` implementations
+- CSP configuration -- based on direct reading of helmet configuration in `server.js`
+- Blob URL cleanup pattern -- based on direct reading of cleanup code in slideshow
+
+**MEDIUM Confidence (training knowledge, needs on-device validation):**
+- iOS 16.x Safari GPU compositing behavior (Pitfalls 1, 2, 3) -- well-documented in WebKit sources but exact performance thresholds on iPad Pro 1st Gen need testing
+- `env(safe-area-inset-*)` behavior in PWA mode on iPad Pro 1st Gen (Pitfall 6)
+- Stripe Payment Links feature set (Pitfall 7) -- should verify current Stripe docs
+
+**LOW Confidence (needs further research):**
+- Exact VRAM budget on A9X GPU for compositing layers -- the 21MB-per-layer estimate is based on 2732x2048x4 bytes but actual GPU allocation may differ
+- Whether Safari on iOS 16.x uses GPU or CPU for `filter: blur()` on `<img>` elements -- varies by context and version
+
+**Research limitations:** WebSearch and WebFetch were unavailable during this research session. All performance claims about iOS Safari should be validated against current Apple developer documentation and tested on the actual iPad Pro 1st Gen device.
+
+---
+*v1.1 pitfalls research for: Okno photo frame -- Ken Burns, blur, Stripe, demo mode*
+*Researched: 2026-02-15*
+*Codebase version: v1.0 (commit f7725e8)*

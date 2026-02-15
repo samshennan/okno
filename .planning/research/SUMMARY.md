@@ -1,246 +1,339 @@
-# Project Research Summary
+# Research Summary: v1.1 "Make It Shine"
 
-**Project:** Okno
-**Domain:** Self-hosted Google Photos digital photo frame (Node.js + vanilla JS PWA)
-**Researched:** 2026-02-08
+**Project:** Okno (Google Photos digital photo frame PWA)
+**Milestone:** v1.1 "Make It Shine"
+**Domain:** Visual effects, monetization, and demo mode for a 24/7 photo frame
+**Researched:** 2026-02-15
 **Confidence:** HIGH
 
 ## Executive Summary
 
-Okno is a self-hosted digital photo frame app that displays photos from Google Photos on an iPad. This is a well-understood domain with clear table stakes (random slideshow, fullscreen display, screen wake prevention, smooth transitions) and established patterns. However, **a critical API change in March 2025 fundamentally reshapes the architecture**: Google deprecated the `photoslibrary.readonly` scope, eliminating the ability to programmatically browse a user's entire photo library. The replacement Picker API requires explicit user selection of photos via Google's UI — a session-based workflow rather than background syncing.
+The v1.1 milestone adds visual polish (Ken Burns effect, blurred backgrounds, date/time overlays), monetization (Stripe donate button), and portfolio showcase capability (demo mode) to the existing photo frame PWA. Research reveals that **all new features can be implemented with zero new npm dependencies** using pure CSS animations, vanilla JavaScript, and Stripe Payment Links.
 
-The recommended approach is a Node.js/Express backend using the Picker API with `photospicker.mediaitems.readonly` scope, serving a vanilla JavaScript PWA frontend. The backend handles OAuth, manages Picker sessions, caches media item IDs (not baseUrls, which expire in 60 minutes), and serves fresh photo URLs to the frontend. The iPad runs the PWA in fullscreen mode using iOS Guided Access as a kiosk. NoSleep.js (hidden video loop) is the primary screen wake strategy because the Wake Lock API is broken in iOS 16.x PWAs — the target iPad Pro 1st Gen maxes out at iOS 16.x and will never get the fix (released in iOS 18.4).
+The most critical finding: **v1.1's visual effects must be carefully orchestrated to avoid GPU memory exhaustion on the target hardware** (iPad Pro 1st Gen, A9X chip, 24/7 operation). Ken Burns and blurred backgrounds both create GPU compositing layers; stacking these effects during photo transitions creates peak memory pressure that can crash the PWA after hours of operation. The recommended approach is to use CSS-only implementations with modest scale ranges (1.0x to 1.15x zoom), blur tiny background images instead of full-resolution ones, and serialize transition choreography to prevent triple-stacking of GPU layers.
 
-Key risks center on API scope deprecation (already mitigated by using Picker API), baseUrl expiry (mitigated by server-side refresh every 50 minutes), and OAuth token management (mitigated by setting consent screen to "In Production" mode to avoid 7-day token expiry). The architecture is straightforward: this is a Node.js API server with file-based persistence (JSON for tokens/cache), nginx for SSL termination, and PM2 for process management. A weekend MVP is achievable: OAuth + Picker session + random photo endpoint + fullscreen slideshow with crossfade. V1 polish adds Ken Burns effect, blurred backgrounds, and date overlays — high visual impact for minimal effort.
+The second most important finding: **demo mode is the highest-value feature for portfolio presentation** but introduces security risk if not properly isolated. Demo mode must use a completely separate photo source (bundled sample images) with no access to authenticated API endpoints to prevent accidental exposure of the real user's cache or settings.
 
 ## Key Findings
 
-### Recommended Stack
+### Recommended Stack (STACK.md)
 
-**Critical finding:** Google removed `photoslibrary.readonly` scope on April 1, 2025. The Picker API is now the only way to access user photos. This changes the entire architecture from "fetch all photos in background" to "user explicitly selects photos via Google's picker UI."
+**Zero new npm dependencies needed.** All v1.1 features use the existing vanilla HTML/CSS/JS stack:
 
-**Core technologies:**
-- **Node.js 22.x LTS** (runtime) — Active LTS through April 2027, required by Express 5.x, native `--env-file` support eliminates dotenv dependency
-- **Express 5.x** (web framework) — Now default on npm since March 2025, improved async error handling and security
-- **google-auth-library 10.x** (OAuth) — Official Google auth library, handles token refresh automatically
-- **Google Photos Picker API** (`photospicker.googleapis.com/v1/`) — Replacement for deprecated Library API, session-based photo selection
-- **nginx + Let's Encrypt** (reverse proxy + SSL) — Standard production pattern, required for OAuth redirect URIs
-- **PM2** (process manager) — Auto-restart on crash, startup persistence
-- **NoSleep.js 0.12.0** (screen wake) — Primary strategy for iOS 16.x PWAs where Wake Lock API is broken
+**Core approach:**
+- **Ken Burns:** Pure CSS `@keyframes` with `transform: scale()` — GPU-accelerated, no library needed
+- **Blurred backgrounds:** CSS `filter: blur()` on duplicate `<img>` element OR blur a tiny low-res image — no canvas library needed
+- **Date/time overlays:** Vanilla JS with `toLocaleDateString()` and `toLocaleTimeString()` — no date library needed
+- **Stripe donate:** Stripe Payment Links (URL-only, no backend code) — zero npm packages, not even the `stripe` SDK
+- **Demo mode:** Static sample photos in `/public/demo/` served via existing Express static middleware — no external API
+- **README polish:** Mermaid diagrams (GitHub native rendering) + shields.io badges — no build tools
 
-**Critical constraint:** BaseUrls from Google Photos expire after 60 minutes. Must refresh server-side before serving to frontend.
+**Critical version requirements:**
+- None — all features use browser-native APIs supported on iOS 16 Safari
 
-**Confidence:** HIGH — all versions verified against official documentation and npm registry (Feb 2026). Picker API migration path verified against Google's official deprecation announcements.
+**What NOT to use:**
+- GSAP, anime.js, or any JS animation library (CSS does Ken Burns natively)
+- Canvas-based blur or StackBlur (CSS `filter: blur()` is GPU-accelerated)
+- date-fns, luxon, moment.js (Intl API is built-in)
+- Full Stripe integration with Checkout Sessions and webhooks (Payment Links for a donate button)
 
-### Expected Features
+**Confidence:** HIGH — CSS animations, `filter: blur()`, Intl API, and Stripe Payment Links are all mature, well-documented features. The specific approaches are proven in the existing codebase (backdrop-filter already in use, CSS transitions validated).
+
+### Expected Features (FEATURES.md)
 
 **Must have (table stakes):**
-- Google OAuth + token persistence — Without this, nothing works
-- Picker session creation + media item caching — New session-based workflow replaces old library listing
-- Random photo endpoint with fresh baseUrl — Core value: serendipitous rediscovery of memories
-- Fullscreen slideshow with crossfade transitions — Every commercial frame has smooth transitions
-- Preload next image — Eliminates white flash between photos
-- Prevent screen sleep — NoSleep.js as primary strategy (Wake Lock broken on iOS 16.x PWAs)
-- PWA manifest + Apple meta tags — Fullscreen mode, no browser chrome
-- Configurable interval — Users have strong preferences (10s feels rushed, 60s feels slow)
-- Error resilience — Network blips must not kill the slideshow
+- **Ken Burns:** Smooth constant-speed animation, randomized direction, matches slide interval, toggleable, no performance degradation
+- **Blurred background:** Same-photo blur, heavy blur (30-40px), reduced brightness, seamless color match, toggleable
+- **Photo date overlay:** Formatted human-readable date, positioned unobtrusively, handles missing metadata
+- **Clock overlay:** Updates every minute, locale-aware format, consistent styling
+- **Stripe donate:** Pre-set amounts, secure (Stripe-hosted), thank-you confirmation, no account required for donor
+- **Demo mode:** No auth required, high-quality photos, all features functional, clear demo indicator, easy exit to real product
+- **README:** Hero image/GIF, one-line description, feature screenshots, architecture diagram, live demo link
 
-**Should have (competitive advantage):**
-- **Ken Burns effect** — Cinematic slow zoom/pan, highest wow-per-hour feature (pure CSS, 1 hour to add)
-- **Blurred background fill** — Instead of black bars, show blurred/dimmed version of same photo (matches Aura premium frames)
-- **Photo date overlay** — "March 2021" creates nostalgia, unique to self-hosted
-- **"On This Day" mode** — Mimics Google Photos Memories, emotionally powerful differentiator
-- **Portrait pair mode** — Display two consecutive portrait photos side-by-side (matches Aura's $200+ flagship feature)
+**Should have (differentiators):**
+- **Ken Burns + Blurred Background combined:** Creates cinematic experience matching Apple TV quality — most DIY frames have neither
+- **Product Decisions in README:** Shows what was NOT built and why — demonstrates product leadership thinking
+- **Demo Mode with optimal defaults:** Interviewer experiences product in 10 seconds without setup — 95% of side projects lack this
+- **Photo date with nostalgia framing:** "March 2019" creates emotional response — commercial frames cannot do this (lack metadata)
 
 **Defer (v2+):**
-- Weather widget — Nice but not core to photo frame identity
-- Short video playback — More complex than expected, iOS autoplay restrictions
-- Exclude screenshots — Heuristic-based, fragile, lots of edge cases
-- Album filtering — Needs settings UI, defer until V1 polish
+- Multiple transition styles (slide, dissolve, wipe) — Ken Burns + crossfade is sufficient
+- Animated text overlays — motion reserved for photos, not chrome
+- Custom overlay positioning — fixed positions are predictable and sufficient
+- Donation tracking dashboard — Stripe Dashboard already tracks
+- Interactive demo features — demo should showcase, not teach
+- Weather/Spotify/news overlays — scope creep, each is a separate API
 
-**Anti-features (deliberately not building):**
-- Multi-user auth — Massively increases scope, kills weekend MVP
-- Face recognition / AI curation — Requires ML infrastructure, Google Photos already does this
-- Real-time sync — Google Photos has no push API, wastes quota
-- Native iOS app — Zero benefit over PWA + Guided Access
+**Confidence:** HIGH — table stakes behaviors are derived from Apple TV screensavers, commercial digital frames (Aura, Samsung Frame TV), and portfolio project best practices. Differentiators identified through competitive analysis.
 
-### Architecture Approach
+### Architecture Approach (v1.1-ARCHITECTURE.md)
 
-The architecture is a backend-as-photo-proxy pattern: the frontend never talks to Google APIs directly. All Google API calls go through the Node.js/Express backend, which manages OAuth tokens, Picker sessions, and baseUrl refresh cycles. The frontend is a thin display layer that requests `/api/photo/random` and displays the returned image URL.
+**Three architectural categories:**
 
-**Major components:**
-1. **Auth Module (Express routes + google-auth-library)** — OAuth 2.0 authorization code flow, token persistence to JSON file, automatic refresh on expiry
-2. **Photos Module (Express routes + Picker API REST calls)** — Session creation/polling, media item caching (IDs + metadata), random selection, baseUrl refresh every 50 minutes
-3. **File Persistence (JSON files)** — `tokens.json` for OAuth tokens, `cache.json` for media item IDs/metadata. No database needed for single-user app
-4. **PWA Frontend (vanilla HTML/CSS/JS)** — Fullscreen slideshow with two-image crossfade pattern, NoSleep.js for screen wake, preloading next image
-5. **Infrastructure (nginx + PM2)** — SSL termination with Let's Encrypt, process management with auto-restart on crash and boot persistence
+1. **CSS-layer visual effects** (Ken Burns, blurred backgrounds, overlays) — integrate into frontend slideshow DOM/CSS only, zero backend changes
+2. **Backend service additions** (demo mode, Stripe) — new Express routes, new data sources
+3. **Bug fixes** — targeted changes to existing modules
 
-**Data flow:** User creates Picker session → selects photos via Google's UI → backend caches media item IDs → slideshow requests `/api/photo/random` → backend returns fresh baseUrl (from 50-min cache or newly fetched) → frontend displays with crossfade transition.
+**Critical architectural constraint:** The existing **A/B image swap pattern** in `slideshow.html` dynamically creates and destroys `<img>` elements per transition. Every visual effect must be duplicated per-slot and cleaned up on transition. The pattern already handles blob URL revocation and DOM cleanup — new effects must hook into that same lifecycle.
 
-**Key pattern:** Store media item IDs permanently (they never expire), but refresh baseUrls every 50 minutes (they expire in 60 minutes). Never store or persist baseUrls.
+**Major integration points:**
 
-### Critical Pitfalls
+1. **Ken Burns:** Apply CSS animation class after `img.classList.add('active')`, remove on cleanup. Requires `overflow: hidden` on `#slideshow` container. Uses `will-change: transform` for GPU layer promotion.
 
-1. **Using the Deprecated Library API** — The `photoslibrary.readonly` scope was removed April 1, 2025. API calls return `403 PERMISSION_DENIED`. Must use Picker API with `photospicker.mediaitems.readonly` scope. This is a project-killing mistake if not caught during setup.
+2. **Blurred background:** Changes DOM structure from single `<img>` to wrapper `<div>` containing background `<div>` + foreground `<img>`. Most significant architectural change — touches `createPhotoElement()`, `showSinglePhoto()`, `showDualPortraits()`, cleanup logic, and blob URL revocation.
 
-2. **Storing baseUrls Instead of Media Item IDs** — BaseUrls expire after 60 minutes. Caching them long-term causes broken images. Must store only media item IDs, fetch fresh baseUrls on-demand, cache for max 50 minutes.
+3. **Date/time overlays:** Fixed-position `<div>` elements outside `#slideshow`, updated on photo transitions (date) or every minute (clock). Must use `env(safe-area-inset-*)` for iOS PWA safe areas.
 
-3. **OAuth Testing Mode (7-Day Token Expiry)** — When OAuth consent screen is in "Testing" status, refresh tokens expire after exactly 7 days. Frame works perfectly for a week, then silently stops. Must set consent screen to "In Production" immediately.
+4. **Demo mode:** Server-side `DEMO_MODE=true` flag. New `demo-photos.js` module serves from `/public/demo/` instead of Google Photos cache. Modifies `photo-proxy.js`, `auth.js`, `health.js`. Frontend detects demo mode from `/auth/status` response.
 
-4. **Picker API Requires User Interaction** — Unlike the old Library API, Picker requires the user to actively select photos via Google's UI. No background syncing. The UX must be designed around explicit photo selection sessions, not "connect once, auto-update forever."
+5. **Stripe:** New `donate.js` router OR (simpler) just replace PayPal URL in `index.html` with Stripe Payment Link URL. No backend code needed with Payment Link approach.
 
-5. **Wake Lock API Broken in iOS PWAs (pre-18.4)** — Wake Lock works in Safari browser but is broken in installed PWAs on iOS 16.x and 17.x. WebKit bug fixed only in iOS 18.4, which the iPad Pro 1st Gen can never run. NoSleep.js (hidden video loop) is the primary strategy, not a fallback.
+**Config schema extensions:**
+```javascript
+const defaults = {
+  // v1.0
+  interval: 30,
+  displayMode: 'cover',
+  onThisDay: false,
+  portraitPairs: false,
+  // v1.1 NEW
+  kenBurns: true,           // default ON for wow factor
+  blurredBackground: true,  // default ON
+  showPhotoDate: true,      // default ON
+  showClock: false,         // default OFF
+};
+```
 
-6. **JavaScript Memory Leaks in Long-Running Slideshow** — Unreleased Blob URLs, detached DOM nodes, and accumulated event listeners cause crashes after 24-48 hours. Must use A/B image swap pattern (two `<img>` elements, swap visibility), revoke Blob URLs, and clear references.
+**Memory leak prevention checklist (24/7 operation):**
+- Blob URLs: Every `createObjectURL()` has matching `revokeObjectURL()`
+- DOM elements: Every appended element removed after transition
+- CSS animations: Removed with element
+- Intervals: `clockInterval` cleared on `exitSlideshow()`
+- GPU layers: `will-change` elements destroyed with DOM removal
 
-7. **iOS Safari Evicts PWA Storage After Inactivity** — iOS can clear PWA storage (localStorage, IndexedDB) if unused for weeks. Tokens must be stored server-side, not client-side.
+**Confidence:** HIGH — based on complete codebase reading of all source files. Architecture recommendations derive from existing patterns in `slideshow.html`, `config.js`, and service worker.
+
+### Critical Pitfalls (PITFALLS.md)
+
+1. **Ken Burns CSS Transform Creates Unbounded GPU Memory on iOS Safari**
+   - Severity: CRITICAL (frame crashes after hours)
+   - Each animated 2732x2048 image consumes ~21MB GPU texture memory. A9X has limited VRAM shared with system RAM.
+   - **Avoidance:** Single animated element (not two during crossfade), force GPU layer teardown with `transform: none` before `remove()`, keep scale range modest (1.0-1.15x), add memory watchdog, use `will-change: transform` only on active element.
+
+2. **CSS `filter: blur()` on Full-Screen Background Triggers Continuous Repaint**
+   - Severity: CRITICAL (persistent jank, battery drain, potential crash)
+   - `blur(40px)` on 2732x2048 may fall back to software rendering on iOS 16 Safari
+   - **Avoidance:** Blur a TINY image (64x48) and scale it up, OR pre-blur server-side, OR use canvas element (compute once per photo). Never blur a full-res image. Never apply blur to an element also being animated with `transform`.
+
+3. **Ken Burns + Blur + Crossfade Triple-Stack During Transitions**
+   - Severity: CRITICAL (peak GPU load can trigger jetsam kill)
+   - During transition: outgoing photo (Ken Burns + fade), incoming photo (Ken Burns + fade), 2 background blurs = 4 full-screen GPU layers
+   - **Avoidance:** Sequential transitions (stop old Ken Burns, crossfade, start new Ken Burns). Background blur should NOT animate during crossfade. Budget rule: no more than 2 GPU-promoted layers at any time, briefly 3 during transitions, never 4+.
+
+4. **Demo Mode Creates Authentication Bypass**
+   - Severity: CRITICAL (security)
+   - If demo mode skips auth checks, could allow unauthenticated access to `/api/config`, `/api/picker/*`, `/api/health`, or real user's cached photos
+   - **Avoidance:** Separate code path (serve from `/public/demo/`, not `/api/photo/random`). Demo-specific endpoint if needed. Server-side `DEMO_MODE=true` flag, not URL parameter. Read-only access (no settings modification, no picker, no feedback).
+
+5. **Blob URL Leak Rate Doubles with Background Blur Images**
+   - Severity: HIGH (memory leak timeline halved)
+   - Blurred background adds second image element per photo. Current cleanup targets `.photo:not(.active)` — background elements may be orphaned.
+   - **Avoidance:** Share same blob URL for foreground and background, OR use data URI for tiny background image, OR extend cleanup selector to include `.photo-bg:not(.active)`.
+
+**Confidence:** MEDIUM on GPU performance claims (based on training knowledge, needs on-device validation), HIGH on security and code path analysis (verified in codebase).
 
 ## Implications for Roadmap
 
-Based on research, suggested phase structure:
+Based on research, recommended phase structure:
 
-### Phase 1: Backend Foundation (OAuth + Picker API Integration)
-**Rationale:** Everything depends on authenticated access to Google Photos. The Picker API session workflow is fundamentally different from the old Library API and must be implemented correctly from day one. This is the critical path.
+### Phase 1: Bug Fixes
+**Rationale:** Clean foundation before adding features. Bug fixes touch core infrastructure (`photo-cache.js`, `photo-proxy.js`, `slideshow.html`) — regressions in these could cascade into new features.
 
-**Delivers:** Working OAuth flow with token persistence, Picker session creation/polling, media item caching, health check endpoint.
+**Delivers:** 6 bugs fixed from v1.0 QA (picker merge, OTD fallback visibility, 502 resilience, calendar indicator, dual mode letterboxing, settings persistence).
 
-**Addresses:** Pitfall #1 (deprecated Library API), Pitfall #3 (OAuth testing mode), Pitfall #4 (Picker API user interaction pattern).
+**Avoids:** Pitfall #8 (regressions in stable features). Fix one bug per commit, manual regression checklist.
 
-**Research flag:** Standard patterns, well-documented by Google. Skip phase research.
+**Research needed:** No — bugs are targeted fixes with clear scope.
 
-### Phase 2: Photo Serving + BaseUrl Management
-**Rationale:** Must be built after authentication exists but before frontend, since the frontend depends on this endpoint. BaseUrl refresh logic is critical — get this wrong and photos break after 60 minutes.
+### Phase 2: Visual Effects (Ken Burns + Blurred Background)
+**Rationale:** Highest visual impact. Both modify photo element architecture, so build together. This is the "before/after" moment for portfolio showcase.
 
-**Delivers:** `/api/photo/random` endpoint that returns fresh baseUrls, server-side cache with 50-min TTL, random selection from cached media items.
+**Delivers:** Ken Burns cinematic zoom/pan, blurred background fill for portrait photos in landscape mode.
 
-**Addresses:** Pitfall #2 (baseUrl expiry).
+**Addresses:** Table stakes behaviors for both features. Implements architecture changes to DOM structure (wrapper pattern for blur).
 
-**Research flag:** Standard caching patterns. Skip phase research.
+**Avoids:** Pitfalls #1, #2, #3 (GPU memory, blur jank, triple-stack). Must implement sequential transition choreography from the start.
 
-### Phase 3: Frontend Core (Slideshow Display)
-**Rationale:** Once the backend can serve photos, build the display layer. Two-image crossfade pattern prevents most memory leaks and enables preloading.
+**Research needed:** DEEP research during phase planning — GPU memory profiling on actual iPad Pro 1st Gen, blur performance testing (CSS vs tiny-image vs server-side), transition timing choreography.
 
-**Delivers:** Fullscreen slideshow page, two-image A/B swap with CSS crossfade transitions, preload next image, configurable interval.
+### Phase 3: Date/Time Overlays
+**Rationale:** Quick wins layered on top of visual improvements. Independent of photo lifecycle (fixed-position elements). Minimal risk.
 
-**Addresses:** Pitfall #6 (memory leaks via two-image pattern).
+**Delivers:** Photo date overlay (bottom-left), clock overlay (bottom-right), both toggleable.
 
-**Research flag:** Standard DOM manipulation patterns. Skip phase research.
+**Uses:** Vanilla JS `toLocaleDateString()` and `toLocaleTimeString()`, existing photo metadata from `X-Photo-CreateTime` header.
 
-### Phase 4: PWA + Screen Wake
-**Rationale:** PWA configuration and screen wake are tightly coupled on iOS. NoSleep.js must be the primary strategy because Wake Lock is broken on the target device.
+**Avoids:** Pitfall #6 (overlay misposition), Pitfall #11 (clock timer leak). Use `env(safe-area-inset-*)` from the start, clean up clock interval on exit.
 
-**Delivers:** PWA manifest, Apple meta tags, NoSleep.js integration (recreate instance before each enable for iOS PWA reliability), re-enable on `visibilitychange`.
+**Research needed:** No — straightforward DOM updates with existing patterns.
 
-**Addresses:** Pitfall #5 (Wake Lock broken on iOS 16.x PWAs).
+### Phase 4: Config Integration
+**Rationale:** Wire all new features into settings system after they are implemented and tested. Features can be tested with hardcoded `true` values first.
 
-**Research flag:** iOS PWA limitations are well-documented. Skip phase research.
+**Delivers:** 4 new config keys (`kenBurns`, `blurredBackground`, `showPhotoDate`, `showClock`), 2 new settings sections (Visual Effects, Overlays).
 
-### Phase 5: Deployment + Infrastructure
-**Rationale:** Can be done in parallel with Phase 3/4 using localhost for testing. OAuth requires HTTPS in production, so SSL setup is required before final testing.
+**Avoids:** Pitfall #10 (config key migration). Add defaults to `config.js` before deploying feature code that reads them.
 
-**Delivers:** nginx reverse proxy with SSL (Let's Encrypt), PM2 process management with startup persistence, DNS configuration.
+**Research needed:** No — follows existing config pattern.
 
-**Addresses:** Deployment pitfalls (PM2 auto-restart, nginx WebSocket headers, SSL auto-renewal).
+### Phase 5: Demo Mode
+**Rationale:** After visual effects are done, demo mode can showcase them. Demo mode is also useful for portfolio presentation — having working visual effects makes the demo more impressive.
 
-**Research flag:** Standard Node.js deployment patterns. Skip phase research.
+**Delivers:** Sample photo library (8-12 high-quality images), demo mode toggle, demo indicator UI, auth bypass for demo users.
 
-### Phase 6: V1 Polish (High-Impact Visual Features)
-**Rationale:** After core slideshow is working reliably for 7+ days. These features have high visual impact for minimal implementation effort — great portfolio value.
+**Implements:** Separate backend module (`demo-photos.js`), modifications to `photo-proxy.js`, `auth.js`, `health.js`, `index.html`.
 
-**Delivers:** Ken Burns effect (CSS transform with random origin), blurred background fill (CSS filter blur + brightness), photo date overlay, clock overlay, sleep/wake schedule.
+**Avoids:** Pitfall #4 (auth bypass vulnerability). Design isolation boundary BEFORE writing code. Separate photo storage, no API access.
 
-**Addresses:** Competitive differentiation. These features match premium commercial frames.
+**Research needed:** MODERATE research during planning — sample photo curation (royalty-free sources), metadata structure for demo photos, auth bypass security review.
 
-**Research flag:** Pure CSS/simple JS patterns. Skip phase research.
+### Phase 6: Stripe Donate Button
+**Rationale:** Completely independent of all other features. Touches only `index.html` (donation button) and adds a new backend route. Zero interaction with slideshow code. Lowest priority for portfolio showcase.
 
-### Phase 7: Advanced Features (V2)
-**Rationale:** Defer until V1 is polished and stable. These are nice-to-haves, not essential.
+**Delivers:** Replace PayPal placeholder with Stripe Payment Link, thank-you message on success.
 
-**Delivers:** Portrait pair mode, "On This Day" mode, settings page, album filtering.
+**Uses:** Stripe Payment Links (URL-only, no backend code).
 
-**Research flag:** Needs deeper investigation during planning — portrait detection logic, date filtering heuristics, settings persistence patterns.
+**Avoids:** Pitfall #7 (overengineering), Pitfall #13 (CSP configuration). Use Payment Link approach, not full Checkout integration.
+
+**Research needed:** No — 15-minute task to create Payment Link in Stripe Dashboard and replace URL in HTML.
+
+### Phase 7: README Polish
+**Rationale:** Must be last. Captures screenshots of the final product with all features active. README is portfolio artifact — needs to show completed product.
+
+**Delivers:** Hero GIF (Ken Burns + blur in action), feature screenshots, architecture diagram (Mermaid), product decisions section, live demo link.
+
+**Uses:** Mermaid diagrams (GitHub native rendering), shields.io badges, screenshots from actual iPad or dev tools.
+
+**Research needed:** No — content creation, not implementation.
 
 ### Phase Ordering Rationale
 
-- **Phases 1-2 are the critical dependency chain:** No photos without OAuth, no photos without baseUrl refresh. This must be sequential.
-- **Phase 3 depends on Phase 2:** Frontend needs the photo-serving endpoint.
-- **Phase 4 can overlap with Phase 3:** PWA configuration and slideshow implementation are loosely coupled.
-- **Phase 5 can overlap with Phase 3/4:** Deploy infrastructure while developing frontend locally, then push code to VPS.
-- **Phases 6-7 are purely additive:** No dependencies between polish features. Can be added in any order.
+- **Bug fixes first** — foundation must be solid before adding features
+- **Ken Burns + Blur together** — both modify DOM structure, avoid duplicate refactoring
+- **Overlays after visual effects** — layer on top, minimal risk
+- **Config integration after implementation** — features can be tested hardcoded first
+- **Demo mode after visual polish** — showcases completed features
+- **Stripe last** — independent, lowest priority
+- **README last** — documents completed product
 
-**Avoids pitfalls by design:**
-- Phase 1 forces correct API choice (Picker, not Library) before any implementation
-- Phase 2 forces baseUrl refresh logic before frontend caching
-- Phase 3 forces two-image pattern to prevent memory leaks
-- Phase 4 forces NoSleep.js as primary strategy (not Wake Lock)
-- Phase 5 forces OAuth consent screen to "In Production" and PM2 startup config
+### Dependency Graph
+
+```
+Bug Fixes (Phase 1)
+    |
+    v
+Ken Burns + Blur (Phase 2) <--- CRITICAL PATH, needs deep research
+    |
+    v
+Date/Time Overlays (Phase 3)
+    |
+    v
+Config Integration (Phase 4)
+    |
+    +---> Demo Mode (Phase 5) <--- needs moderate research
+    |
+    +---> Stripe (Phase 6) <--- trivial, can be done anytime
+    |
+    v
+README (Phase 7)
+```
 
 ### Research Flags
 
-**Phases with standard patterns (skip research-phase):**
-- **Phase 1:** OAuth + Picker API well-documented by Google
-- **Phase 2:** Server-side caching is standard Node.js pattern
-- **Phase 3:** DOM manipulation and CSS transitions are well-established
-- **Phase 4:** iOS PWA limitations and NoSleep.js are well-documented
-- **Phase 5:** Node.js deployment with nginx + PM2 has abundant tutorials
+**Needs deep research during phase planning:**
+- **Phase 2 (Ken Burns + Blur):** GPU memory profiling, blur performance testing, transition choreography design. This is the highest-risk phase due to Pitfalls #1, #2, #3.
 
-**Phases needing deeper research during planning:**
-- **Phase 7 (Portrait pair mode):** Needs investigation of portrait detection heuristics, aspect ratio matching, CSS Grid/Flexbox layout for side-by-side display
-- **Phase 7 ("On This Day" mode):** Needs investigation of date filtering logic, handling timezone differences in metadata, UI for toggling mode on/off
+**Needs moderate research during phase planning:**
+- **Phase 5 (Demo Mode):** Sample photo curation, auth bypass security review.
 
-**Overall:** This project is in a well-understood domain with established patterns. Most phases can proceed without additional research. Only advanced V2 features need phase-specific research.
+**Standard patterns (skip research-phase):**
+- Phase 1 (Bug Fixes): Targeted fixes, well-scoped
+- Phase 3 (Overlays): Simple DOM updates
+- Phase 4 (Config): Follows existing pattern
+- Phase 6 (Stripe): Payment Links approach is trivial
+- Phase 7 (README): Content creation
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | All versions verified against npm and official Google documentation. Picker API migration path confirmed via Google's deprecation announcements (Feb 2026). |
-| Features | HIGH | Domain well-understood, competitors well-documented, PRD already strong. Table stakes are clear from commercial frame analysis. |
-| Architecture | MEDIUM | Standard patterns verified, but Picker API session lifecycle details (exact expiry duration, re-selection workflow) partially documented. Need empirical testing. |
-| Pitfalls | HIGH | Critical pitfalls (deprecated API, baseUrl expiry, OAuth testing mode, Wake Lock on iOS) verified against official documentation, WebKit bug tracker, and Google Issue Tracker. |
+| Stack | HIGH | Zero new dependencies. All features use browser-native APIs (CSS animations, filter, Intl). Validated against existing codebase patterns (backdrop-filter already in use). |
+| Features | HIGH | Table stakes behaviors derived from Apple TV, commercial frames (Aura, Samsung Frame TV), portfolio best practices. Differentiators identified through competitive analysis. |
+| Architecture | HIGH | Based on complete codebase reading. DOM structure changes (wrapper pattern for blur) are the most significant risk but well-understood. Integration points mapped to existing code. |
+| Pitfalls | MEDIUM | GPU performance claims based on training knowledge, need on-device validation on iPad Pro 1st Gen with iOS 16.x. Security and code path analysis is HIGH confidence (verified in codebase). |
 
 **Overall confidence:** HIGH
 
-### Gaps to Address
+### Gaps to Address During Planning
 
-**Picker API session expiry duration:** Google's documentation doesn't specify exact session expiry time. The `expireTime` field exists in the session response but duration isn't documented. This affects how often users need to re-select photos. **Mitigation:** Design the UX assuming sessions are short-lived (hours to days, not weeks), with a clear "refresh selection" flow.
+**GPU performance validation:**
+- Pitfalls #1, #2, #3 all depend on iOS 16 Safari GPU compositing behavior on A9X chip. Claims like "21MB per compositing layer" and "blur falls back to software rendering" need validation.
+- **Mitigation:** Deep research during Phase 2 planning. Run Safari Web Inspector on actual iPad, measure compositor layers and memory during Ken Burns + blur transitions. Prototype tiny-image blur approach vs CSS blur and benchmark frame rates.
 
-**NoSleep.js reliability in iOS 16.x PWA mode:** The library is old (v0.12.0, Dec 2020) and community reports suggest intermittent failures in PWA mode. The recommended workaround (recreate instance before each `enable()` call) is based on GitHub issues, not official documentation. **Mitigation:** Test on actual iPad Pro 1st Gen running iOS 16.x during Phase 4. Have fallback: iPad Settings > Display & Brightness > Auto-Lock > Never as hardware-level backup.
+**Stripe Payment Links current feature set:**
+- Recommendation assumes Payment Links support "customer chooses amount" for donations.
+- **Mitigation:** Verify in Stripe Dashboard before Phase 6. If not available, use 2-3 preset amounts ($5, $10, $25) as separate Payment Links.
 
-**Picker API album selection:** Documentation unclear on whether users can select an "entire album" or must pick photos individually. This affects initial setup UX (one-click album selection vs manual photo picking). **Mitigation:** Test during Phase 1 implementation. If individual selection only, design a clear UX around "this is a one-time setup, pick your favorite photos."
+**Demo photo licensing:**
+- Need 8-12 royalty-free photos for demo mode.
+- **Mitigation:** Research Unsplash License and Pexels License during Phase 5 planning. Confirm no attribution required for commercial use. Fallback: use original non-personal photos.
 
-**Cache schema for V2 features:** "On This Day" and Portrait Pair modes need `creationTime` and `width/height` metadata stored in cache. The PRD's cache schema doesn't specify this. **Mitigation:** Design cache schema with these fields from day one (Phase 2), even if features are deferred. Costs nothing during initial fetch, avoids cache schema migration later.
+**Service Worker cache invalidation:**
+- Pitfall #12 — after deploy, iPad PWA may serve stale v1.0 HTML.
+- **Mitigation:** Update `CACHE_VERSION` in `sw.js` to `'okno-v1.1'` during first deployment of any v1.1 code. Document forced update procedure (SSH to VPS, update sw.js).
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- [Google Photos API Updates (official)](https://developers.google.com/photos/support/updates) — Scope removal timeline, Picker API migration guidance
-- [Google Photos Authorization Scopes (official)](https://developers.google.com/photos/overview/authorization) — Current valid scopes for all APIs
-- [Picker API: Getting Started (official)](https://developers.google.com/photos/picker/guides/get-started-picker) — Session flow, architecture, pickerUri workflow
-- [Picker API: Sessions (official)](https://developers.google.com/photos/picker/guides/sessions) — Session lifecycle, polling, expireTime field
-- [Picker API: Media Items (official)](https://developers.google.com/photos/picker/guides/media-items) — BaseUrl usage, 60-min expiry, size parameters
-- [Google Photos Best Practices (official)](https://developers.google.com/photos/overview/best-practices) — Rate limits, retry logic, caching guidance
-- [Google Photos API Limits and Quotas (official)](https://developers.google.com/photos/overview/api-limits-quotas) — 10K requests/day, quota management
-- [Google OAuth 2.0 (official)](https://developers.google.com/identity/protocols/oauth2) — Authorization code flow, token refresh, access_type and prompt parameters
-- [WebKit Bug #254545 (official)](https://bugs.webkit.org/show_bug.cgi?id=254545) — Wake Lock broken in PWAs, fixed iOS 18.4
-- [Node.js Releases (official)](https://nodejs.org/en/about/previous-releases) — Node 22 LTS through April 2027
-- [Express 5.1.0 Release (official)](https://expressjs.com/2025/03/31/v5-1-latest-release.html) — Express 5 now default on npm
+
+**Codebase analysis:**
+- All source files read directly: `server.js`, `auth.js`, `photo-proxy.js`, `photo-cache.js`, `config.js`, `picker.js`, `health.js`, `feedback.js`, `slideshow.html`, `index.html`, `settings.html`, `sw.js`, `package.json`
+- Existing patterns validated: CSS transitions (slideshow.html line 93), backdrop-filter usage (lines 146, 240), On This Day date formatting (line 874), blob URL revocation (lines 786-815), A/B swap cleanup pattern, config validation (config.js)
+
+**Web standards (well-established):**
+- CSS `@keyframes`, `transform: scale()`, `will-change` — supported since iOS 9
+- CSS `filter: blur()` — supported since iOS 9.3
+- Intl API (`toLocaleDateString`, `toLocaleTimeString`) — supported since iOS 10
+- `env(safe-area-inset-*)` — standard iOS PWA safe area API
+
+**Stripe:**
+- Stripe Payment Links — well-established Stripe product (launched ~2021, training data cutoff January 2025)
 
 ### Secondary (MEDIUM confidence)
-- [google-auth-library npm](https://www.npmjs.com/package/google-auth-library) — v10.5.0, auto token refresh
-- [NoSleep.js GitHub](https://github.com/richtr/NoSleep.js) — v0.12.0, video hack mechanism
-- [firt.dev iOS PWA Compatibility](https://firt.dev/notes/pwa-ios/) — Comprehensive iOS PWA feature matrix
-- [Aura Frames Portrait Pairing](https://help.auraframes.com/hc/en-us/articles/360051589374) — Intelligent Pairing feature documentation
-- [memoryKPR: Google Photos API Deprecation](https://memorykpr.com/blog/google-photos-api-deprecation-what-it-means-for-third-party-apps-and-how-to-prepare/) — Third-party impact analysis
-- [Brainhub: PWA on iOS 2025](https://brainhub.eu/library/pwa-on-ios) — iOS PWA limitations and workarounds
-- [WebKit: Updates to Storage Policy](https://webkit.org/blog/14403/updates-to-storage-policy/) — iOS storage eviction policies
-- [Nango: Google OAuth invalid_grant](https://nango.dev/blog/google-oauth-invalid-grant-token-has-been-expired-or-revoked) — OAuth testing mode 7-day expiry
 
-### Tertiary (LOW confidence)
-- NoSleep.js reliability in iOS 16 PWA mode — Multiple GitHub issues report intermittent failures; recreating instance before each enable() is community-reported workaround, needs validation
-- Picker API session expiry exact duration — Not documented by Google; needs empirical testing
-- Whether Picker API allows "entire album" selection vs individual photos — Documentation unclear; needs testing
+**iOS Safari GPU compositing:**
+- GPU layer promotion for `transform` and `will-change` — well-documented in WebKit sources but exact performance thresholds on iPad Pro 1st Gen (A9X) need on-device testing
+- `filter: blur()` GPU vs CPU rendering — varies by iOS version and context, needs validation on iOS 16.x specifically
+
+**Ken Burns parameters:**
+- 1.0x to 1.15x scale range, linear easing, random transform-origin — based on training knowledge of Apple TV screensaver behavior and digital frame apps. Parameters are reasonable but should be tuned during implementation.
+
+**Demo mode patterns:**
+- Bundled sample photos, separate code path, auth isolation — based on portfolio project best practices. No single authoritative source but pattern is logical and widely practiced.
+
+### Tertiary (LOW confidence, needs validation)
+
+**GPU memory claims:**
+- "21MB per compositing layer for 2732x2048 image" — based on 2732 * 2048 * 4 bytes, but actual GPU allocation may differ
+- A9X GPU VRAM budget — iPad Pro 1st Gen has 4GB RAM shared between CPU and GPU, but exact allocation is undocumented
+
+**Research limitations:**
+- WebSearch and WebFetch were unavailable during this research session. All performance claims about iOS Safari should be validated against current Apple developer documentation and tested on the actual iPad Pro 1st Gen device during Phase 2 planning.
 
 ---
-*Research completed: 2026-02-08*
-*Ready for roadmap: yes*
+
+**Research completed:** 2026-02-15
+**Ready for roadmap:** Yes
+
+**Next step:** Roadmap creation using this summary as input. Phase 2 (Ken Burns + Blur) flagged for deep research during planning.
