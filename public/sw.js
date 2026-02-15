@@ -1,5 +1,5 @@
-const CACHE_VERSION = 'okno-v1';
-const PHOTO_CACHE = 'okno-photos-v1';
+const CACHE_VERSION = 'okno-v1.1';
+const PHOTO_CACHE = 'okno-photos-v1.1';
 
 const STATIC_ASSETS = [
   '/slideshow.html',
@@ -44,10 +44,13 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(event.request)
         .then((response) => {
-          const responseClone = response.clone();
-          caches.open(PHOTO_CACHE).then((cache) => {
-            cache.put(event.request, responseClone);
-          });
+          // Only cache successful responses -- never cache 502s or other errors
+          if (response.ok) {
+            const responseClone = response.clone();
+            caches.open(PHOTO_CACHE).then((cache) => {
+              cache.put(event.request, responseClone);
+            });
+          }
           return response;
         })
         .catch(() => {
