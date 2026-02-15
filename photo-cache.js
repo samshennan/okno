@@ -66,14 +66,27 @@ function saveCache() {
 }
 
 // Set items in cache (called after Picker completion)
+// Merges new items with existing cache (deduplicates by item.id)
 function setItems(items, sessionId) {
-  cache.mediaItems = items;
+  // Build a Set of existing item IDs for O(1) dedup lookup
+  const existingIds = new Set(cache.mediaItems.map(item => item.id));
+
+  // Filter incoming items to only those not already cached
+  const newItems = items.filter(item => !existingIds.has(item.id));
+
+  // Append new items (never replace existing)
+  cache.mediaItems = [...cache.mediaItems, ...newItems];
+
+  // Always update sessionId to the latest (only latest session can refresh baseUrls)
   cache.sessionId = sessionId;
   cache.lastRefresh = new Date().toISOString();
+
+  logger.info(`Merged ${newItems.length} new items (${items.length - newItems.length} duplicates skipped), total: ${cache.mediaItems.length}`);
+
   saveCache();
 
   // Start refresh interval if not already running
-  if (!refreshIntervalHandle && items.length > 0) {
+  if (!refreshIntervalHandle && cache.mediaItems.length > 0) {
     logger.info(`Starting baseUrl refresh interval (every ${REFRESH_INTERVAL_MS / 60000} minutes)`);
     refreshIntervalHandle = setInterval(refreshBaseUrls, REFRESH_INTERVAL_MS);
   }
