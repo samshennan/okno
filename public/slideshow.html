@@ -44,6 +44,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      overflow: hidden;
     }
 
     .photo {
@@ -109,6 +110,51 @@
     @keyframes spin {
       to {
         transform: rotate(360deg);
+      }
+    }
+
+    /* Ken Burns presets -- cycled, never randomized chaotically */
+    @keyframes kb-zoom-in-center {
+      from { transform: scale(1.0); }
+      to   { transform: scale(1.08); }
+    }
+
+    @keyframes kb-zoom-in-tl {
+      from { transform: scale(1.0) translate(0, 0); }
+      to   { transform: scale(1.08) translate(-1%, -0.5%); }
+    }
+
+    @keyframes kb-zoom-in-br {
+      from { transform: scale(1.0) translate(0, 0); }
+      to   { transform: scale(1.08) translate(1%, 0.5%); }
+    }
+
+    @keyframes kb-zoom-out-center {
+      from { transform: scale(1.08); }
+      to   { transform: scale(1.0); }
+    }
+
+    @keyframes kb-drift-right {
+      from { transform: scale(1.0) translate(0, 0); }
+      to   { transform: scale(1.04) translate(1.5%, 0); }
+    }
+
+    @keyframes kb-drift-left {
+      from { transform: scale(1.0) translate(0, 0); }
+      to   { transform: scale(1.04) translate(-1.5%, 0); }
+    }
+
+    .photo.kenburns {
+      will-change: transform;
+      animation-timing-function: ease-in-out;
+      animation-fill-mode: forwards;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .photo.kenburns {
+        animation: none !important;
+        transform: none !important;
+        will-change: auto;
       }
     }
 
