@@ -5,18 +5,18 @@
 See: .planning/PROJECT.md (updated 2026-02-15)
 
 **Core value:** Display random photos from Google Photos on an iPad in a beautiful, hands-off way that requires no interaction after initial setup.
-**Current focus:** v1.1 "Make It Shine" -- Phase 6 context gathered, ready for planning
+**Current focus:** v1.1 "Make It Shine" -- Phase 6 in progress
 
 ## Current Position
 
 **Milestone:** v1.1 "Make It Shine"
-Phase: 5 of 7 (Visual Effects + Overlays)
-Plan: 3 of 3 in current phase
-Status: Phase complete
-Last activity: 2026-02-15 -- Completed 05-03-PLAN.md
+Phase: 6 of 7 (Stripe + Demo Mode)
+Plan: 1 of 3 in current phase (awaiting checkpoint verification)
+Status: In progress
+Last activity: 2026-02-15 -- Executing 06-01-PLAN.md (checkpoint reached)
 
-Progress: [████████████████████████████████░░░░░░░░░░░░░░░░░░░░] Phase 5 complete (1/4 v1.1 phases)
-v1.1:     [████████████████████] 3/3 plans in Phase 5
+Progress: [████████████████████████████████░░░░░░░░░░░░░░░░░░░░] Phase 6 plan 1 in progress
+v1.1:     [███████░░░░░░░░░░░░░] 0/3 plans in Phase 6
 
 ## What We Shipped
 
@@ -46,7 +46,7 @@ v1.1:     [████████████████████] 3/3 pla
 |-------|------|------|--------|
 | 4. Bug Fixes + Stability | Reliable, bug-free slideshow | 7 | COMPLETE (3/3 plans) |
 | 5. Visual Effects + Overlays | Cinematic viewing experience | 8 | COMPLETE (3/3 plans) |
-| 6. Stripe + Demo Mode | Visitor demo + donation | 6 | Context Gathered |
+| 6. Stripe + Demo Mode | Visitor demo + donation | 6 | IN PROGRESS (0/3 plans, P1 at checkpoint) |
 | 7. README + Portfolio Polish | Portfolio-quality GitHub presence | 4 | Not Started |
 
 ## Accumulated Context
@@ -123,14 +123,15 @@ See PROJECT.md for full decision log (12 decisions, all marked Good).
 ## Session Continuity
 
 **Last session:** 2026-02-15
-**Stopped at:** Phase 6 context gathered, external subscription code reverted
+**Stopped at:** 06-01-PLAN.md checkpoint (human-verify) after tasks 1-2
 **Resume file:** None
 
 **Next steps when resuming:**
-1. `/gsd:plan-phase 6` (context gathered, ready for planning)
+1. Complete checkpoint verification for 06-01-PLAN.md
+2. Continue with remaining plans in Phase 6
 
 ---
 
-**Project Status:** Phase 6 context gathered -- ready for planning
+**Project Status:** Phase 6 plan 1 at checkpoint -- awaiting verification
 **Deployment:** https://okno.moonacle.com
 **GitHub:** https://github.com/samshennan/okno
