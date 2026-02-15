@@ -35,9 +35,9 @@ See `.planning/milestones/v1.0-ROADMAP.md` for full details.
 **Plans:** 3 plans
 
 Plans:
-- [ ] 04-01-PLAN.md -- Picker batch merge + session countdown timer
-- [ ] 04-02-PLAN.md -- Slideshow error handling + UI edge case fixes
-- [ ] 04-03-PLAN.md -- Service Worker error guard + v1.1 cache version bump
+- [x] 04-01-PLAN.md -- Picker batch merge + session countdown timer
+- [x] 04-02-PLAN.md -- Slideshow error handling + UI edge case fixes
+- [x] 04-03-PLAN.md -- Service Worker error guard + v1.1 cache version bump
 
 **Success Criteria:**
 1. User adds photos via Picker in multiple sessions and all selections accumulate (no data loss from overwrite)
@@ -140,7 +140,7 @@ Plans:
 | 1. Backend + Deployment | v1.0 | 5/5 | Complete | 2026-02-10 |
 | 2. Slideshow + PWA | v1.0 | 3/3 | Complete | 2026-02-13 |
 | 3. Advanced Features | v1.0 | 3/3 | Complete | 2026-02-13 |
-| 4. Bug Fixes + Stability | v1.1 | 0/3 | Planned | -- |
+| 4. Bug Fixes + Stability | v1.1 | 3/3 | Complete | 2026-02-15 |
 | 5. Visual Effects + Overlays | v1.1 | 0/? | Not Started | -- |
 | 6. Stripe + Demo Mode | v1.1 | 0/? | Not Started | -- |
 | 7. README + Portfolio Polish | v1.1 | 0/? | Not Started | -- |

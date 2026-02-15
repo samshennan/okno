@@ -9,12 +9,12 @@ Requirements for "Make It Shine" milestone. Visual polish, bug fixes, portfolio 
 
 ### Bug Fixes
 
-- [ ] **BUGFIX-01**: Picker session batch merge -- new selections append to existing cache instead of replacing
-- [ ] **BUGFIX-02**: Picker session timeout warning -- countdown timer visible during photo selection
-- [ ] **BUGFIX-03**: On This Day fallback visibility -- "No photos from today" message visible on screen (not black)
-- [ ] **BUGFIX-04**: Calendar indicator display -- shows correctly even when On This Day photo hasn't loaded
-- [ ] **BUGFIX-05**: Random photo 502 resilience -- graceful fallback when backend returns 502 during mode switch
-- [ ] **BUGFIX-06**: Dual mode landscape handling -- landscape photos display properly in dual mode (no letterboxing)
+- [x] **BUGFIX-01**: Picker session batch merge -- new selections append to existing cache instead of replacing
+- [x] **BUGFIX-02**: Picker session timeout warning -- countdown timer visible during photo selection
+- [x] **BUGFIX-03**: On This Day fallback visibility -- "No photos from today" message visible on screen (not black)
+- [x] **BUGFIX-04**: Calendar indicator display -- shows correctly even when On This Day photo hasn't loaded
+- [x] **BUGFIX-05**: Random photo 502 resilience -- graceful fallback when backend returns 502 during mode switch
+- [x] **BUGFIX-06**: Dual mode landscape handling -- landscape photos display properly in dual mode (no letterboxing)
 
 ### Visual Effects
 
@@ -51,7 +51,7 @@ Requirements for "Make It Shine" milestone. Visual polish, bug fixes, portfolio 
 
 ### Deployment
 
-- [ ] **DEPLOY-01**: Service Worker cache version updated for v1.1 deployment
+- [x] **DEPLOY-01**: Service Worker cache version updated for v1.1 deployment
 
 ## Future Requirements
 
@@ -87,13 +87,13 @@ Deferred to v2.0 milestone.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| BUGFIX-01 | Phase 4 | Pending |
-| BUGFIX-02 | Phase 4 | Pending |
-| BUGFIX-03 | Phase 4 | Pending |
-| BUGFIX-04 | Phase 4 | Pending |
-| BUGFIX-05 | Phase 4 | Pending |
-| BUGFIX-06 | Phase 4 | Pending |
-| DEPLOY-01 | Phase 4 | Pending |
+| BUGFIX-01 | Phase 4 | Complete |
+| BUGFIX-02 | Phase 4 | Complete |
+| BUGFIX-03 | Phase 4 | Complete |
+| BUGFIX-04 | Phase 4 | Complete |
+| BUGFIX-05 | Phase 4 | Complete |
+| BUGFIX-06 | Phase 4 | Complete |
+| DEPLOY-01 | Phase 4 | Complete |
 | VISUAL-01 | Phase 5 | Pending |
 | VISUAL-02 | Phase 5 | Pending |
 | VISUAL-03 | Phase 5 | Pending |
