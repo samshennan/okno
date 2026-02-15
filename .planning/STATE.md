@@ -11,12 +11,12 @@ See: .planning/PROJECT.md (updated 2026-02-15)
 
 **Milestone:** v1.1 "Make It Shine"
 Phase: 6 of 7 (Stripe + Demo Mode)
-Plan: 1 of 3 in current phase (awaiting checkpoint verification)
+Plan: 2 of 3 in current phase
 Status: In progress
-Last activity: 2026-02-15 -- Executing 06-01-PLAN.md (checkpoint reached)
+Last activity: 2026-02-15 -- Completed 06-02-PLAN.md
 
-Progress: [████████████████████████████████░░░░░░░░░░░░░░░░░░░░] Phase 6 plan 1 in progress
-v1.1:     [███████░░░░░░░░░░░░░] 0/3 plans in Phase 6
+Progress: [████████████████████████████████████████░░░░░░░░░░░░] Phase 6 plan 2 complete
+v1.1:     [█████████████░░░░░░░] 2/3 plans in Phase 6
 
 ## What We Shipped
 
@@ -46,7 +46,7 @@ v1.1:     [███████░░░░░░░░░░░░░] 0/3 pla
 |-------|------|------|--------|
 | 4. Bug Fixes + Stability | Reliable, bug-free slideshow | 7 | COMPLETE (3/3 plans) |
 | 5. Visual Effects + Overlays | Cinematic viewing experience | 8 | COMPLETE (3/3 plans) |
-| 6. Stripe + Demo Mode | Visitor demo + donation | 6 | IN PROGRESS (0/3 plans, P1 at checkpoint) |
+| 6. Stripe + Demo Mode | Visitor demo + donation | 6 | IN PROGRESS (2/3 plans) |
 | 7. README + Portfolio Polish | Portfolio-quality GitHub presence | 4 | Not Started |
 
 ## Accumulated Context
@@ -103,6 +103,11 @@ See PROJECT.md for full decision log (12 decisions, all marked Good).
 - Demo end: "Watch again" + "Use your own photos" (no pressure)
 - External agent's subscription-based Stripe code reverted (wrong model)
 
+**Phase 6 Plan 02 decisions:**
+- 10 real Unsplash photos + 2 portrait placeholders (flower, architecture) for 12 total
+- Demo router fully isolated: zero imports from auth, photo-cache, photo-proxy, config
+- Response headers match real photo proxy format (X-Photo-Id, X-Photo-CreateTime, X-Photo-IsPortrait)
+
 ### Blockers/Concerns
 
 **Active:**
@@ -123,15 +128,15 @@ See PROJECT.md for full decision log (12 decisions, all marked Good).
 ## Session Continuity
 
 **Last session:** 2026-02-15
-**Stopped at:** 06-01-PLAN.md checkpoint (human-verify) after tasks 1-2
+**Stopped at:** Completed 06-02-PLAN.md
 **Resume file:** None
 
 **Next steps when resuming:**
-1. Complete checkpoint verification for 06-01-PLAN.md
-2. Continue with remaining plans in Phase 6
+1. Execute 06-03-PLAN.md (demo slideshow page + end-of-demo CTA + SW cache v1.3)
+2. Complete Phase 6
 
 ---
 
-**Project Status:** Phase 6 plan 1 at checkpoint -- awaiting verification
+**Project Status:** Phase 6 plan 2 complete -- 1 plan remaining
 **Deployment:** https://okno.moonacle.com
 **GitHub:** https://github.com/samshennan/okno
