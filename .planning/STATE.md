@@ -11,12 +11,12 @@ See: .planning/PROJECT.md (updated 2026-02-15)
 
 **Milestone:** v1.1 "Make It Shine"
 Phase: 4 -- Bug Fixes + Stability
-Plan: Not started (awaiting `/gsd:plan-phase 4`)
-Status: Roadmap complete, ready for phase planning
-Last activity: 2026-02-15 -- Roadmap created for v1.1
+Plan: 01 of 03 complete
+Status: In progress
+Last activity: 2026-02-15 -- Completed 04-01-PLAN.md (Picker merge + countdown)
 
-Progress: [####################--------------------------------------------] 3/7 phases from v1.0 + 0/4 v1.1 phases
-v1.1:     [░░░░░░░░░░░░░░░░░░░░] 0%
+Progress: [####################--------------------------------------------] 3/7 phases from v1.0 + 1/4 v1.1 phases
+v1.1:     [#####░░░░░░░░░░░░░░░] 1/3 plans in Phase 4
 
 ## What We Shipped
 
@@ -35,7 +35,7 @@ v1.1:     [░░░░░░░░░░░░░░░░░░░░] 0%
 
 | Phase | Goal | Reqs | Status |
 |-------|------|------|--------|
-| 4. Bug Fixes + Stability | Reliable, bug-free slideshow | 7 | Not Started |
+| 4. Bug Fixes + Stability | Reliable, bug-free slideshow | 7 | Plan 01/03 done |
 | 5. Visual Effects + Overlays | Cinematic viewing experience | 8 | Not Started |
 | 6. Stripe + Demo Mode | Visitor demo + donation | 6 | Not Started |
 | 7. README + Portfolio Polish | Portfolio-quality GitHub presence | 4 | Not Started |
@@ -52,6 +52,12 @@ See PROJECT.md for full decision log (12 decisions, all marked Good).
 - Combined Stripe + Demo Mode (both are independent feature additions, demo needs visual effects done)
 - Research's "Config Integration" phase absorbed -- toggles built alongside each feature, not separately
 - DEPLOY-01 (SW cache version) in Phase 4 because it must deploy with bug fixes
+
+**Phase 4 Plan 01 decisions:**
+- setItems() always merges (no replace mode) -- merge is always correct for multi-session
+- sessionId updates to latest on merge -- older session items lose baseUrl refresh (accepted, frontend retry handles it)
+- Countdown uses inline styles matching existing index.html pattern
+- Six cleanup call sites for clearPickerCountdown() to prevent memory leaks
 
 ### Blockers/Concerns
 
@@ -74,16 +80,16 @@ See PROJECT.md for full decision log (12 decisions, all marked Good).
 ## Session Continuity
 
 **Last session:** 2026-02-15
-**Status:** Roadmap created, ready to plan Phase 4
+**Status:** Completed 04-01-PLAN.md (Picker merge + countdown)
 **Resume file:** None
 
 **Next steps when resuming:**
-1. `/gsd:plan-phase 4` -- Plan bug fixes (7 requirements, no research needed)
-2. Execute Phase 4 plans
+1. Execute 04-02-PLAN.md (next plan in Phase 4)
+2. Execute 04-03-PLAN.md (final plan in Phase 4)
 3. `/gsd:plan-phase 5` -- Plan visual effects (8 requirements, DEEP research needed)
 
 ---
 
-**Project Status:** v1.1 roadmap complete -- ready for Phase 4 planning
+**Project Status:** Phase 4 in progress -- Plan 01 complete, 2 plans remaining
 **Deployment:** https://okno.moonacle.com
 **GitHub:** https://github.com/samshennan/okno
