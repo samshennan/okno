@@ -345,6 +345,37 @@
         justify-content: flex-start;
       }
     }
+
+    /* Donate Button */
+    .btn-donate {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: linear-gradient(145deg, #E8A87C, #D4956B);
+      color: #FFFFFF;
+      font-weight: 600;
+      font-size: 0.875rem;
+      border: none;
+      border-radius: 12px;
+      padding: 10px 20px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: -4px -4px 10px rgba(255, 255, 255, 0.6),
+        4px 4px 10px rgba(212, 149, 107, 0.4);
+    }
+
+    .btn-donate:hover {
+      transform: translateY(-2px);
+      box-shadow: -6px -6px 14px rgba(255, 255, 255, 0.7),
+        6px 6px 14px rgba(212, 149, 107, 0.5);
+    }
+
+    .btn-donate:active {
+      transform: translateY(0);
+      box-shadow: -3px -3px 8px rgba(255, 255, 255, 0.5),
+        3px 3px 8px rgba(212, 149, 107, 0.3);
+    }
   </style>
 </head>
 
@@ -516,6 +547,26 @@
       </div>
     </div>
 
+    <!-- Support Okno Section (hidden by default, shown for authenticated users) -->
+    <div class="settings-section" id="supportSection" style="display: none;">
+      <div class="section-title">Support Okno</div>
+      <div class="setting-row">
+        <div class="setting-label">
+          <div class="icon"><i data-lucide="coffee"></i></div>
+          <div class="text">
+            <span class="name">Buy me a coffee</span>
+            <span class="description">Okno is a passion project built with love. Your support means a lot!</span>
+          </div>
+        </div>
+        <a href="https://buy.stripe.com/PLACEHOLDER" target="_blank" rel="noopener noreferrer" style="text-decoration: none;">
+          <button class="btn-donate" type="button">
+            <i data-lucide="heart" style="width: 16px; height: 16px;"></i>
+            Support
+          </button>
+        </a>
+      </div>
+    </div>
+
     <!-- Actions -->
     <div class="actions">
       <button class="btn-back" onclick="window.location.href='/'">
@@ -673,10 +724,24 @@
       }
     }
 
+    // Show support section only for signed-in users
+    async function checkAuthForDonate() {
+      try {
+        const res = await fetch('/auth/status');
+        const data = await res.json();
+        if (data.authenticated) {
+          document.getElementById('supportSection').style.display = 'block';
+        }
+      } catch (e) {
+        // Silently fail -- donate section stays hidden
+      }
+    }
+
     // Initialize
     loadSettings();
     fetchOnThisDayCount();
     fetchPortraitCount();
+    checkAuthForDonate();
     lucide.createIcons();
   </script>
 </body>
