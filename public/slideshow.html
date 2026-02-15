@@ -600,6 +600,18 @@
       for (let attempt = 0; attempt <= maxRetries; attempt++) {
         try {
           const response = await fetch(url);
+
+          // 4xx errors are intentional (e.g. 404 = no OTD photos), not transient -- return immediately
+          if (response.status >= 400 && response.status < 500) {
+            return response;
+          }
+
+          // 502: trigger proactive baseUrl refresh on first occurrence, then retry normally
+          if (response.status === 502 && attempt === 0) {
+            console.warn('502 from backend, triggering proactive baseUrl refresh');
+            fetch('/api/health/refresh', { method: 'POST' }).catch(() => {});
+          }
+
           if (!response.ok) throw new Error(`HTTP ${response.status}`);
           return response;
         } catch (error) {
@@ -721,24 +733,28 @@
           url += '&portrait=true';
         }
 
-        // Use retry wrapper instead of direct fetch - but handle 404 for On This Day
+        // Use retry wrapper instead of direct fetch
+        // fetchWithRetry returns 4xx responses immediately (no retry), retries 5xx/network errors
         let response;
         try {
           response = await fetchWithRetry(url);
         } catch (err) {
-          // Check if this was an On This Day 404 (no photos for today)
+          // All retries exhausted (5xx or network error)
+          throw err;
+        }
+
+        // Handle 4xx responses (returned immediately by fetchWithRetry, no retries wasted)
+        if (response.status >= 400 && response.status < 500) {
           if (onThisDayEnabled && !onThisDayFallback) {
             console.log('On This Day: no photos for today, falling back to random');
             showOnThisDayMessage('No photos from today in history');
             onThisDayFallback = true;
-
-            // Fall back to random after 5 seconds
-            setTimeout(() => {
-              loadPhoto(currentIndex);
-            }, 5000);
+            // Load a random photo immediately (OTD message stays visible until photo appears)
+            loadPhoto(currentIndex);
             return null;
           }
-          throw err;
+          console.error(`Client error: HTTP ${response.status}`);
+          return null;
         }
 
         // Store create time for OTD indicator
@@ -778,6 +794,10 @@
 
 
     async function showSinglePhoto(img) {
+      // Hide On This Day fallback message if visible (photo loaded, message no longer needed)
+      const otdMsg = document.getElementById('onThisDayMessage');
+      if (otdMsg) otdMsg.classList.remove('visible');
+
       // Remove old photos that aren't active (cleanup from >1 cycle ago)
       const oldPhotos = slideshowEl.querySelectorAll('.photo');
       oldPhotos.forEach(photo => {
@@ -888,11 +908,7 @@
       const msg = document.getElementById('onThisDayMessage');
       document.getElementById('onThisDayMsgText').textContent = text;
       msg.classList.add('visible');
-
-      // Hide after 5 seconds
-      setTimeout(() => {
-        msg.classList.remove('visible');
-      }, 5000);
+      // No auto-hide -- message stays visible until first fallback photo loads (hidden in showSinglePhoto)
     }
 
     function startSlideshow() {
