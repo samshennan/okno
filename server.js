@@ -121,6 +121,17 @@ app.post('/api/config', (req, res) => {
 
 logger.info('Photo, health, feedback, and config routes mounted');
 
+// Mount demo routes (fully isolated from auth/cache)
+const demoRouter = require('./demo-photos');
+app.use('/api/demo', demoRouter);
+
+// Serve demo.html at /demo route
+app.get('/demo', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'demo.html'));
+});
+
+logger.info('Demo routes mounted');
+
 // Root route now served by static index.html in public/
 // (removed inline HTML, using public/index.html instead)
 
