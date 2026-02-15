@@ -751,6 +751,70 @@
 
     let pickerWindow = null;
     let pollInterval = null;
+    let pickerCountdownInterval = null;
+
+    // Picker session countdown timer
+    // Parses timeout string (e.g. "600s") and displays a live countdown
+    function startPickerCountdown(timeoutStr) {
+      // Clear any existing countdown
+      if (pickerCountdownInterval) {
+        clearInterval(pickerCountdownInterval);
+        pickerCountdownInterval = null;
+      }
+
+      // Parse timeout string (format: "600s"), default 600 seconds
+      const match = String(timeoutStr || '').match(/^(\d+)s$/);
+      let remaining = match ? parseInt(match[1], 10) : 600;
+
+      // Create countdown element
+      const el = document.createElement('div');
+      el.id = 'pickerCountdown';
+      el.style.cssText = 'font-family: inherit; font-size: 0.85rem; color: #5A6B62; margin-top: 12px; text-align: center;';
+
+      function formatTime(seconds) {
+        const m = Math.floor(seconds / 60);
+        const s = seconds % 60;
+        return m + ':' + String(s).padStart(2, '0');
+      }
+
+      function update() {
+        if (remaining <= 0) {
+          el.style.color = '#e74c3c';
+          el.style.fontWeight = 'bold';
+          el.textContent = 'Session expired. Please start a new session.';
+          clearInterval(pickerCountdownInterval);
+          pickerCountdownInterval = null;
+          return;
+        }
+
+        el.textContent = 'Session expires in ' + formatTime(remaining);
+
+        if (remaining <= 60) {
+          el.style.color = '#e74c3c';
+          el.style.fontWeight = 'bold';
+        }
+
+        remaining--;
+      }
+
+      // Initial render
+      update();
+
+      // Update every second
+      pickerCountdownInterval = setInterval(update, 1000);
+
+      return { element: el, interval: pickerCountdownInterval };
+    }
+
+    // Clean up picker countdown interval
+    function clearPickerCountdown() {
+      if (pickerCountdownInterval) {
+        clearInterval(pickerCountdownInterval);
+        pickerCountdownInterval = null;
+      }
+      const existing = document.getElementById('pickerCountdown');
+      if (existing) existing.remove();
+    }
 
     // Check authentication status on load
     async function checkAuth() {
@@ -810,6 +874,9 @@
 
     async function openPicker() {
       try {
+        // Clean up any previous countdown
+        clearPickerCountdown();
+
         // Show loading state
         pickerStatusEl.className = 'picker-status visible';
         pickerStatusEl.innerHTML = '<div class="loading"></div> Creating picker session...';
@@ -837,12 +904,20 @@
             <button onclick="window.open('${data.pickerUrl}', '_blank')">Open Picker</button>
             <button onclick="checkPickerComplete('${data.sessionId}')" style="margin-top: 0.5rem;">Check for Photos</button>
           `;
+
+          // Start countdown timer for session expiry
+          const countdown = startPickerCountdown(data.timeout);
+          pickerStatusEl.appendChild(countdown.element);
         } else {
           // Desktop - open popup and auto-detect close
           pickerStatusEl.innerHTML = `
             <p>Opening Google Photos Picker...</p>
             <p style="font-size: 0.9rem; opacity: 0.7;">Select your photos, then close the picker window</p>
           `;
+
+          // Start countdown timer for session expiry
+          const countdown = startPickerCountdown(data.timeout);
+          pickerStatusEl.appendChild(countdown.element);
 
           const width = 800;
           const height = 800;
@@ -865,6 +940,7 @@
         }
 
       } catch (error) {
+        clearPickerCountdown();
         pickerStatusEl.className = 'picker-status visible';
         pickerStatusEl.innerHTML = `
           <div style="color: #e74c3c;">✗ Error: ${error.message}</div>
@@ -879,6 +955,7 @@
           // Check if picker window was closed
           if (pickerWindow && pickerWindow.closed) {
             clearInterval(pollInterval);
+            clearPickerCountdown();
             pickerStatusEl.innerHTML = '<div class="loading"></div> Fetching selected photos...';
 
             // Retry status checks — Google may need time to finalize after window close
@@ -936,6 +1013,7 @@
           }
         } catch (error) {
           clearInterval(pollInterval);
+          clearPickerCountdown();
           pickerStatusEl.innerHTML = `
             <div style="color: #e74c3c;">✗ Error: ${error.message}</div>
           `;
@@ -947,6 +1025,7 @@
     // Manual check for picker completion (for iPad/mobile)
     async function checkPickerComplete(sessionId) {
       try {
+        clearPickerCountdown();
         pickerStatusEl.innerHTML = '<div class="loading"></div> Checking for photos...';
 
         // Retry status checks — Google may need time to finalize
