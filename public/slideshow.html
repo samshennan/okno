@@ -636,6 +636,14 @@
         // Load saved config before anything else
         await loadAppConfig();
 
+        // Show On This Day indicator immediately (before any photo loads)
+        if (onThisDayEnabled) {
+          const today = new Date();
+          const formatted = today.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+          document.getElementById('onThisDayDate').textContent = formatted;
+          document.getElementById('onThisDayIndicator').classList.add('visible');
+        }
+
         // Get photo count from health endpoint
         const healthRes = await fetch('/api/health');
         const health = await healthRes.json();
@@ -708,9 +716,17 @@
             pendingPortrait = null;
             return;
           }
+        } else if (displayMode === 'dual' && !isPortrait) {
+          // Landscape in dual mode: show as full-width single
+          // Flush any pending portrait first (don't discard it)
+          if (pendingPortrait) {
+            await showSinglePhoto(pendingPortrait);
+            pendingPortrait = null;
+          }
+          await showSinglePhoto(img);
         } else {
-          // Not dual mode, or not portrait, or landscape in dual mode
-          pendingPortrait = null; // Clear pending if we had one
+          // Not dual mode -- show as single
+          pendingPortrait = null;
           await showSinglePhoto(img);
         }
 
