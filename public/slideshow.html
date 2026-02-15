@@ -450,6 +450,81 @@
       color: rgba(255, 255, 255, 0.7);
     }
 
+    /* Blur background wrapper -- contains blur-bg + foreground photo */
+    .photo-wrapper {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      transition: opacity var(--transition-time, 1s) ease-in-out;
+    }
+
+    .photo-wrapper.active {
+      opacity: 1;
+      z-index: 1;
+    }
+
+    .photo-wrapper.preload {
+      z-index: 0;
+    }
+
+    .photo-wrapper .photo {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      opacity: 1;
+      transition: none;
+      z-index: 1;
+    }
+
+    .photo-bg {
+      position: absolute;
+      top: -5%;
+      left: -5%;
+      width: 110%;
+      height: 110%;
+      background-size: cover;
+      background-position: center;
+      filter: blur(20px) brightness(0.7);
+      transform: translate3d(0, 0, 0); /* REQUIRED: forces Safari GPU acceleration */
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    /* Slideshow overlays -- always visible when enabled, unobtrusive */
+    .slideshow-overlay {
+      position: fixed;
+      z-index: 30;
+      color: rgba(255, 255, 255, 0.85);
+      text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+      pointer-events: none;
+      transition: opacity 0.5s;
+      opacity: 0;
+    }
+
+    .slideshow-overlay.visible {
+      opacity: 1;
+    }
+
+    #photoDateOverlay {
+      bottom: max(2rem, env(safe-area-inset-bottom, 0px));
+      left: max(2rem, env(safe-area-inset-left, 0px));
+      font-size: 0.875rem;
+      font-weight: 400;
+    }
+
+    #clockOverlay {
+      bottom: max(2rem, env(safe-area-inset-bottom, 0px));
+      right: max(2rem, env(safe-area-inset-right, 0px));
+      font-size: 1.25rem;
+      font-weight: 300;
+    }
+
     /* Hide keyboard help on mobile/iPad */
     @media (max-width: 768px),
     (pointer: coarse) {
@@ -516,6 +591,12 @@
     <h3 id="onThisDayMsgText">No photos from today in history</h3>
     <p>Switching to all photos...</p>
   </div>
+
+  <!-- Photo date overlay (bottom-left, always visible when enabled) -->
+  <div id="photoDateOverlay" class="slideshow-overlay"></div>
+
+  <!-- Clock overlay (bottom-right, always visible when enabled) -->
+  <div id="clockOverlay" class="slideshow-overlay"></div>
 
   <!-- Progress Bar -->
   <div id="progressBarContainer">
@@ -589,6 +670,12 @@
                         'kb-zoom-out-center', 'kb-drift-right', 'kb-drift-left'];
     let lastPresetIndex = -1;
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+    // Visual effects and overlay state
+    let blurredBackgroundEnabled = true; // from config
+    let showPhotoDateEnabled = true;     // from config
+    let showClockEnabled = false;        // from config
+    let clockIntervalId = null;
 
     // App config loaded from server (available to future features via window.appConfig)
     window.appConfig = null;
@@ -666,6 +753,97 @@
       element.remove();
     }
 
+    // Blur background helpers
+    function createTinyBlurDataUri(imgElement) {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = 32;
+        canvas.height = 24;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(imgElement, 0, 0, 32, 24);
+        return canvas.toDataURL('image/jpeg', 0.4);
+      } catch (e) {
+        console.warn('Failed to create blur thumbnail:', e);
+        return null;
+      }
+    }
+
+    function wrapWithBlurBackground(img) {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'photo-wrapper preload';
+
+      // Create blur background
+      const bg = document.createElement('div');
+      bg.className = 'photo-bg';
+
+      // Generate tiny blur data URI from the loaded image
+      const dataUri = createTinyBlurDataUri(img);
+      if (dataUri) {
+        bg.style.backgroundImage = `url(${dataUri})`;
+      }
+
+      // Reset img classes -- wrapper handles opacity transition now
+      img.className = 'photo';
+      // img already has dataset.createTime and dataset.onThisDayCount from createPhotoElement
+
+      wrapper.appendChild(bg);
+      wrapper.appendChild(img);
+
+      return wrapper;
+    }
+
+    // Photo date overlay
+    function formatPhotoDate(createTimeISO) {
+      if (!createTimeISO) return null;
+      try {
+        const d = new Date(createTimeISO);
+        if (isNaN(d.getTime())) return null;
+        return d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+      } catch {
+        return null;
+      }
+    }
+
+    function updatePhotoDateOverlay(createTimeISO) {
+      const el = document.getElementById('photoDateOverlay');
+      if (!showPhotoDateEnabled) {
+        el.classList.remove('visible');
+        return;
+      }
+      const formatted = formatPhotoDate(createTimeISO);
+      if (formatted) {
+        el.textContent = formatted;
+        el.classList.add('visible');
+      } else {
+        el.classList.remove('visible');
+      }
+    }
+
+    // Clock overlay
+    function updateClock() {
+      const el = document.getElementById('clockOverlay');
+      if (!showClockEnabled) {
+        el.classList.remove('visible');
+        return;
+      }
+      const now = new Date();
+      el.textContent = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+      el.classList.add('visible');
+    }
+
+    function startClock() {
+      if (clockIntervalId) clearInterval(clockIntervalId);
+      updateClock(); // Show immediately
+      clockIntervalId = setInterval(updateClock, 60000); // Update every minute
+    }
+
+    function stopClock() {
+      if (clockIntervalId) {
+        clearInterval(clockIntervalId);
+        clockIntervalId = null;
+      }
+    }
+
     // Respond to OS-level reduced motion preference changes at runtime
     prefersReducedMotion.addEventListener('change', (e) => {
       if (e.matches) {
@@ -677,6 +855,7 @@
     });
 
     function exitSlideshow() {
+      stopClock();
       if (wakeLockEnabled && noSleep) {
         try {
           noSleep.disable();
@@ -718,6 +897,15 @@
           }
           if (window.appConfig.kenBurns === false) {
             kenBurnsEnabled = false;
+          }
+          if (window.appConfig.blurredBackground === false) {
+            blurredBackgroundEnabled = false;
+          }
+          if (window.appConfig.showPhotoDate === false) {
+            showPhotoDateEnabled = false;
+          }
+          if (window.appConfig.showClock === true) {
+            showClockEnabled = true;
           }
         }
       } catch (err) {
@@ -811,6 +999,9 @@
 
         // Start slideshow
         startSlideshow();
+
+        // Start clock overlay if enabled
+        startClock();
 
       } catch (error) {
         console.error('Initialization failed:', error);
@@ -958,38 +1149,65 @@
         stopKenBurns(el);
       });
 
-      // Remove old photos that aren't active (cleanup from >1 cycle ago)
-      const oldPhotos = slideshowEl.querySelectorAll('.photo');
-      oldPhotos.forEach(photo => {
-        if (!photo.classList.contains('active') && !photo.classList.contains('preload')) {
-          teardownAndRemove(photo);
+      // Determine if we should use blur wrapper
+      const useBlur = blurredBackgroundEnabled && displayMode !== 'cover';
+
+      // The element we append to slideshow (either wrapper or bare img)
+      let displayElement;
+
+      if (useBlur) {
+        displayElement = wrapWithBlurBackground(img);
+      } else {
+        displayElement = img;
+        // Ensure img has preload class for transition
+        if (!img.classList.contains('preload')) {
+          img.classList.add('preload');
         }
+      }
+
+      // Remove old elements that aren't active (cleanup from >1 cycle ago)
+      const oldElements = slideshowEl.querySelectorAll('.photo-wrapper, .photo');
+      oldElements.forEach(el => {
+        // Skip if inside an active wrapper (don't remove children of active wrappers)
+        if (el.closest('.photo-wrapper.active')) return;
+        if (el.classList.contains('active') || el.classList.contains('preload')) return;
+        teardownAndRemove(el);
       });
 
-      slideshowEl.appendChild(img);
+      slideshowEl.appendChild(displayElement);
 
       // STEP 2: Trigger crossfade
       setTimeout(() => {
-        const allPhotos = slideshowEl.querySelectorAll('.photo');
-        allPhotos.forEach(photo => photo.classList.remove('active'));
+        // Remove active from all current elements
+        slideshowEl.querySelectorAll('.photo-wrapper.active, .photo.active').forEach(el => {
+          el.classList.remove('active');
+        });
 
-        img.classList.add('active');
-        img.classList.remove('preload');
+        displayElement.classList.add('active');
+        displayElement.classList.remove('preload');
 
         currentIndex = (currentIndex + 1) % photoCount;
         currentIndexEl.textContent = currentIndex + 1;
 
-        // STEP 3: Start Ken Burns on new photo AFTER crossfade begins
-        // Small delay so the photo is visible first, animation starts smoothly
+        // Update overlays
+        const photoImg = useBlur ? displayElement.querySelector('.photo') : displayElement;
+        updatePhotoDateOverlay(photoImg.dataset.createTime);
+
+        // STEP 3: Start Ken Burns on the photo (inner img if wrapped)
         setTimeout(() => {
-          applyKenBurns(img);
+          const targetImg = useBlur ? displayElement.querySelector('.photo') : displayElement;
+          applyKenBurns(targetImg);
         }, 100);
 
-        // STEP 4: Clean up old photos after transition completes
+        // STEP 4: Clean up old elements after transition completes
         setTimeout(() => {
+          const oldWrappers = slideshowEl.querySelectorAll('.photo-wrapper:not(.active)');
+          oldWrappers.forEach(w => teardownAndRemove(w));
           const oldPhotos = slideshowEl.querySelectorAll('.photo:not(.active)');
-          oldPhotos.forEach(photo => {
-            teardownAndRemove(photo);
+          oldPhotos.forEach(p => {
+            // Skip photos inside active wrappers
+            if (p.closest('.photo-wrapper.active')) return;
+            teardownAndRemove(p);
           });
         }, 1500);
       }, 50);
@@ -1028,6 +1246,9 @@
 
         currentIndex = (currentIndex + 2) % photoCount;
         currentIndexEl.textContent = currentIndex + 1;
+
+        // Update photo date from left portrait
+        updatePhotoDateOverlay(img1.dataset.createTime);
 
         // STEP 3: Start Ken Burns on EACH portrait independently (different presets)
         setTimeout(() => {
@@ -1293,6 +1514,10 @@
       } else if (e.key === 'Escape') {
         exitSlideshow();
       }
+    });
+
+    window.addEventListener('beforeunload', () => {
+      stopClock();
     });
 
     // Register Service Worker
