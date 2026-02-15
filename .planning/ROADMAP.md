@@ -68,7 +68,7 @@ Plans:
 **Plans:** 3 plans
 
 Plans:
-- [ ] 05-01-PLAN.md -- Config defaults + settings page toggles (Visual Effects + Overlays sections)
+- [x] 05-01-PLAN.md -- Config defaults + settings page toggles (Visual Effects + Overlays sections)
 - [ ] 05-02-PLAN.md -- Ken Burns effect + transition choreography + prefers-reduced-motion
 - [ ] 05-03-PLAN.md -- Blurred background fill + date/time overlays + SW cache version bump
 
@@ -148,6 +148,6 @@ Plans:
 | 2. Slideshow + PWA | v1.0 | 3/3 | Complete | 2026-02-13 |
 | 3. Advanced Features | v1.0 | 3/3 | Complete | 2026-02-13 |
 | 4. Bug Fixes + Stability | v1.1 | 3/3 | Complete | 2026-02-15 |
-| 5. Visual Effects + Overlays | v1.1 | 0/3 | Not Started | -- |
+| 5. Visual Effects + Overlays | v1.1 | 1/3 | In Progress | -- |
 | 6. Stripe + Demo Mode | v1.1 | 0/? | Not Started | -- |
 | 7. README + Portfolio Polish | v1.1 | 0/? | Not Started | -- |

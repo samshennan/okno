@@ -5,18 +5,18 @@
 See: .planning/PROJECT.md (updated 2026-02-15)
 
 **Core value:** Display random photos from Google Photos on an iPad in a beautiful, hands-off way that requires no interaction after initial setup.
-**Current focus:** v1.1 "Make It Shine" -- Phase 4 complete, ready for Phase 5
+**Current focus:** v1.1 "Make It Shine" -- Phase 5 in progress
 
 ## Current Position
 
 **Milestone:** v1.1 "Make It Shine"
-Phase: 4 -- Bug Fixes + Stability (COMPLETE)
-Plan: 03 of 03 complete
-Status: Phase complete
-Last activity: 2026-02-15 -- Completed 04-03-PLAN.md (SW cache version bump)
+Phase: 5 of 7 (Visual Effects + Overlays)
+Plan: 1 of 3 in current phase
+Status: In progress
+Last activity: 2026-02-15 -- Completed 05-01-PLAN.md
 
-Progress: [####################--------------------------------------------] 3/7 phases from v1.0 + 2/4 v1.1 phases
-v1.1:     [████████████████████] 3/3 plans in Phase 4 COMPLETE
+Progress: [####################--------------------------------------------] 3/7 phases from v1.0 + Phase 5: 1/3 plans
+v1.1:     [███████░░░░░░░░░░░░░] 1/3 plans in Phase 5
 
 ## What We Shipped
 
@@ -45,7 +45,7 @@ v1.1:     [████████████████████] 3/3 pla
 | Phase | Goal | Reqs | Status |
 |-------|------|------|--------|
 | 4. Bug Fixes + Stability | Reliable, bug-free slideshow | 7 | COMPLETE (3/3 plans) |
-| 5. Visual Effects + Overlays | Cinematic viewing experience | 8 | Not Started |
+| 5. Visual Effects + Overlays | Cinematic viewing experience | 8 | In Progress (1/3 plans) |
 | 6. Stripe + Demo Mode | Visitor demo + donation | 6 | Not Started |
 | 7. README + Portfolio Polish | Portfolio-quality GitHub presence | 4 | Not Started |
 
@@ -77,6 +77,11 @@ See PROJECT.md for full decision log (12 decisions, all marked Good).
 - Minimal changes only to sw.js -- no structural modifications beyond response.ok guard and version constants
 - Cache version bump deliberately last so re-cached assets contain all bug fixes
 
+**Phase 5 Plan 01 decisions:**
+- kenBurns, blurredBackground, showPhotoDate default ON; showClock defaults OFF (opt-in)
+- Visual Effects and Overlays sections placed between Slideshow and Features on settings page
+- No additional validation code -- existing typeof check handles boolean enforcement
+
 ### Blockers/Concerns
 
 **Active:**
@@ -98,14 +103,14 @@ See PROJECT.md for full decision log (12 decisions, all marked Good).
 ## Session Continuity
 
 **Last session:** 2026-02-15
-**Status:** Phase 4 complete (3/3 plans)
+**Stopped at:** Completed 05-01-PLAN.md
 **Resume file:** None
 
 **Next steps when resuming:**
-1. `/gsd:plan-phase 5` -- Plan visual effects (8 requirements, DEEP research needed)
+1. Execute 05-02-PLAN.md (Ken Burns + blurred background implementation)
 
 ---
 
-**Project Status:** Phase 4 COMPLETE -- all 3 plans done, ready for Phase 5
+**Project Status:** Phase 5 in progress -- 1/3 plans complete
 **Deployment:** https://okno.moonacle.com
 **GitHub:** https://github.com/samshennan/okno
