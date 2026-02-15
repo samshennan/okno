@@ -5,7 +5,7 @@
 See: .planning/PROJECT.md (updated 2026-02-15)
 
 **Core value:** Display random photos from Google Photos on an iPad in a beautiful, hands-off way that requires no interaction after initial setup.
-**Current focus:** v1.1 "Make It Shine" -- Phase 5 complete, ready for Phase 6
+**Current focus:** v1.1 "Make It Shine" -- Phase 6 context gathered, ready for planning
 
 ## Current Position
 
@@ -46,7 +46,7 @@ v1.1:     [████████████████████] 3/3 pla
 |-------|------|------|--------|
 | 4. Bug Fixes + Stability | Reliable, bug-free slideshow | 7 | COMPLETE (3/3 plans) |
 | 5. Visual Effects + Overlays | Cinematic viewing experience | 8 | COMPLETE (3/3 plans) |
-| 6. Stripe + Demo Mode | Visitor demo + donation | 6 | Not Started |
+| 6. Stripe + Demo Mode | Visitor demo + donation | 6 | Context Gathered |
 | 7. README + Portfolio Polish | Portfolio-quality GitHub presence | 4 | Not Started |
 
 ## Accumulated Context
@@ -94,6 +94,15 @@ See PROJECT.md for full decision log (12 decisions, all marked Good).
 - Clock defaults OFF (opt-in), photo date defaults ON
 - SW cache bumped to v1.2 for Phase 5 deployment
 
+**Phase 6 context decisions:**
+- One-time donations only (not subscriptions), casual "buy me a coffee" tone
+- Donate button on settings page, signed-in users only
+- Demo: 10-15 mixed photos (personal-feel + scenic), one cycle then CTA
+- Demo: subtle badge indicator, no settings access, full PWA support
+- Demo: direct /demo URL route, fake EXIF dates for date overlay
+- Demo end: "Watch again" + "Use your own photos" (no pressure)
+- External agent's subscription-based Stripe code reverted (wrong model)
+
 ### Blockers/Concerns
 
 **Active:**
@@ -114,14 +123,14 @@ See PROJECT.md for full decision log (12 decisions, all marked Good).
 ## Session Continuity
 
 **Last session:** 2026-02-15
-**Stopped at:** Completed 05-03-PLAN.md -- Phase 5 complete
+**Stopped at:** Phase 6 context gathered, external subscription code reverted
 **Resume file:** None
 
 **Next steps when resuming:**
-1. Plan Phase 6 (Stripe + Demo Mode)
+1. `/gsd:plan-phase 6` (context gathered, ready for planning)
 
 ---
 
-**Project Status:** Phase 5 complete -- ready for Phase 6
+**Project Status:** Phase 6 context gathered -- ready for planning
 **Deployment:** https://okno.moonacle.com
 **GitHub:** https://github.com/samshennan/okno

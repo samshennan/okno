@@ -1,34 +1,30 @@
-# 🏁 GSD STATE: OKNO
+# GSD STATE: OKNO
 ---
-ID: OKNO | VER: 2.0 | QUOTA: GEMINI_POOL
-STATUS: 🟢 ACTIVE
+ID: OKNO | VER: 2.0
+STATUS: ACTIVE
 LAST_SYNC: 2026-02-15
 
-## 🎯 CURRENT INTENT (The "North Star")
-> Complete QA bug fixes and feature enhancements: Progress Bar, Keyboard Shortcuts (P/S), and Transition Time setting.
+## CURRENT INTENT
+> v1.1 "Make It Shine" -- Phase 6 context gathered, ready for planning.
 
-## 🧠 CORE LOGIC (Agent Context)
-- **Constraint**: Must maintain existing slideshow functionality while adding new features.
-- **Insight**: Initial frontend edit created malformed HTML - reverted and documented for clean re-implementation.
-- **Tech**: Node.js, Vanilla JS, HTML/CSS, REST API.
+## CORE LOGIC
+- **Note**: External agent's subscription-based Stripe code was reverted (wrong payment model).
+- **Decision**: Phase 6 uses one-time donations, not subscriptions. Full context in `.planning/phases/06-stripe-+-demo-mode/06-CONTEXT.md`.
+- **Tech**: Node.js, Express, Stripe API (payment mode), Vanilla JS, CSS.
 
-## 🧱 ARCHITECTURAL DECISIONS
-- 2026-02-15: Use CSS variable `--transition-time` for dynamic transition control
-- 2026-02-15: Backend OTD fix uses try-catch to ensure 404s aren't masked as 502s
+## ARCHITECTURAL DECISIONS
+- 2026-02-15: Stripe subscription code reverted -- Phase 6 will implement one-time donations instead.
+- 2026-02-15: `stripe` npm dependency kept (needed for one-time donation checkout).
 
-## ⏭️ NEXT ATOMIC ACTIONS (The Relay Baton)
-1. [x] Re-implement progress bar in `slideshow.html`
-2. [x] Add keyboard shortcuts ('P', 'S') to keydown listener
-3. [x] Add Transition Time button group to `settings.html`
-4. [x] Wire up `--transition-time` CSS variable from config
-5. [ ] Test all features in browser
+## NEXT ATOMIC ACTIONS
+1. [ ] `/gsd:plan-phase 6` -- create execution plan from gathered context
+2. [ ] Execute Phase 6 plans (demo mode + Stripe donation)
+3. [ ] Plan Phase 7 (README + Portfolio Polish)
 
-## 🤝 HANDOVER METADATA (Context Debt)
-- **Current Problem**: All frontend features implemented, needs testing
-- **Next Agent Instructions**: Test slideshow progress bar, P/S shortcuts, and transition time setting in browser.
+## HANDOVER METADATA
+- **Current Status**: Phase 6 context gathered. Subscription code from external agent reverted. `stripe` dep and `stripe.env.example` kept.
+- **Next Agent Instructions**: Run `/gsd:plan-phase 6`. Context is in `06-CONTEXT.md`. Do NOT re-implement subscriptions.
 
-## 🔗 INTEGRATIONS
-- **ClickUp**: [N/A]
-- **Notion**: [N/A]
+## INTEGRATIONS
 - **Assets**: [/Users/sam/AI_LAB/okno/public]
 ---
