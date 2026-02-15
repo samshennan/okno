@@ -411,6 +411,76 @@
       </div>
     </div>
 
+    <!-- Visual Effects Section -->
+    <div class="settings-section">
+      <div class="section-title">Visual Effects</div>
+
+      <!-- Ken Burns -->
+      <div class="setting-row">
+        <div class="setting-label">
+          <div class="icon"><i data-lucide="move"></i></div>
+          <div class="text">
+            <span class="name">Ken Burns</span>
+            <span class="description">Gentle zoom and pan on each photo</span>
+          </div>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="kenBurns" onchange="settings.kenBurns = this.checked">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <!-- Blurred Background -->
+      <div class="setting-row">
+        <div class="setting-label">
+          <div class="icon"><i data-lucide="square-dashed-bottom"></i></div>
+          <div class="text">
+            <span class="name">Blurred Background</span>
+            <span class="description">Fill black bars with a blurred version of the photo</span>
+          </div>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="blurredBackground" onchange="settings.blurredBackground = this.checked">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Overlays Section -->
+    <div class="settings-section">
+      <div class="section-title">Overlays</div>
+
+      <!-- Photo Date -->
+      <div class="setting-row">
+        <div class="setting-label">
+          <div class="icon"><i data-lucide="calendar"></i></div>
+          <div class="text">
+            <span class="name">Photo Date</span>
+            <span class="description">Show when the photo was taken</span>
+          </div>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="showPhotoDate" onchange="settings.showPhotoDate = this.checked">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <!-- Clock -->
+      <div class="setting-row">
+        <div class="setting-label">
+          <div class="icon"><i data-lucide="clock"></i></div>
+          <div class="text">
+            <span class="name">Clock</span>
+            <span class="description">Show current time on the slideshow</span>
+          </div>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="showClock" onchange="settings.showClock = this.checked">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+    </div>
+
     <!-- Features Section -->
     <div class="settings-section">
       <div class="section-title">Features</div>
@@ -468,6 +538,10 @@
       onThisDay: false,
       portraitPairs: false,
       transitionTime: 1,
+      kenBurns: true,
+      blurredBackground: true,
+      showPhotoDate: true,
+      showClock: false,
     };
 
     // Load current config from server
@@ -504,6 +578,10 @@
       // Toggles
       document.getElementById('onThisDay').checked = settings.onThisDay;
       document.getElementById('portraitPairs').checked = settings.portraitPairs;
+      document.getElementById('kenBurns').checked = settings.kenBurns;
+      document.getElementById('blurredBackground').checked = settings.blurredBackground;
+      document.getElementById('showPhotoDate').checked = settings.showPhotoDate;
+      document.getElementById('showClock').checked = settings.showClock;
     }
 
     // UI handlers
