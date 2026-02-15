@@ -1,8 +1,9 @@
-const CACHE_VERSION = 'okno-v1.2';
-const PHOTO_CACHE = 'okno-photos-v1.2';
+const CACHE_VERSION = 'okno-v1.3';
+const PHOTO_CACHE = 'okno-photos-v1.3';
 
 const STATIC_ASSETS = [
   '/slideshow.html',
+  '/demo.html',
   '/manifest.json',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
@@ -40,7 +41,7 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
   // Network-first for photo API (prioritize fresh photos)
-  if (url.pathname.startsWith('/api/photo')) {
+  if (url.pathname.startsWith('/api/photo') || url.pathname.startsWith('/api/demo/random')) {
     event.respondWith(
       fetch(event.request)
         .then((response) => {
