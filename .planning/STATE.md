@@ -5,18 +5,18 @@
 See: .planning/PROJECT.md (updated 2026-02-15)
 
 **Core value:** Display random photos from Google Photos on an iPad in a beautiful, hands-off way that requires no interaction after initial setup.
-**Current focus:** v1.1 "Make It Shine" -- Phase 5 in progress
+**Current focus:** v1.1 "Make It Shine" -- Phase 5 complete, ready for Phase 6
 
 ## Current Position
 
 **Milestone:** v1.1 "Make It Shine"
 Phase: 5 of 7 (Visual Effects + Overlays)
-Plan: 2 of 3 in current phase
-Status: In progress
-Last activity: 2026-02-15 -- Completed 05-02-PLAN.md
+Plan: 3 of 3 in current phase
+Status: Phase complete
+Last activity: 2026-02-15 -- Completed 05-03-PLAN.md
 
-Progress: [####################--------------------------------------------] 3/7 phases from v1.0 + Phase 5: 2/3 plans
-v1.1:     [█████████████░░░░░░░] 2/3 plans in Phase 5
+Progress: [████████████████████████████████░░░░░░░░░░░░░░░░░░░░] Phase 5 complete (1/4 v1.1 phases)
+v1.1:     [████████████████████] 3/3 plans in Phase 5
 
 ## What We Shipped
 
@@ -45,7 +45,7 @@ v1.1:     [█████████████░░░░░░░] 2/3 pla
 | Phase | Goal | Reqs | Status |
 |-------|------|------|--------|
 | 4. Bug Fixes + Stability | Reliable, bug-free slideshow | 7 | COMPLETE (3/3 plans) |
-| 5. Visual Effects + Overlays | Cinematic viewing experience | 8 | In Progress (2/3 plans) |
+| 5. Visual Effects + Overlays | Cinematic viewing experience | 8 | COMPLETE (3/3 plans) |
 | 6. Stripe + Demo Mode | Visitor demo + donation | 6 | Not Started |
 | 7. README + Portfolio Polish | Portfolio-quality GitHub presence | 4 | Not Started |
 
@@ -88,16 +88,21 @@ See PROJECT.md for full decision log (12 decisions, all marked Good).
 - Animation duration matches slideshow interval for complete motion arc per photo
 - teardownAndRemove() consolidates all cleanup into one GPU-safe function
 
+**Phase 5 Plan 03 decisions:**
+- Blur uses 32x24 canvas data URI (~3KB) instead of full-resolution image for GPU efficiency
+- Blur disabled in dual portrait mode (GPU budget) and cover mode (no black bars)
+- Clock defaults OFF (opt-in), photo date defaults ON
+- SW cache bumped to v1.2 for Phase 5 deployment
+
 ### Blockers/Concerns
 
 **Active:**
-- GPU memory on iPad Pro 1st Gen (A9X) -- Ken Burns + blur triple-stack risk (Phase 5, needs deep research)
 - Demo mode auth bypass must be fully isolated (Phase 6, needs security review)
 - Google Picker API 2000 photo limit remains (v2.0 scope)
 
 ### Research Flags
 
-- **Phase 5:** DEEP -- GPU memory profiling, blur performance, transition choreography
+- **Phase 5:** COMPLETE -- Ken Burns, blur background, overlays all shipped
 - **Phase 6:** MODERATE -- sample photo licensing, auth bypass security
 
 ### QA Results (from v1.0 testing)
@@ -109,14 +114,14 @@ See PROJECT.md for full decision log (12 decisions, all marked Good).
 ## Session Continuity
 
 **Last session:** 2026-02-15
-**Stopped at:** Completed 05-02-PLAN.md
+**Stopped at:** Completed 05-03-PLAN.md -- Phase 5 complete
 **Resume file:** None
 
 **Next steps when resuming:**
-1. Execute 05-03-PLAN.md (blurred background + overlays)
+1. Plan Phase 6 (Stripe + Demo Mode)
 
 ---
 
-**Project Status:** Phase 5 in progress -- 2/3 plans complete
+**Project Status:** Phase 5 complete -- ready for Phase 6
 **Deployment:** https://okno.moonacle.com
 **GitHub:** https://github.com/samshennan/okno
