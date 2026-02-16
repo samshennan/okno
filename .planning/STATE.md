@@ -10,10 +10,10 @@ See: .planning/PROJECT.md (updated 2026-02-15)
 ## Current Position
 
 **Milestone:** v1.1 "Make It Shine"
-Phase: 6 of 7 (Stripe + Demo Mode) -- COMPLETE
-Plan: 3 of 3 in current phase
-Status: Phase complete, verified
-Last activity: 2026-02-16 -- Completed Phase 6
+Phase: 7 of 7 (README + Portfolio Polish) -- Context gathered
+Plan: 0 of ? in current phase
+Status: Context gathered, ready for planning
+Last activity: 2026-02-16 -- Phase 7 context discussion complete
 
 Progress: [████████████████████████████████████████████████████] Phase 6 complete
 v1.1:     [████████████████████████████████████████████░░░░░░░] 6/7 phases complete
@@ -65,7 +65,7 @@ v1.1:     [███████████████████████
 | 4. Bug Fixes + Stability | Reliable, bug-free slideshow | 7 | COMPLETE (3/3 plans) |
 | 5. Visual Effects + Overlays | Cinematic viewing experience | 8 | COMPLETE (3/3 plans) |
 | 6. Stripe + Demo Mode | Visitor demo + donation | 6 | COMPLETE (3/3 plans) |
-| 7. README + Portfolio Polish | Portfolio-quality GitHub presence | 4 | Not Started |
+| 7. README + Portfolio Polish | Portfolio-quality GitHub presence | 4 | Context Gathered |
 
 ## Accumulated Context
 
@@ -131,6 +131,15 @@ See PROJECT.md for full decision log (12 decisions, all marked Good).
 - Demo defaults: Ken Burns ON, blur ON, photo date ON, clock OFF, portrait pairs ON
 - CTA triggers after totalDemoPhotos displays, then stops slideshow
 
+**Phase 7 context decisions:**
+- Hero visual: GIF + iPad shelf mockup via device mockup tool (Shots.so / Mockuphone)
+- Demo photos used in hero (no private photos)
+- Tagline before hero visual, not full-width-first
+- Interviewer/recruiter audience, storytelling tone, compact (~1 scroll)
+- Minimal setup section, live demo link as primary CTA
+- 3-4 best product decisions from PROJECT.md, Claude selects
+- Architecture diagram: Claude's discretion on detail level and style
+
 ### Blockers/Concerns
 
 **Active:**
@@ -158,15 +167,16 @@ See PROJECT.md for full decision log (12 decisions, all marked Good).
 ## Session Continuity
 
 **Last session:** 2026-02-16
-**Stopped at:** Completed Phase 6
+**Stopped at:** Phase 7 context gathered
 **Resume file:** None
 
 **Next steps when resuming:**
-1. Plan Phase 7 (README + Portfolio Polish)
-2. Complete v1.1 milestone
+1. `/gsd:plan-phase 7` — Plan Phase 7 (README + Portfolio Polish)
+2. Execute Phase 7 plans
+3. Complete v1.1 milestone
 
 ---
 
-**Project Status:** Phase 6 complete -- 1 phase remaining in v1.1
+**Project Status:** Phase 7 context gathered -- ready for planning, last phase in v1.1
 **Deployment:** https://okno.moonacle.com
 **GitHub:** https://github.com/samshennan/okno
