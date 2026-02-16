@@ -32,15 +32,15 @@ Requirements for "Make It Shine" milestone. Visual polish, bug fixes, portfolio 
 
 ### Payments
 
-- [ ] **PAY-01**: Stripe donate button replaces PayPal placeholder in feedback modal
-- [ ] **PAY-02**: Donation uses Stripe Payment Links (existing moonacle account)
+- [x] **PAY-01**: Stripe donate button replaces PayPal placeholder in feedback modal
+- [x] **PAY-02**: Donation uses Stripe Payment Links (existing moonacle account)
 
 ### Demo Mode
 
-- [ ] **DEMO-01**: App runs without Google auth using bundled sample photos
-- [ ] **DEMO-02**: "Try Demo" button visible on home page for unauthenticated visitors
-- [ ] **DEMO-03**: Demo mode indicator visible during slideshow
-- [ ] **DEMO-04**: All visual effects (Ken Burns, blur, overlays) functional in demo mode
+- [x] **DEMO-01**: App runs without Google auth using bundled sample photos
+- [x] **DEMO-02**: "Try Demo" button visible on home page for unauthenticated visitors
+- [x] **DEMO-03**: Demo mode indicator visible during slideshow
+- [x] **DEMO-04**: All visual effects (Ken Burns, blur, overlays) functional in demo mode
 
 ### Portfolio
 
@@ -102,12 +102,12 @@ Deferred to v2.0 milestone.
 | OVERLAY-01 | Phase 5 | Complete |
 | OVERLAY-02 | Phase 5 | Complete |
 | OVERLAY-03 | Phase 5 | Complete |
-| PAY-01 | Phase 6 | Pending |
-| PAY-02 | Phase 6 | Pending |
-| DEMO-01 | Phase 6 | Pending |
-| DEMO-02 | Phase 6 | Pending |
-| DEMO-03 | Phase 6 | Pending |
-| DEMO-04 | Phase 6 | Pending |
+| PAY-01 | Phase 6 | Complete |
+| PAY-02 | Phase 6 | Complete |
+| DEMO-01 | Phase 6 | Complete |
+| DEMO-02 | Phase 6 | Complete |
+| DEMO-03 | Phase 6 | Complete |
+| DEMO-04 | Phase 6 | Complete |
 | PORT-01 | Phase 7 | Pending |
 | PORT-02 | Phase 7 | Pending |
 | PORT-03 | Phase 7 | Pending |

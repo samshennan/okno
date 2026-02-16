@@ -5,18 +5,18 @@
 See: .planning/PROJECT.md (updated 2026-02-15)
 
 **Core value:** Display random photos from Google Photos on an iPad in a beautiful, hands-off way that requires no interaction after initial setup.
-**Current focus:** v1.1 "Make It Shine" -- Phase 6 in progress
+**Current focus:** v1.1 "Make It Shine" -- Phase 7 next
 
 ## Current Position
 
 **Milestone:** v1.1 "Make It Shine"
-Phase: 6 of 7 (Stripe + Demo Mode)
-Plan: 2 of 3 in current phase
-Status: In progress
-Last activity: 2026-02-15 -- Completed 06-02-PLAN.md
+Phase: 6 of 7 (Stripe + Demo Mode) -- COMPLETE
+Plan: 3 of 3 in current phase
+Status: Phase complete, verified
+Last activity: 2026-02-16 -- Completed Phase 6
 
-Progress: [████████████████████████████████████████░░░░░░░░░░░░] Phase 6 plan 2 complete
-v1.1:     [█████████████░░░░░░░] 2/3 plans in Phase 6
+Progress: [████████████████████████████████████████████████████] Phase 6 complete
+v1.1:     [████████████████████████████████████████████░░░░░░░] 6/7 phases complete
 
 ## What We Shipped
 
@@ -40,13 +40,31 @@ v1.1:     [█████████████░░░░░░░] 2/3 pla
 - Calendar indicator timing fix for dual-mode landscape
 - Cache version bump to v1.1 (forces iPad PWA re-cache of all fixes)
 
+### v1.1 Phase 5: Visual Effects + Overlays (2026-02-15)
+- Ken Burns cinematic zoom/pan with 6 presets (8% max zoom, 100ms delay)
+- Blurred background fill using 32x24 canvas data URI (~3KB GPU-efficient)
+- Photo date overlay (month + year from EXIF)
+- Clock overlay (opt-in, updates every minute)
+- All effects toggleable from settings page
+- prefers-reduced-motion accessibility support
+- SW cache v1.2
+
+### v1.1 Phase 6: Stripe + Demo Mode (2026-02-16)
+- Stripe Payment Link donate button on settings page (auth-gated)
+- "Try Demo" button on home page for unauthenticated visitors
+- Demo backend: 12 optimized sample photos (10 Unsplash + 2 placeholders), isolated Express router
+- Demo slideshow page at /demo with DEMO badge, Ken Burns, blur, photo date overlay
+- End-of-demo CTA: "That's a taste of Okno" with "Watch again" / "Use your own photos"
+- Portrait pairs showcased in demo mode
+- SW cache v1.3 with demo.html precached
+
 ## v1.1 Phase Overview
 
 | Phase | Goal | Reqs | Status |
 |-------|------|------|--------|
 | 4. Bug Fixes + Stability | Reliable, bug-free slideshow | 7 | COMPLETE (3/3 plans) |
 | 5. Visual Effects + Overlays | Cinematic viewing experience | 8 | COMPLETE (3/3 plans) |
-| 6. Stripe + Demo Mode | Visitor demo + donation | 6 | IN PROGRESS (2/3 plans) |
+| 6. Stripe + Demo Mode | Visitor demo + donation | 6 | COMPLETE (3/3 plans) |
 | 7. README + Portfolio Polish | Portfolio-quality GitHub presence | 4 | Not Started |
 
 ## Accumulated Context
@@ -108,16 +126,28 @@ See PROJECT.md for full decision log (12 decisions, all marked Good).
 - Demo router fully isolated: zero imports from auth, photo-cache, photo-proxy, config
 - Response headers match real photo proxy format (X-Photo-Id, X-Photo-CreateTime, X-Photo-IsPortrait)
 
+**Phase 6 Plan 03 decisions:**
+- One-cycle tracking uses display count (not unique IDs) to handle random endpoint repeats
+- Demo defaults: Ken Burns ON, blur ON, photo date ON, clock OFF, portrait pairs ON
+- CTA triggers after totalDemoPhotos displays, then stops slideshow
+
 ### Blockers/Concerns
 
 **Active:**
-- Demo mode auth bypass must be fully isolated (Phase 6, needs security review)
 - Google Picker API 2000 photo limit remains (v2.0 scope)
+- Stripe Payment Link URLs are PLACEHOLDER -- user must replace with real URLs before deployment
+
+**Resolved:**
+- Demo mode auth bypass fully isolated (verified: zero imports from auth stack)
 
 ### Research Flags
 
 - **Phase 5:** COMPLETE -- Ken Burns, blur background, overlays all shipped
-- **Phase 6:** MODERATE -- sample photo licensing, auth bypass security
+- **Phase 6:** COMPLETE -- demo photos sourced, auth bypass verified isolated
+
+### User Feedback
+
+- Demo mode lacks interactive UI controls -- "not much of an impressive demo" without ways to explore settings or features. Consider for Phase 7 or follow-up.
 
 ### QA Results (from v1.0 testing)
 
@@ -127,16 +157,16 @@ See PROJECT.md for full decision log (12 decisions, all marked Good).
 
 ## Session Continuity
 
-**Last session:** 2026-02-15
-**Stopped at:** Completed 06-02-PLAN.md
+**Last session:** 2026-02-16
+**Stopped at:** Completed Phase 6
 **Resume file:** None
 
 **Next steps when resuming:**
-1. Execute 06-03-PLAN.md (demo slideshow page + end-of-demo CTA + SW cache v1.3)
-2. Complete Phase 6
+1. Plan Phase 7 (README + Portfolio Polish)
+2. Complete v1.1 milestone
 
 ---
 
-**Project Status:** Phase 6 plan 2 complete -- 1 plan remaining
+**Project Status:** Phase 6 complete -- 1 phase remaining in v1.1
 **Deployment:** https://okno.moonacle.com
 **GitHub:** https://github.com/samshennan/okno
