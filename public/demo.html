@@ -423,7 +423,7 @@
     let pendingPortrait = null; // For dual portrait pairing
 
     // Demo one-cycle tracking
-    let demoPhotosShown = new Set(); // Track by photo ID to avoid duplicates
+    let demoPhotosDisplayed = 0; // Count total displays (not unique -- random endpoint may repeat)
     let totalDemoPhotos = 0; // Set from /api/demo/health response
 
     // Ken Burns state
@@ -599,10 +599,9 @@
     });
 
     // Demo one-cycle tracking
-    function onDemoPhotoDisplayed(photoId) {
-      if (!photoId) return;
-      demoPhotosShown.add(photoId);
-      if (totalDemoPhotos > 0 && demoPhotosShown.size >= totalDemoPhotos) {
+    function onDemoPhotoDisplayed() {
+      demoPhotosDisplayed++;
+      if (totalDemoPhotos > 0 && demoPhotosDisplayed >= totalDemoPhotos) {
         // Wait for current photo's display time, then show CTA
         setTimeout(showEndOfDemoCTA, currentIntervalSeconds * 1000);
       }
@@ -626,7 +625,7 @@
     function restartDemo() {
       const cta = document.getElementById('endOfDemoCTA');
       cta.style.display = 'none';
-      demoPhotosShown.clear();
+      demoPhotosDisplayed = 0;
       isPlaying = true;
       startSlideshow();
     }
@@ -771,7 +770,7 @@
         });
 
         // Track demo photo for one-cycle completion
-        onDemoPhotoDisplayed(photoId);
+        onDemoPhotoDisplayed();
 
         return img;
       } catch (error) {
