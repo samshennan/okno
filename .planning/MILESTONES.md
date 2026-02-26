@@ -22,6 +22,29 @@
 
 **Git range:** `6f3ec2d` (project init) → `f7725e8` (testing docs)
 
-**What's next:** v2 planning — visual polish (Ken Burns, blurred backgrounds), sleep/wake schedule, album filtering, and multi-device support
+**What's next:** v1.1 — visual polish, bug fixes, demo mode, Stripe donations
+
+---
+
+## v1.1 "Make It Shine" (Phases 4-6 shipped: 2026-02-16, Phase 7 deferred)
+
+**Delivered:** Cinematic visual effects, comprehensive bug fixes, demo mode for portfolio showcase, and Stripe donation support. Elevated the MVP into a polished, portfolio-quality product.
+
+**Phases completed:** 4-6 (9 plans total). Phase 7 (README + Portfolio Polish) context gathered but deferred.
+
+**Key accomplishments:**
+- Ken Burns cinematic zoom/pan with 6 randomized presets and prefers-reduced-motion accessibility
+- Blurred background fill using GPU-efficient 32x24 canvas data URI (~3KB per photo)
+- Photo date and clock overlays, all effects independently toggleable
+- All 6 v1.0 QA bugs fixed (picker merge, countdown timer, OTD fallback, 502 recovery, dual mode, calendar)
+- Demo mode with 12 sample photos, fully isolated from auth stack, end-of-demo CTA
+- Stripe Payment Link donate button (auth-gated on settings page)
+- Service Worker cache versioned v1.0 → v1.3 across phases
+
+**Stats:**
+- 4 phases (3 complete + 1 context gathered), 9 plans
+- 2 days of development (2026-02-15 to 2026-02-16)
+
+**What's next:** v2.0 — multi-tenant architecture, invite codes, photo management grid
 
 ---
