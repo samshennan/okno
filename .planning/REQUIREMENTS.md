@@ -1,123 +1,158 @@
 # Requirements: Okno
 
-**Defined:** 2026-02-15
+**Defined:** 2026-02-27
 **Core Value:** Display random photos from Google Photos on an iPad in a beautiful, hands-off way that requires no interaction after initial setup.
 
-## v1.1 Requirements
+## v2.0 Requirements
 
-Requirements for "Make It Shine" milestone. Visual polish, bug fixes, portfolio artifacts.
+Requirements for "Multi-Tenant" milestone. Multi-user architecture, photo management grid, and polish.
 
-### Bug Fixes
+### Database & Migration
 
-- [x] **BUGFIX-01**: Picker session batch merge -- new selections append to existing cache instead of replacing
-- [x] **BUGFIX-02**: Picker session timeout warning -- countdown timer visible during photo selection
-- [x] **BUGFIX-03**: On This Day fallback visibility -- "No photos from today" message visible on screen (not black)
-- [x] **BUGFIX-04**: Calendar indicator display -- shows correctly even when On This Day photo hasn't loaded
-- [x] **BUGFIX-05**: Random photo 502 resilience -- graceful fallback when backend returns 502 during mode switch
-- [x] **BUGFIX-06**: Dual mode landscape handling -- landscape photos display properly in dual mode (no letterboxing)
+- [ ] **DB-01**: App uses SQLite database for all persistent storage (users, tokens, photos, settings, invite codes)
+- [ ] **DB-02**: Existing JSON files (tokens.json, cache.json, config.json) auto-migrate to DB as first user on first startup
+- [ ] **DB-03**: Migrated JSON files renamed to .migrated as backup
 
-### Visual Effects
+### Authentication
 
-- [x] **VISUAL-01**: Ken Burns cinematic zoom/pan effect on slideshow photos with randomized direction
-- [x] **VISUAL-02**: Ken Burns effect toggleable via settings page
-- [x] **VISUAL-03**: Blurred background fill instead of black bars for non-filling photos
-- [x] **VISUAL-04**: Blurred background toggleable via settings page
-- [x] **VISUAL-05**: Ken Burns respects `prefers-reduced-motion` accessibility setting
+- [ ] **AUTH-01**: Each user authenticates with their own Google account via OAuth 2.0
+- [ ] **AUTH-02**: Per-user OAuth tokens stored in DB, isolated from other users
+- [ ] **AUTH-03**: Token refresh happens automatically per-user (expired token for User A does not affect User B)
+- [ ] **AUTH-04**: Session stores userId, all routes resolve current user from session
 
-### Overlays
+### Access Control
 
-- [x] **OVERLAY-01**: Photo date overlay showing when each photo was taken (e.g. "March 2019")
-- [x] **OVERLAY-02**: Clock overlay showing current time (updates every minute)
-- [x] **OVERLAY-03**: Both overlays independently toggleable via settings page
+- [ ] **ACCESS-01**: New users must enter a valid invite code before Google sign-in
+- [ ] **ACCESS-02**: Invite codes are single-use (or limited-use) with optional expiry
+- [ ] **ACCESS-03**: Invalid/expired codes show clear error message
+- [ ] **ACCESS-04**: Invite code can be pre-filled via URL parameter (?invite=CODE)
 
-### Payments
+### Data Isolation
 
-- [x] **PAY-01**: Stripe donate button replaces PayPal placeholder in feedback modal
-- [x] **PAY-02**: Donation uses Stripe Payment Links (existing moonacle account)
+- [ ] **ISOL-01**: Each user's photo cache is fully isolated (User A never sees User B's photos)
+- [ ] **ISOL-02**: Each user's settings are independent (interval, Ken Burns, etc.)
+- [ ] **ISOL-03**: Each user's slideshow serves only their photos
+- [ ] **ISOL-04**: Per-user baseUrl refresh (stale URLs refreshed per-user, not globally)
 
-### Demo Mode
+### Photo Grid
 
-- [x] **DEMO-01**: App runs without Google auth using bundled sample photos
-- [x] **DEMO-02**: "Try Demo" button visible on home page for unauthenticated visitors
-- [x] **DEMO-03**: Demo mode indicator visible during slideshow
-- [x] **DEMO-04**: All visual effects (Ken Burns, blur, overlays) functional in demo mode
+- [ ] **GRID-01**: User can view a thumbnail grid of all their cached photos
+- [ ] **GRID-02**: User can select one or more photos and remove them from their cache
+- [ ] **GRID-03**: Thumbnails load lazily for performance with 2000-photo collections
+- [ ] **GRID-04**: Grid uses responsive CSS Grid layout matching existing design system
 
-### Portfolio
+### Token Expiry
+
+- [ ] **EXPIRY-01**: When a user's Google token expires/is revoked, their slideshow shows a reconnect overlay instead of crashing
+- [ ] **EXPIRY-02**: Other users' slideshows are unaffected by one user's token failure
+- [ ] **EXPIRY-03**: User can re-authenticate via a reconnect button
+
+### Device Setup
+
+- [ ] **SETUP-01**: After photo selection, settings page shows QR code pointing to slideshow URL for iPad scanning
+
+### Admin CLI
+
+- [ ] **ADMIN-01**: Admin can generate invite codes via CLI on VPS
+- [ ] **ADMIN-02**: Admin can list users and their photo counts via CLI
+- [ ] **ADMIN-03**: Admin can delete a user and all their data via CLI
+
+### Portfolio (carried from v1.1)
 
 - [ ] **PORT-01**: GitHub README with hero image/GIF showing the product
 - [ ] **PORT-02**: Architecture diagram (Mermaid) in README
 - [ ] **PORT-03**: Product decisions section explaining key tradeoffs
 - [ ] **PORT-04**: Live demo link in README pointing to okno.moonacle.com
 
-### Deployment
+## v1.1 Requirements (Shipped)
 
-- [x] **DEPLOY-01**: Service Worker cache version updated for v1.1 deployment
+All v1.1 requirements completed in Phases 4-6. See MILESTONES.md for details.
 
-## Future Requirements
+- [x] BUGFIX-01 through BUGFIX-06 — Phase 4
+- [x] DEPLOY-01 — Phase 4
+- [x] VISUAL-01 through VISUAL-05 — Phase 5
+- [x] OVERLAY-01 through OVERLAY-03 — Phase 5
+- [x] PAY-01, PAY-02 — Phase 6
+- [x] DEMO-01 through DEMO-04 — Phase 6
 
-Deferred to v2.0 milestone.
+## v2.1+ Requirements
 
-### Multi-User
+Deferred to future milestone.
 
-- **MULTI-01**: Multiple Google users can authenticate independently
-- **MULTI-02**: Per-user photo cache and settings isolation
-- **MULTI-03**: Admin toggle to enable/disable multi-user registration
+### User Experience
 
-### Curation
+- **UX-01**: Account page (view profile, photo count, disconnect Google, delete account)
+- **UX-02**: URL-based invite links (okno.moonacle.com/?invite=CODE as shareable link)
 
-- **CURA-01**: Album selection from Google Photos
-- **CURA-02**: Photo management grid to view and remove cached photos
-- **CURA-03**: Date range filtering for slideshow
+### Scale
+
+- **SCALE-01**: Google OAuth app verification (removes 100-user cap)
+- **SCALE-02**: Open registration (remove invite code requirement)
+- **SCALE-03**: Rate limiting on API endpoints for multi-user protection
+
+### Media
+
+- **MEDIA-01**: Short video playback support in slideshow
+- **MEDIA-02**: Album filtering from Google Photos
+- **MEDIA-03**: Date range filtering for slideshow
+
+### Admin
+
+- **ADMIN-04**: Admin dashboard UI (web-based user/invite management)
 
 ## Out of Scope
 
 | Feature | Reason |
 |---------|--------|
-| Multiple transition styles (slide, wipe, dissolve) | Ken Burns + crossfade is sufficient. Apple TV has one transition. |
-| Animated text overlays | Distracting on ambient display. Motion reserved for photos. |
-| Custom overlay positioning (drag-and-drop) | Massive UI complexity for negligible value. |
-| Donation amount tracking/dashboard | Stripe Dashboard already tracks all payments. |
-| Interactive demo configuration | Demo is a showcase, not a sandbox. Optimal defaults only. |
-| Video walkthrough in README | GIF is sufficient and auto-plays on GitHub. |
-| Weather/Spotify/news overlays | Scope creep. Product is a photo frame. |
-| Native iOS app | PWA + Guided Access sufficient, avoids $100 fee. |
-| Face recognition / AI curation | Massive scope, Google Photos already does this. |
+| Client-side token storage (IndexedDB) | Breaks "set up on phone, run on iPad" UX — tokens must be server-side |
+| Shared albums / social features | Okno is a personal photo frame, not a social platform |
+| Real-time photo sync | No Google Photos push API — explicit Picker flow is sufficient |
+| Photo editing / cropping | Out of scope for a photo frame app — use Google Photos for editing |
+| Multi-device per user | One user = one device. Use two accounts for two frames. |
+| Admin dashboard UI | CLI sufficient for invite-only with <100 users |
+| Native iOS app | PWA + Guided Access sufficient, avoids $100 fee |
+| Face recognition / AI curation | Massive scope, Google Photos already does this |
 
 ## Traceability
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| BUGFIX-01 | Phase 4 | Complete |
-| BUGFIX-02 | Phase 4 | Complete |
-| BUGFIX-03 | Phase 4 | Complete |
-| BUGFIX-04 | Phase 4 | Complete |
-| BUGFIX-05 | Phase 4 | Complete |
-| BUGFIX-06 | Phase 4 | Complete |
-| DEPLOY-01 | Phase 4 | Complete |
-| VISUAL-01 | Phase 5 | Complete |
-| VISUAL-02 | Phase 5 | Complete |
-| VISUAL-03 | Phase 5 | Complete |
-| VISUAL-04 | Phase 5 | Complete |
-| VISUAL-05 | Phase 5 | Complete |
-| OVERLAY-01 | Phase 5 | Complete |
-| OVERLAY-02 | Phase 5 | Complete |
-| OVERLAY-03 | Phase 5 | Complete |
-| PAY-01 | Phase 6 | Complete |
-| PAY-02 | Phase 6 | Complete |
-| DEMO-01 | Phase 6 | Complete |
-| DEMO-02 | Phase 6 | Complete |
-| DEMO-03 | Phase 6 | Complete |
-| DEMO-04 | Phase 6 | Complete |
-| PORT-01 | Phase 7 | Pending |
-| PORT-02 | Phase 7 | Pending |
-| PORT-03 | Phase 7 | Pending |
-| PORT-04 | Phase 7 | Pending |
+| DB-01 | — | Pending |
+| DB-02 | — | Pending |
+| DB-03 | — | Pending |
+| AUTH-01 | — | Pending |
+| AUTH-02 | — | Pending |
+| AUTH-03 | — | Pending |
+| AUTH-04 | — | Pending |
+| ACCESS-01 | — | Pending |
+| ACCESS-02 | — | Pending |
+| ACCESS-03 | — | Pending |
+| ACCESS-04 | — | Pending |
+| ISOL-01 | — | Pending |
+| ISOL-02 | — | Pending |
+| ISOL-03 | — | Pending |
+| ISOL-04 | — | Pending |
+| GRID-01 | — | Pending |
+| GRID-02 | — | Pending |
+| GRID-03 | — | Pending |
+| GRID-04 | — | Pending |
+| EXPIRY-01 | — | Pending |
+| EXPIRY-02 | — | Pending |
+| EXPIRY-03 | — | Pending |
+| SETUP-01 | — | Pending |
+| ADMIN-01 | — | Pending |
+| ADMIN-02 | — | Pending |
+| ADMIN-03 | — | Pending |
+| PORT-01 | — | Pending |
+| PORT-02 | — | Pending |
+| PORT-03 | — | Pending |
+| PORT-04 | — | Pending |
 
 **Coverage:**
-- v1.1 requirements: 25 total
-- Mapped to phases: 25
-- Unmapped: 0
+- v2.0 requirements: 30 total
+- Mapped to phases: 0 (awaiting roadmap)
+- Unmapped: 30
 
 ---
-*Requirements defined: 2026-02-15*
-*Last updated: 2026-02-15 after roadmap creation (phase assignments added)*
+*Requirements defined: 2026-02-27*
+*Last updated: 2026-02-27 after initial definition*
