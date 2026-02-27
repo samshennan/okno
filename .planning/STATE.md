@@ -11,11 +11,11 @@ See: .planning/PROJECT.md (updated 2026-02-27)
 
 **Milestone:** v2.0 "Multi-Tenant"
 Phase: 8 of 12 (Database Foundation + Data Migration)
-Plan: --
-Status: Ready to plan
-Last activity: 2026-02-27 -- v2.0 roadmap created (Phases 8-12)
+Plan: 01 of 03
+Status: In progress
+Last activity: 2026-02-27 -- Completed 08-01-PLAN.md (Database Foundation)
 
-Progress: [##################..............] 60% (v1.0+v1.1: 20/20 plans | v2.0: 0/? plans)
+Progress: [###################.............] 62% (v1.0+v1.1: 20/20 plans | v2.0: 1/13 plans)
 
 ## What We Shipped
 
@@ -34,9 +34,10 @@ Progress: [##################..............] 60% (v1.0+v1.1: 20/20 plans | v2.0:
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 20 (v1.0: 11, v1.1: 9)
+- Total plans completed: 21 (v1.0: 11, v1.1: 9, v2.0: 1)
 - v1.0: 7 days (11 plans)
 - v1.1: 2 days (9 plans)
+- v2.0: in progress (1 plan, 3 min)
 
 ## Accumulated Context
 
@@ -53,6 +54,13 @@ See PROJECT.md for full decision log.
 - Invite codes for access control (not open registration)
 - CLI admin only (no dashboard UI)
 
+**08-01 implementation decisions:**
+- PRAGMA user_version set inside transaction (atomic schema + version)
+- Seed guard: only runs when users table is empty
+- JSON files renamed to .migrated after transaction commits (crash-safe)
+- data/ directory for all SQLite files (separate from project root)
+- invite_codes table pre-wired for Phase 10 (empty schema)
+
 ### Blockers/Concerns
 
 - Google Picker API 2000 photo limit remains
@@ -64,11 +72,11 @@ See PROJECT.md for full decision log.
 ## Session Continuity
 
 **Last session:** 2026-02-27
-**Stopped at:** v2.0 roadmap created -- Phase 8 ready to plan
-**Resume:** `/gsd:plan-phase 8`
+**Stopped at:** Completed 08-01-PLAN.md (Database Foundation)
+**Resume:** `/gsd:execute-phase` -- 08-02-PLAN.md next
 
 ---
 
-**Project Status:** v2.0 roadmap complete -- Phase 8 ready to plan
+**Project Status:** Phase 8 in progress -- Plan 01 complete, Plans 02-03 remaining
 **Deployment:** https://okno.moonacle.com
 **GitHub:** https://github.com/samshennan/okno
