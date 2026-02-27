@@ -1,773 +1,791 @@
-# Feature Research: v1.1 "Make It Shine"
+# Feature Research: v2.0 "Multi-Tenant"
 
-**Domain:** Visual polish, monetization, and demo mode for a self-hosted digital photo frame
-**Researched:** 2026-02-15
-**Confidence:** HIGH for CSS animation techniques (well-understood domain), MEDIUM for Stripe integration (training data, not verified against latest docs), MEDIUM for demo mode patterns (design patterns, no single authoritative source)
+**Domain:** Multi-tenant photo frame with invite-based access and photo management grid
+**Researched:** 2026-02-27
+**Confidence:** HIGH for multi-tenant patterns (well-established domain), MEDIUM for Google OAuth multi-user constraints (verified against official docs but some details require testing), HIGH for photo grid UX (well-documented patterns)
 
-**Context:** v1.0 is shipped and functional. This research covers the six NEW feature areas for v1.1: Ken Burns effect, blurred background fill, date/time overlays, Stripe donate button, demo mode, and README polish. The existing slideshow uses vanilla HTML/CSS/JS with `<img>` elements, CSS opacity transitions, and an A/B swap pattern.
-
----
-
-## 1. Ken Burns Effect
-
-### What It Is
-
-The Ken Burns effect is a slow, continuous pan-and-zoom animation applied to still photographs, named after documentary filmmaker Ken Burns who popularized it. The effect gives static images a cinematic quality by slowly zooming in or out while optionally panning across the image. Apple TV screensavers, Google Photos Memories, and premium digital frames all use this technique.
-
-### Table Stakes (Expected behavior when this feature exists)
-
-| Behavior | Why Expected | Notes |
-|----------|--------------|-------|
-| Smooth, constant-speed animation | Jerky movement destroys the cinematic feel. Users associate Ken Burns with "slow and dreamy." | Use `linear` or gentle easing like `ease-in-out`. Never `ease` alone (jarring start). |
-| Animation duration matches slide interval | If photos change every 30s, the Ken Burns should run for the full 30s. Mismatched timing creates abrupt stops. | Dynamically set CSS `transition-duration` or `animation-duration` to match `currentIntervalSeconds`. |
-| Randomized direction per photo | Same zoom direction every time feels robotic. Each photo should get a randomly chosen zoom/pan combination. | Pick from a set of presets: zoom-in-center, zoom-in-top-left, zoom-out-center, pan-left-to-right, etc. |
-| Works with both object-fit modes | Must work in `cover` mode (already zoomed to fill) and `contain` mode (full photo with bars). | In `contain` mode, Ken Burns zoom must not exceed the viewport -- or better, use a wrapper `div` with `overflow: hidden`. |
-| Toggle on/off | Users may find the motion distracting, especially for a bedroom frame. Must be configurable via settings. | Add `kenBurns: boolean` to config schema. Already have toggle pattern from `onThisDay` and `portraitPairs`. |
-| No performance degradation on iPad | CSS transforms are GPU-accelerated but memory-intensive if misused. iPad Pro 1st Gen has limited GPU budget. | Use `transform: scale()` only (GPU-composited). Never animate `width`/`height` or `background-size` (causes layout reflow). |
-
-### Recommended Implementation
-
-**Technique:** CSS `transform: scale()` with `transform-origin` randomization, applied via CSS animation.
-
-**Parameters (industry standard from Apple TV, Google Photos, commercial frames):**
-
-| Parameter | Recommended Value | Range | Notes |
-|-----------|-------------------|-------|-------|
-| Zoom range | 1.0x to 1.15x (zoom in) or 1.15x to 1.0x (zoom out) | 1.05x - 1.25x max | Beyond 1.2x looks like an error, not a cinematic effect. Apple TV uses ~1.1x. |
-| Animation duration | Match slide interval (e.g., 30s) | 10s - 300s | Must equal `currentIntervalSeconds` to fill the full display time. |
-| Easing | `linear` or `cubic-bezier(0.25, 0.1, 0.25, 1.0)` | -- | `linear` is most common for Ken Burns. Subtle easing at start/end is acceptable. |
-| Transform origin | Random per photo from preset list | 9 positions (3x3 grid) | `top left`, `top center`, `top right`, `center left`, `center`, `center right`, `bottom left`, `bottom center`, `bottom right` |
-| Direction | Random: zoom-in OR zoom-out | -- | Mix of both feels most natural. 50/50 split or slight bias toward zoom-in. |
-
-**Preset Combinations (pick one randomly per photo):**
-
-```
-Preset 1: scale(1.0) -> scale(1.15), origin: top left       (zoom into top-left)
-Preset 2: scale(1.15) -> scale(1.0), origin: center          (zoom out from center)
-Preset 3: scale(1.0) -> scale(1.15), origin: bottom right    (zoom into bottom-right)
-Preset 4: scale(1.0) -> scale(1.12), origin: center left     (zoom into left side)
-Preset 5: scale(1.12) -> scale(1.0), origin: top center      (zoom out from top)
-Preset 6: scale(1.0) -> scale(1.15), origin: center right    (zoom into right side)
-```
-
-**CSS approach (preferred for performance):**
-
-```css
-@keyframes kenburns-in {
-  from { transform: scale(1.0); }
-  to   { transform: scale(1.15); }
-}
-
-@keyframes kenburns-out {
-  from { transform: scale(1.15); }
-  to   { transform: scale(1.0); }
-}
-
-.photo.kenburns {
-  animation-name: kenburns-in; /* or kenburns-out, set via JS */
-  animation-duration: 30s;     /* set dynamically to match interval */
-  animation-timing-function: linear;
-  animation-fill-mode: forwards;
-  transform-origin: top left;  /* set randomly via JS */
-}
-```
-
-**JS integration with existing code:**
-
-The existing `createPhotoElement()` creates `<img>` elements. Add Ken Burns by:
-1. Wrap `<img>` in a `<div>` with `overflow: hidden` (prevents zoom from exceeding container)
-2. Apply animation class to the `<img>` after it becomes `.active`
-3. Set `animation-duration` to match `currentIntervalSeconds`
-4. Randomize `transform-origin` and `animation-name` (in/out) via inline style
-
-**Critical: overflow: hidden wrapper is mandatory.** Without it, the 1.15x scale causes the image to overflow the viewport, creating visible edges or scrollbars. The wrapper clips the zoom cleanly.
-
-### Interaction with Existing Features
-
-| Feature | Interaction | Resolution |
-|---------|-------------|------------|
-| Crossfade transitions | Ken Burns must continue during crossfade. The outgoing photo keeps its animation while fading out. | Animation runs independently of opacity transition. No conflict. |
-| Dual portrait mode | Each portrait in a pair needs its own independent Ken Burns animation. | Apply animation to each `<img>` individually, not the container. Random origin per image. |
-| Display mode: contain | In `contain` mode, the photo has black bars. Ken Burns zoom would reveal the bars moving. | When `contain` mode + Ken Burns: switch to `cover` for the `<img>` inside the overflow wrapper. The wrapper is sized to the viewport, the image fills it, and Ken Burns zooms within. This is the standard approach. |
-| Blurred background | Both Ken Burns and blurred background are `transform`-based. | Apply Ken Burns only to the foreground image, not the background blur layer. |
-
-### Edge Cases
-
-- **Very short intervals (10s):** Ken Burns at 10s duration is fast and may feel jarring. Consider a minimum duration floor (15s) or reducing zoom range at short intervals (1.0x to 1.08x).
-- **Very long intervals (300s):** At 5 minutes, the zoom is so slow it is almost invisible. This is fine -- it is still more alive than a static image.
-- **Portrait photos in landscape frame:** Ken Burns can emphasize the pan direction (horizontal pan across a vertical photo). This is a differentiator -- most frames do not adjust Ken Burns direction based on photo orientation.
-
-### Complexity Assessment
-
-**LOW.** Pure CSS animation with JS randomization. No new dependencies. No backend changes. The existing `<img>` element pattern supports this directly. The main complexity is the `overflow: hidden` wrapper and coordinating animation duration with the slide interval.
+**Context:** v1.1 is shipped and running as a single-user app. This research covers the five NEW feature areas for v2.0: multi-tenant user support, invite code access control, photo management grid, per-user settings, and admin tooling. The existing app uses file-based JSON storage (tokens.json, cache.json, config.json), a single global OAuth2Client, and Express sessions via session-file-store.
 
 ---
 
-## 2. Blurred Background Fill
+## Feature Landscape
 
-### What It Is
+### Table Stakes (Users Expect These)
 
-Instead of showing black bars (letterboxing) when a photo does not match the display aspect ratio, show a blurred, dimmed copy of the same photo as the background. The sharp photo displays at correct aspect ratio in the center, with a soft, ambient version of itself filling the remaining space. Aura frames, Samsung Frame TV, and premium digital frame apps all use this technique.
-
-### Table Stakes (Expected behavior when this feature exists)
-
-| Behavior | Why Expected | Notes |
-|----------|--------------|-------|
-| Seamless color match | The background must be the same photo (not a solid color or different image). Users instantly notice color mismatch. | Use the same `<img>` source twice: one sharp foreground, one blurred background. |
-| Heavy blur (not subtle) | Background must be unrecognizable as a photo. It should feel like ambient color, not a duplicate image. | `filter: blur(40px)` minimum. 30-50px is the standard range. Below 20px, details are visible and distracting. |
-| Reduced brightness | Background must be noticeably darker than the foreground photo to create depth separation. | `filter: blur(40px) brightness(0.5)` or `brightness(0.4)`. Without dimming, the background competes with the foreground. |
-| Scale up to fill | The blurred background must fill the entire viewport with no gaps. Blur causes edge softening, so the background image must be scaled beyond 100%. | `transform: scale(1.3)` on the background image ensures blurred edges do not reveal the viewport boundary. |
-| Transition with photo changes | Background must crossfade in sync with the foreground photo. Mismatched timing creates a flash of wrong color. | Both foreground and background images transition together as a unit. Use a wrapper `<div>` for each photo that contains both layers. |
-| Toggle on/off | Some users prefer black bars (cleaner look, lower distraction). Must be configurable. | Add `blurredBackground: boolean` to config. When off, revert to current `object-fit: contain` behavior. |
-| Works with all photo orientations | Landscape photos on landscape screen have minimal bars (top/bottom). Portrait photos have large bars (left/right). Both need blurred fill. | Background always fills viewport regardless of foreground orientation. |
-
-### Recommended Implementation
-
-**Architecture change:** Currently, each photo is a single `<img>` element. With blurred background, each photo becomes a `<div>` containing two `<img>` elements:
-
-```html
-<!-- Current: single img -->
-<img class="photo active" src="blob:..." style="object-fit: cover;">
-
-<!-- Proposed: wrapper with background + foreground -->
-<div class="photo-wrapper active">
-  <img class="photo-bg" src="blob:..." />    <!-- blurred background -->
-  <img class="photo-fg" src="blob:..." />    <!-- sharp foreground -->
-</div>
-```
-
-**CSS:**
-
-```css
-.photo-wrapper {
-  position: absolute;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
-  overflow: hidden;
-  opacity: 0;
-  transition: opacity 1s ease-in-out;
-}
-
-.photo-wrapper.active {
-  opacity: 1;
-  z-index: 1;
-}
-
-.photo-bg {
-  position: absolute;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
-  object-fit: cover;
-  filter: blur(40px) brightness(0.45) saturate(1.2);
-  transform: scale(1.3); /* prevent blur edge reveal */
-  z-index: 0;
-}
-
-.photo-fg {
-  position: absolute;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
-  object-fit: contain; /* show full photo, no crop */
-  z-index: 1;
-}
-```
-
-**Key detail: same blob URL for both images.** The browser caches the blob in memory, so using the same `blob:` URL for both `<img>` elements does NOT double the network transfer. Memory cost is minimal since the GPU handles the blur filter.
-
-**Saturation boost:** Adding `saturate(1.2)` to the background filter slightly enriches colors, making the ambient background feel warm rather than washed out. This is a subtle premium touch used by Aura.
-
-### Interaction with Ken Burns
-
-When both Ken Burns and blurred background are active:
-- **Foreground photo:** Gets Ken Burns animation (scale + transform-origin)
-- **Background photo:** Should NOT get Ken Burns. It should remain static and blurred. Animating the background creates motion sickness.
-- The `overflow: hidden` on the wrapper clips Ken Burns zoom on the foreground while the background stays full-bleed.
-
-### Interaction with Display Modes
-
-| Current Mode | Blurred Background Behavior |
-|--------------|----------------------------|
-| `cover` (fill screen) | Blurred background is redundant (photo already fills screen). Do not show background layer. Or show it but foreground also fills -- effectively no visible change. **Recommendation: skip background layer in cover mode to save GPU.** |
-| `contain` (full photo, black bars) | This is the primary use case. Background fills where bars would be. |
-| `dual` (portrait pairs) | Each portrait photo in the pair could have its own blurred background behind it, or a single blurred composite. **Recommendation: skip blurred background in dual mode -- the two photos already fill most of the screen.** |
-
-### Performance Considerations (iPad Pro 1st Gen)
-
-- `filter: blur()` is GPU-composited in Safari. Performance is generally good.
-- The 40px blur radius is within the comfortable range for mobile GPUs. Beyond 80px, some devices show frame drops.
-- `transform: scale(1.3)` is GPU-accelerated. No layout cost.
-- Two `<img>` elements per photo instead of one doubles the DOM element count. With the existing A/B swap cleanup pattern, at most 4 `<img>` elements are in the DOM at once (2 per photo x 2 photos during transition). This is well within iPad capabilities.
-- **Potential concern:** If Ken Burns is also active, the foreground image has an animation running while the background has blur. That is 3 active GPU operations per photo (blur, scale, animation). Monitor for frame drops on actual iPad during testing.
-
-### Complexity Assessment
-
-**LOW-MEDIUM.** The CSS is straightforward but the architectural change from single `<img>` to wrapper `<div>` with two `<img>` elements touches the core `showSinglePhoto()` and `showDualPortraits()` functions. The A/B swap cleanup logic needs updating to remove wrapper divs instead of bare img tags. Blob URL revocation needs to handle two URLs per photo (though they are the same blob).
+These are the features without which multi-tenant simply does not work or feels broken. Every one is required before the first additional user can use the app.
 
 ---
 
-## 3. Date/Time Overlays
+#### TS-1: Per-User Google OAuth Authentication
 
-### What It Is
+**Why expected:** Each user brings their own Google Photos library. The app must handle N independent OAuth tokens, not a single shared one. Users will not tolerate seeing another person's photos.
 
-Semi-transparent text overlays on the slideshow showing:
-1. **Photo date:** When the displayed photo was taken (e.g., "March 14, 2021" or "Mar 2021")
-2. **Current clock:** Current time (e.g., "2:45 PM" or "14:45")
+**What users expect:**
+- Sign in with their own Google account
+- Their OAuth tokens are private and secure
+- Token refresh happens automatically (no manual re-authentication)
+- If their token expires or is revoked, only they are affected -- other users keep working
 
-These serve different purposes: photo date creates nostalgia ("Oh, that was three years ago!"), while the clock makes the frame a dual-purpose ambient display.
+**Complexity:** HIGH
 
-### 3a. Photo Date Overlay
+**Current state:** Single global `oAuth2Client` in `auth.js` with one `tokens.json` file. This is the biggest architectural change -- every module that calls `oAuth2Client.getAccessToken()` must be refactored to use a per-user token.
 
-#### Table Stakes
+**Dependencies on existing features:**
+- `auth.js` -- must be refactored from singleton OAuth client to per-user clients
+- `photo-cache.js` -- calls `oAuth2Client` for baseUrl refresh, must become per-user
+- `photo-proxy.js` -- calls `oAuth2Client.getAccessToken()`, must resolve which user's token to use
+- `picker.js` -- creates Picker sessions using the global client, must scope to user
 
-| Behavior | Why Expected | Notes |
-|----------|--------------|-------|
-| Formatted date, not raw timestamp | "March 14, 2021" not "2021-03-14T08:30:00Z". Human-readable is essential. | Use `toLocaleDateString()` with appropriate options. |
-| Positioned unobtrusively | Must not cover the main subject of the photo. Bottom-left or bottom-right corner is standard. | Bottom-left is most common in photo frame apps. Avoid center or top (conflicts with On This Day indicator). |
-| Semi-transparent background | Text alone is unreadable against bright photos. A dark pill/badge behind the text ensures legibility. | `background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(8px);` |
-| Fade in/out with photo | Overlay must transition with the photo, not appear abruptly or persist between photos. | Overlay is part of the photo wrapper `<div>`, so it inherits the opacity crossfade. |
-| Toggle on/off independently | Users may want clock but not photo date, or vice versa. | Separate config toggle: `photoDateOverlay: boolean` |
-| Handle missing dates gracefully | Some photos may lack `createTime` metadata. Do not show "Invalid Date" or "undefined". | If `createTime` is missing or invalid, hide the overlay for that photo. |
+**Implementation pattern:**
+Each user row in the database stores `access_token`, `refresh_token`, `token_expiry_date`. When a request comes in, the session identifies the user, and a per-user `OAuth2Client` is instantiated (or cached in memory) with that user's credentials. The `google-auth-library` supports creating multiple `OAuth2Client` instances with different credentials -- the library is not inherently singleton.
 
-#### Data Source
+**Critical constraint -- Google 100-user cap:** The Google Photos Picker API scope (`photospicker.mediaitems.readonly`) requires OAuth verification review. Unverified apps are limited to 100 lifetime users. This cap cannot be reset or increased without passing Google's verification process (3-5 business days, requires privacy policy, YouTube demo video, domain verification). For an invite-only friends-and-family phase, 100 users is generous. But this becomes a hard blocker if the app opens to public registration without verification.
 
-The `createTime` is already available:
-- Backend sends it as `X-Photo-CreateTime` response header (see `photo-proxy.js` line 107)
-- Frontend stores it as `img.dataset.createTime` (see `slideshow.html` line 751)
-- The On This Day indicator already parses and displays it (`updateOnThisDayIndicator()`)
-
-No backend changes needed. The data pipeline already exists.
-
-#### Recommended Format
-
-| Context | Format | Example |
-|---------|--------|---------|
-| Default | Month + Year | "March 2021" |
-| On This Day mode | Full date with year | "March 14, 2019" |
-| With clock overlay | Month + Year (compact) | "Mar 2021" |
-
-**Recommendation: "Month Year" format** (e.g., "March 2021"). Full date (day) adds clutter without proportional value for random slideshow. The year is the emotional payload -- seeing "2018" triggers memories more than seeing "March 14."
-
-#### Position
-
-```
-+--------------------------------------------------+
-|  [On This Day indicator]                          |
-|                                                    |
-|                                                    |
-|                    [PHOTO]                          |
-|                                                    |
-|                                                    |
-|  [Photo date: "March 2021"]    [Clock: "2:45 PM"] |
-+--------------------------------------------------+
-```
-
-Bottom-left for photo date, bottom-right for clock. Both use consistent pill style. This avoids conflict with the existing On This Day indicator (top-left) and control buttons (bottom-right when visible, but auto-hidden).
-
-### 3b. Clock Overlay
-
-#### Table Stakes
-
-| Behavior | Why Expected | Notes |
-|----------|--------------|-------|
-| Updates every minute | Clock must stay current. Stale time is worse than no clock. | `setInterval` at 60-second intervals. Update DOM text only, no re-render. |
-| 12-hour or 24-hour format | Respect user/locale preference. | Use `toLocaleTimeString()` which respects device locale. Or provide a toggle. |
-| Consistent style with photo date | Both overlays should look like they belong together. Same font, size, pill style. | Shared CSS class for overlay pills. |
-| Does not interfere with sleep modes | Clock should not prevent the screen from sleeping if a sleep schedule is implemented later. | Clock is purely cosmetic DOM update. No wake lock implications. |
-| Toggle on/off independently | Separate from photo date overlay. | `clockOverlay: boolean` in config. |
-
-#### Implementation
-
-```html
-<!-- Inside the slideshow container, fixed position -->
-<div id="clockOverlay" class="slideshow-overlay bottom-right">
-  <span id="clockTime">2:45 PM</span>
-</div>
-
-<div id="photoDateOverlay" class="slideshow-overlay bottom-left">
-  <span id="photoDate">March 2021</span>
-</div>
-```
-
-```css
-.slideshow-overlay {
-  position: fixed;
-  z-index: 50;
-  font-family: 'Inter', sans-serif;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.9);
-  background: rgba(0, 0, 0, 0.45);
-  backdrop-filter: blur(12px);
-  padding: 8px 16px;
-  border-radius: 10px;
-  pointer-events: none;
-  transition: opacity 0.5s;
-}
-
-.slideshow-overlay.bottom-left {
-  bottom: 1.5rem;
-  left: 1.5rem;
-}
-
-.slideshow-overlay.bottom-right {
-  bottom: 1.5rem;
-  right: 1.5rem;
-}
-```
-
-**Design note:** The overlay style should match the existing On This Day indicator (`background: rgba(0, 0, 0, 0.55); backdrop-filter: blur(12px); border-radius: 10px;`). Consistent visual language across all overlays.
-
-### Complexity Assessment
-
-**LOW.** Both overlays are simple DOM elements with CSS positioning. Photo date data already flows through the system. Clock is a trivial `setInterval`. The only complexity is ensuring overlays hide when controls are visible (to avoid visual clutter), and show/hide based on config toggles.
+**Confidence:** HIGH -- Google auth-library multi-instance pattern verified against [official Node.js client docs](https://github.com/googleapis/google-api-nodejs-client). 100-user cap verified against [Google Cloud unverified apps documentation](https://support.google.com/cloud/answer/7454865).
 
 ---
 
-## 4. Stripe Donate Button
+#### TS-2: Per-User Data Isolation
 
-### What It Is
+**Why expected:** Users expect complete privacy. User A must never see User B's photos, settings, or any indication that User B exists. This is the single most important guarantee in a multi-tenant app handling personal photos.
 
-A payment button allowing visitors to make one-time donations ("tips") to support development. The project context specifies using an existing Stripe account (moonacle). This replaces the current placeholder PayPal link in the feedback modal.
+**What users expect:**
+- Their photos are only visible to them
+- Their settings do not affect other users' slideshows
+- No accidental data leakage (e.g., photos from the wrong user appearing)
+- Deleting their account removes all their data
 
-### Table Stakes (Expected behavior for a donate button)
+**Complexity:** HIGH
 
-| Behavior | Why Expected | Notes |
-|----------|--------------|-------|
-| Pre-set amount options | Users do not want to think about how much. Provide 3-4 options. | Standard pattern: $5, $10, $25, custom. Three specific amounts plus a custom field. |
-| Secure payment flow | Users must feel safe entering payment info. Stripe's hosted checkout handles this. | Never collect card details on your own page. Use Stripe Checkout (hosted) or Payment Links. |
-| Thank you confirmation | After payment, show a warm confirmation message. Do not just redirect to a blank page. | Stripe Checkout has `success_url` parameter. Redirect to a thank-you page or back to the app with a success state. |
-| No account required for donor | Do not force donors to create an account. One-time payment should be frictionless. | Stripe Checkout supports guest checkout by default. |
-| Mobile-friendly | The donate flow must work on phones and tablets. | Stripe Checkout is fully responsive. No additional work needed. |
-| Minimal backend footprint | This is a personal project, not a SaaS. Do not over-engineer payment infrastructure. | Use Stripe Payment Links (zero backend) or Stripe Checkout with one server endpoint. |
+**Current state:** Everything is global: one `cache.json`, one `config.json`, one `tokens.json`. Moving to per-user storage is a database migration, not a code tweak.
 
-### Recommended Approach: Stripe Payment Links (Simplest)
+**Dependencies on existing features:**
+- `photo-cache.js` -- currently a singleton module with in-memory + JSON persistence
+- `config.js` -- currently a singleton with one global config
+- `photo-proxy.js` -- currently picks random photo from global cache
 
-**Stripe Payment Links** are pre-built, hosted payment pages that require ZERO backend code. You create them in the Stripe Dashboard and get a URL. No API keys on your server, no webhook handling, no checkout session creation.
+**Implementation pattern:**
+Every database query must be scoped by `user_id`. The data model becomes:
 
-**How it works:**
-1. Create 3-4 Payment Links in Stripe Dashboard (one per amount: $5, $10, $25)
-2. Each link is a URL like `https://buy.stripe.com/xxxxxxxxxxxx`
-3. Frontend opens the link in a new tab or redirects
-4. Stripe handles everything: payment form, processing, receipt
-5. Donor is redirected to a `success_url` you specify (e.g., `https://okno.moonacle.com/?donated=true`)
+| Table | Key columns | Isolation |
+|-------|-------------|-----------|
+| `users` | `id`, `email`, `google_id`, `display_name` | N/A (admin-visible) |
+| `tokens` | `user_id`, `access_token`, `refresh_token`, `expiry` | FK to users |
+| `photos` | `user_id`, `google_media_id`, `base_url`, `create_time`, `width`, `height` | FK to users |
+| `settings` | `user_id`, `key`, `value` | FK to users |
+| `invite_codes` | `code`, `created_by`, `used_by`, `expires_at` | Admin-managed |
 
-**Advantages over Stripe Checkout API:**
-- Zero backend code (no API keys in .env, no `/api/create-checkout-session` endpoint)
-- Zero npm dependencies (no `stripe` package)
-- No webhook handling needed
-- Works immediately in production
-- Can be set up in 5 minutes from Stripe Dashboard
+Every query pattern: `SELECT ... FROM photos WHERE user_id = ?`. Never `SELECT ... FROM photos` without a user filter.
 
-**Disadvantage:**
-- Cannot dynamically create custom amounts (each amount is a separate link)
-- Less control over the UI (Stripe's hosted page, not your design)
-
-**Recommendation: Use Payment Links.** For a portfolio project with a donate button, the zero-backend approach is correct. Over-engineering payment infrastructure for a tip jar is an anti-pattern.
-
-### Alternative: Stripe Checkout API (More Control)
-
-If custom amounts or tighter UX integration is desired:
-
-```
-Frontend                    Backend                     Stripe
---------                    -------                     ------
-User clicks "$10"  ------>  POST /api/donate
-                            { amount: 1000 }  -------> Create Checkout Session
-                            <-- session.url  <--------- Return checkout URL
-User redirected to ------> Stripe Checkout page
-                            User pays
-                            Redirected to success_url
-```
-
-This requires:
-- `stripe` npm package on backend
-- `STRIPE_SECRET_KEY` in .env
-- One API endpoint: `POST /api/donate` that creates a Checkout Session
-- CSP header update to allow Stripe scripts (if using embedded mode)
-
-**Verdict: Payment Links for v1.1.** If custom amounts become important later, upgrade to Checkout API. The migration is incremental, not a rewrite.
-
-### UX Pattern for Donate Button Placement
-
-| Location | Pros | Cons | Recommendation |
-|----------|------|------|----------------|
-| Home page (index.html) | Visible to all visitors, including interviewers | Can feel pushy on main page | YES -- small, tasteful link in footer area |
-| Settings page | Natural for "support" section | Low traffic page | YES -- secondary placement |
-| Feedback modal (current) | Already has "Support Us" option | Modal is for bug reports; donation feels out of place | REPLACE current PayPal placeholder with Stripe link |
-| Slideshow overlay | Visible during core experience | Distracting, ruins the frame experience | NO -- never put commerce in the ambient display |
-
-**Recommended placement:** Replace the current PayPal placeholder in the feedback modal "Support Us" section. Also add a small, subtle link in the footer of index.html ("Support Okno" with a heart icon). Do NOT add anything to the slideshow itself.
-
-### Amount Options (Industry Standard for Tip Jars)
-
-| Amount | Label | Psychology |
-|--------|-------|------------|
-| $5 | "Buy me a coffee" | Low barrier, most common donation tier |
-| $10 | "Support development" | Middle tier, feels substantial but accessible |
-| $25 | "Champion supporter" | High tier for enthusiastic supporters |
-
-Three options is the sweet spot. Two feels limiting. Four or more creates decision paralysis. The existing "donation-amount" CSS class in index.html suggests the UI scaffolding is already partially built.
-
-### Thank You Flow
-
-After successful donation:
-1. Stripe redirects to `https://okno.moonacle.com/?donated=true`
-2. Home page detects `?donated=true` URL param
-3. Show a warm thank-you message (toast or inline): "Thank you for supporting Okno! Your generosity keeps this project alive."
-4. Clean URL param from address bar (`history.replaceState`)
-
-### Complexity Assessment
-
-**LOW** (with Payment Links approach). Create links in Stripe Dashboard, update HTML with URLs, add thank-you URL param detection. No backend changes, no new dependencies.
-
-**MEDIUM** (with Checkout API approach). One new endpoint, one new npm dependency, env variable, webhook optionally.
+**Confidence:** HIGH -- standard multi-tenant pattern, no novel complexity.
 
 ---
 
-## 5. Demo Mode
+#### TS-3: User Session Management
 
-### What It Is
+**Why expected:** Users need persistent login across browser sessions. The iPad photo frame must stay authenticated indefinitely. A user opening their settings page on a phone must have their own session.
 
-A mode that allows the full Okno slideshow experience WITHOUT requiring Google authentication or photo selection. Uses bundled sample photos so anyone (especially interviewers during portfolio reviews) can experience the product immediately.
+**What users expect:**
+- Stay logged in on the iPad (the frame runs unattended for months)
+- Settings changes on phone reflect on their iPad
+- Logging out on one device does not log out others (unless they choose to)
 
-### Why It Matters for Portfolio
+**Complexity:** MEDIUM
 
-This is arguably the most important v1.1 feature from a career perspective. Without demo mode:
-- Interviewer visits `okno.moonacle.com` --> sees a login page --> bounces
-- Interviewer cannot experience the product without the developer's Google account
+**Current state:** Express sessions via `session-file-store` with 1-year TTL. The session stores `authenticated: true` but not which user. Works for single-user but has no user identity.
 
-With demo mode:
-- Interviewer visits `okno.moonacle.com` --> clicks "Try Demo" --> sees beautiful slideshow with Ken Burns, blurred backgrounds, overlays --> understands the product in 10 seconds
+**Dependencies on existing features:**
+- `server.js` -- session middleware already configured
+- All routes that check `req.session.authenticated` must now check `req.session.userId`
 
-**Demo mode is the difference between "I built a photo frame" (words) and the interviewer EXPERIENCING a photo frame (evidence).**
+**Implementation pattern:**
+After OAuth callback, store `req.session.userId = user.id`. All subsequent route handlers resolve the user from the session. The existing `session-file-store` works for small user counts (under 100 concurrent), but could be replaced with a DB-backed session store if file I/O becomes a bottleneck.
 
-### Table Stakes (Expected behavior for a demo mode)
+Sessions must be long-lived for iPads in kiosk mode. The current 1-year TTL is appropriate. For phone/laptop management, shorter sessions (30 days) may be more appropriate, but this is a polish detail, not a blocker.
 
-| Behavior | Why Expected | Notes |
-|----------|--------------|-------|
-| Works without any authentication | The entire point is zero-friction access. No Google sign-in, no account creation. | Must bypass auth check entirely for demo routes. |
-| High-quality sample photos | Demo photos must be beautiful -- they represent the product's visual quality. Low-quality or placeholder images undermine the demo. | Use 15-25 royalty-free landscape/portrait photos. Mix of orientations. Include photos with different dates for the date overlay feature. |
-| All features functional | Ken Burns, blurred background, date overlay, crossfade, portrait pairs -- everything must work in demo mode. | Demo photos need metadata (createTime, width, height) just like real Google Photos items. |
-| Clear "Demo Mode" indicator | Users must know they are in demo mode, not the real product. Prevents confusion. | Subtle banner or badge: "Demo Mode -- Sign in with Google for your own photos" |
-| Easy exit to real product | After experiencing the demo, the path to authentication should be obvious. | "Sign in with Google" CTA visible from demo mode. |
-| Does not interfere with real data | Demo mode must not touch the real photo cache, tokens, or config. | Separate demo photo endpoint or query parameter to distinguish demo requests. |
-
-### Sample Photo Strategy
-
-**Source options (royalty-free, no attribution required):**
-- Unsplash License photos (free for commercial use, no attribution required for most)
-- Pexels License photos (similar terms)
-- Self-shot photos (the developer's own non-personal photos)
-
-**Photo requirements:**
-| Requirement | Why | Count |
-|-------------|-----|-------|
-| Landscape orientation | Primary display orientation for iPad | 12-15 photos |
-| Portrait orientation | Test portrait pair mode and blurred background | 6-8 photos |
-| Various "dates" (fake metadata) | Test date overlay and On This Day features | Spread across years: 2018-2025 |
-| High resolution | iPad Pro is 2732x2048. Photos should be at least 2048px on longest edge. | All photos |
-| Varied subjects | Show versatility: landscapes, people, food, architecture, pets | Mix |
-
-**Storage approach:**
-- Store sample photos in `/public/demo/` directory (served as static files)
-- Create a `demo-photos.json` manifest with metadata (filename, createTime, width, height, isPortrait)
-- Total size: ~15-25 photos at ~500KB each = 7-12MB. Acceptable for a web app.
-
-### Architecture
-
-Two approaches:
-
-**Approach A: Separate demo endpoint (recommended)**
-```
-GET /api/photo/random?demo=true
-  --> Serves from /public/demo/ instead of Google Photos cache
-  --> Returns same headers (X-Photo-CreateTime, etc.) from manifest
-
-Frontend: /slideshow.html?demo=true
-  --> Uses demo=true query param on all photo requests
-  --> Shows "Demo Mode" indicator
-  --> Skips auth check
-```
-
-**Approach B: Demo as a separate route**
-```
-GET /demo --> serves slideshow.html with demo flag
-GET /api/demo/random --> serves demo photos
-
-Frontend: /demo page
-  --> Completely separate from /slideshow.html
-  --> Own URL, own behavior
-```
-
-**Recommendation: Approach A (query parameter).** Reuses 100% of the slideshow frontend code. The only difference is the photo source. This avoids duplicating the slideshow page and ensures demo mode always matches the real product behavior.
-
-### Demo Mode Flow
-
-```
-1. Visitor arrives at okno.moonacle.com
-2. Home page shows:
-   - "Sign in with Google" (primary action -- for real users)
-   - "Try Demo" (secondary action -- for interviewers)
-3. "Try Demo" links to /slideshow.html?demo=true
-4. Slideshow loads with demo photos (Ken Burns, blur, overlays all active)
-5. "Demo Mode" badge visible in corner
-6. After exploring, user can:
-   - Click demo badge to return home and sign in
-   - Or just close the tab (interviewer has seen enough)
-```
-
-### Backend Changes
-
-Minimal:
-1. `photo-proxy.js`: Add demo handler to `GET /random` -- if `req.query.demo === 'true'`, serve from demo manifest instead of Google cache
-2. No auth middleware on demo requests
-3. Demo photo files served via existing `express.static`
-
-### Edge Cases
-
-- **Demo + real mode confusion:** If a user is authenticated AND visits `?demo=true`, still show demo photos (not their real photos). Demo is demo.
-- **Demo photos preloading:** The existing preload pattern works unchanged. Demo photos are just a different source.
-- **Demo mode settings:** Demo should use optimal settings (Ken Burns ON, blurred background ON, overlays ON, 15-second interval) regardless of saved config. Show the product at its best.
-- **On This Day in demo:** Set some demo photo dates to today's month+day so the On This Day feature works in demo mode.
-
-### Complexity Assessment
-
-**MEDIUM.** Requires: curating and storing 15-25 sample photos, creating a manifest file, modifying the photo endpoint to serve demo photos, adding demo flag to the frontend, adding the "Try Demo" button to the home page, and adding the demo mode indicator to the slideshow. No complex logic, but several touchpoints across frontend and backend.
+**Confidence:** HIGH -- existing session infrastructure only needs minor extension.
 
 ---
 
-## 6. README as Portfolio Artifact
+#### TS-4: Invite Code Access Control
 
-### What It Is
+**Why expected:** The app owner (Sam) wants to control who can register. Open registration exposes the app to abuse and exceeds the Google 100-user cap. Invite codes are the simplest gating mechanism that still feels welcoming.
 
-Transform the GitHub README from a basic project description into a polished portfolio piece that demonstrates product leadership, technical depth, and design taste. The README is often the FIRST thing an interviewer sees -- before the live demo, before the code.
+**What users expect:**
+- Receive an invite code from the app owner (via text/email/in person)
+- Enter the code when first visiting the app
+- Code works once (or a limited number of times)
+- Clear error message if code is invalid or expired
+- After entering a valid code, proceed directly to Google sign-in
 
-### Table Stakes (Expected for a portfolio-quality README)
+**Complexity:** LOW
 
-| Element | Why Expected | Notes |
-|---------|--------------|-------|
-| Hero image/GIF | Visual proof the product exists and looks good. A README without visuals is a red flag for a visual product. | Animated GIF or screenshot showing the slideshow in action. Ken Burns + blurred background in one frame. |
-| One-line description | Interviewer scanning 50 repos needs to understand what this is in 5 seconds. | "Turn an old iPad into a Google Photos digital photo frame." |
-| Feature list with screenshots | Each feature gets a brief description and visual proof. | Ken Burns, blurred background, On This Day, portrait pairs, date overlay, demo mode. |
-| Architecture diagram | Shows system design thinking. Backend, frontend, Google API, deployment. | Mermaid diagram or image. Keep it clean -- 5-7 components max. |
-| Tech stack section | What technologies and why. | Node.js, Express, vanilla JS, Google Photos Picker API, PWA. |
-| Live demo link | Interviewer can experience it immediately. | Link to `okno.moonacle.com` (demo mode). |
-| Setup instructions | Shows the project is real and reproducible. | Environment variables, Google Cloud setup, deployment steps. |
-| Product decisions section | THIS is the portfolio gold. Why certain features were built, what was cut, what tradeoffs were made. | 3-5 key decisions with rationale. "Why vanilla JS instead of React," "Why On This Day exists," "What I chose NOT to build." |
+**Current state:** No access control. The `ALLOWED_EMAILS` env var provides an email allowlist, but this requires knowing users' emails in advance and doesn't scale.
 
-### Differentiators (Elevate above typical READMEs)
+**Dependencies on existing features:**
+- `auth.js` -- the login flow must check for a valid invite code before initiating OAuth
+- `index.html` -- the landing page must show an invite code input for new users
 
-| Element | Value | Notes |
-|---------|-------|-------|
-| "Product Thinking" section | Explicitly frame decisions as product leadership evidence. Interviewers hiring PMs want to see prioritization, not just engineering. | "Table stakes vs differentiators" framing. "What I scoped out and why." |
-| Before/after comparison | Show the visual journey from v1.0 to v1.1. | Side-by-side: black bars vs blurred background, static vs Ken Burns. |
-| Metrics / facts | "Shipped v1.0 in 7 days," "Runs 24/7 on a 2015 iPad," "2000 photos cached." | Concrete numbers are more impressive than vague claims. |
-| Problem statement | Start with the human problem, not the technology. | "I wanted to see my old photos without scrolling through my phone. I had an old iPad sitting in a drawer." |
+**Implementation pattern (recommended):**
 
-### Anti-Features (Do NOT include in README)
-
-| Anti-Feature | Why Avoid |
-|--------------|-----------|
-| Verbose installation instructions | This is a portfolio piece, not an open-source project seeking contributors. Keep setup to essentials. |
-| Contributing guidelines | Same -- this is not seeking contributors. Omit CONTRIBUTING.md. |
-| Badge spam (CI, coverage, etc.) | No CI exists. Fake badges are worse than no badges. |
-| Exhaustive API documentation | Interviewers do not want to read API docs. Link to code if they are curious. |
-| Changelog | Not relevant for portfolio context. The commit history is the changelog. |
-
-### Recommended README Structure
-
-```markdown
-# Okno -- A Window in Time
-
-> Turn an old iPad into a Google Photos digital photo frame.
-
-[Hero GIF or screenshot]
-
-[Live Demo](https://okno.moonacle.com) | [Architecture](#architecture)
-
-## The Problem
-[2-3 sentences about why this exists]
-
-## Features
-[Screenshots/GIFs for each major feature with 1-line descriptions]
-
-## Architecture
-[Mermaid diagram: iPad --> nginx --> Express --> Google Photos API]
-
-## Product Decisions
-[3-5 key decisions with "chose X because Y" format]
-
-## Tech Stack
-[Table: technology, purpose, why chosen]
-
-## Setup
-[Minimal: clone, env vars, run]
-
-## Built By
-[Your name, role, link to portfolio]
+```
+Invite code schema:
+  code: string (8-char alphanumeric, case-insensitive)
+  created_by: user_id (admin who generated it)
+  created_at: timestamp
+  expires_at: timestamp (optional, default 30 days)
+  max_uses: integer (default 1)
+  use_count: integer (default 0)
+  used_by: array of user_ids
 ```
 
-### Screenshot/GIF Strategy
+Flow:
+1. New visitor arrives at okno.moonacle.com
+2. App detects no active session -- shows landing page with invite code input
+3. User enters code -- backend validates (exists, not expired, not fully used)
+4. Valid: code is "consumed" (use_count++), session gets `pendingInviteCode`, redirect to Google OAuth
+5. After OAuth callback: create user record, link invite code usage, redirect to Picker flow
+6. Invalid: show clear error ("Invalid or expired invite code")
 
-For the hero image and feature screenshots:
-- **Screenshot tool:** Safari on iPad, or browser dev tools in iPad emulation mode
-- **GIF recording:** Use a screen recording tool, convert to GIF. Keep under 5MB for GitHub rendering.
-- **Dimensions:** 1280x960 or similar 4:3 ratio matches iPad landscape
-- **Content:** Use demo mode photos (not personal family photos for privacy)
+Admin generates codes via CLI: `node admin.js create-invite --uses 1 --expires 30d`
 
-### Complexity Assessment
+**UX best practices from research:**
+- Keep the code short (6-8 characters) and case-insensitive for easy sharing via text
+- Show the code in a large, clear font on the input page
+- Pre-fill the code if it's in the URL: `okno.moonacle.com/?invite=ABC123`
+- Support URL-based invite links: the admin can share a direct URL that includes the code
 
-**LOW** (for the content creation), **MEDIUM** (for the screenshot/GIF production). The README itself is just markdown. The effort is in capturing compelling visuals and writing concise product narratives. This should be done LAST, after all visual features are implemented, so screenshots show the final product.
+**Confidence:** HIGH -- straightforward CRUD pattern, no external dependencies.
+
+---
+
+#### TS-5: Per-User Slideshow (Photo Proxy Scoped to User)
+
+**Why expected:** When User A's iPad loads `/slideshow.html`, it must only receive User A's photos. The slideshow URL is the same for all users, but the session determines whose photos are served.
+
+**What users expect:**
+- Opening the slideshow shows only their photos
+- Photo transitions, Ken Burns, blurred background all work exactly as before
+- "On This Day" mode shows their photos from today's date
+- Portrait pair mode works with their photo library
+
+**Complexity:** MEDIUM
+
+**Current state:** `/api/photo/random` calls `photoCache.getRandomItem()` from the global cache. Must become `getRandomItem(userId)`.
+
+**Dependencies on existing features:**
+- `photo-proxy.js` -- must extract `userId` from session, pass to cache layer
+- `photo-cache.js` -- all methods must accept `userId` parameter
+- `slideshow.html` -- no changes needed (it calls `/api/photo/random` which the backend resolves)
+- baseUrl refresh timer -- must run per-user, not globally
+
+**Implementation pattern:**
+The in-memory cache becomes a `Map<userId, UserPhotoCache>`. The `refreshBaseUrls()` function runs per-user, with staggered timing to avoid API rate limits. When a user's iPad makes a request, the backend resolves their userId from the session, looks up their photo cache, and serves a random photo from their collection.
+
+**Critical consideration -- per-user refresh scheduling:**
+Currently a single `setInterval` refreshes all baseUrls every 50 minutes. With N users, this becomes N independent refresh schedules. Options:
+1. **On-demand refresh:** Only refresh when a user's iPad makes a request and their URLs are stale. Pro: no unnecessary API calls. Con: first request after 60 minutes has latency.
+2. **Active-user refresh:** Track which users have active slideshow sessions (heartbeat), only refresh for active users. Pro: efficient. Con: heartbeat adds complexity.
+3. **Simple interval per user:** When user's photos are loaded into memory, start their refresh timer. Pro: simple. Con: refreshes for users whose iPads are off.
+
+**Recommendation:** Start with on-demand refresh (option 1). It's simplest and the latency spike is acceptable (one slow photo load every ~60 min per user). Add active-user tracking later if needed.
+
+**Confidence:** HIGH -- the architectural pattern is straightforward, and the frontend needs zero changes.
+
+---
+
+#### TS-6: Database Migration (File-Based to DB)
+
+**Why expected:** Not user-facing, but a prerequisite for everything else. File-based JSON cannot support concurrent multi-user access safely.
+
+**What happens without it:**
+- Two users writing to `cache.json` simultaneously causes data corruption
+- No foreign key relationships, no transactions, no atomic updates
+- No way to query "all photos for user X" without loading entire cache
+
+**Complexity:** MEDIUM
+
+**Current state:** Three JSON files: `tokens.json`, `cache.json`, `config.json`.
+
+**Dependencies on existing features:**
+- Every module that reads/writes JSON files must be refactored
+- The first user's existing data must be migrated automatically
+
+**Implementation pattern:**
+SQLite is the natural choice for this app:
+- File-based (no separate database server)
+- WAL mode supports concurrent reads/writes safely
+- Built-in with `better-sqlite3` (synchronous, fast, zero config)
+- Easy to back up (single file)
+- Sufficient for under 100 users with under 2000 photos each
+
+The migration script reads existing JSON files, creates the first user account (email from tokens.json), and imports all cached photos and config as that user's data. This runs once on first startup after the upgrade.
+
+**Confidence:** HIGH -- SQLite is the standard choice for this scale. Verified via established patterns.
+
+---
+
+#### TS-7: Auto-Migration of Existing Data
+
+**Why expected:** The app owner (Sam) has ~137+ photos cached, OAuth tokens, and configured settings. Upgrading to v2.0 must not lose this data or require re-authentication.
+
+**What users expect:**
+- After v2.0 upgrade, the existing slideshow continues working
+- No need to re-authenticate with Google
+- No need to re-select photos
+- All settings (Ken Burns, blur, etc.) preserved
+
+**Complexity:** MEDIUM
+
+**Current state:** `tokens.json`, `cache.json`, `config.json` in the project root.
+
+**Implementation pattern:**
+On first startup, if the DB is empty and legacy JSON files exist:
+1. Create user record from `tokens.json` (extract email from stored token, or from Google userinfo API)
+2. Import `cache.json` media items as that user's photos
+3. Import `config.json` settings as that user's settings
+4. Rename JSON files to `.migrated` (keep as backup, stop reading them)
+
+**Confidence:** HIGH -- deterministic migration from known formats.
+
+---
+
+### Differentiators (Competitive Advantage)
+
+These features are not required for multi-tenant to function, but they make Okno stand out as a polished, thoughtful product. Prioritize based on impact vs. effort.
+
+---
+
+#### D-1: Photo Management Grid
+
+**Why valuable:** Currently, the only way to manage photos is to start a new Picker session and re-select. Users want to see what they've already selected and remove individual photos without re-doing the entire selection process.
+
+**What it looks like (based on research of Google Photos, Apple Photos, Immich, and Lychee):**
+
+```
+/manage page:
+
+  [Your Photos]                              [137 photos]
+
+  +--------+ +--------+ +--------+ +--------+
+  |        | |        | |        | |        |
+  | thumb  | | thumb  | | thumb  | | thumb  |
+  |        | |        | |        | |        |
+  +--------+ +--------+ +--------+ +--------+
+  +--------+ +--------+ +--------+ +--------+
+  |        | |        | |        | |        |
+  | thumb  | | thumb  | | thumb  | | thumb  |
+  |        | |        | |        | |        |
+  +--------+ +--------+ +--------+ +--------+
+  ... (scrollable grid)
+
+  [Select Mode]  |  [Add More Photos]
+```
+
+**Grid layout pattern (recommended):**
+- Uniform square grid with CSS Grid: `grid-template-columns: repeat(auto-fill, minmax(120px, 1fr))`
+- Square thumbnails using `aspect-ratio: 1/1` + `object-fit: cover`
+- This crops photos to squares for consistent grid appearance (same as Google Photos, Apple Photos, Instagram)
+- 96%+ browser support for `aspect-ratio` (only IE lacks it, which is irrelevant)
+
+**Selection interaction pattern (based on Google Photos UX):**
+1. **Default mode:** Grid shows thumbnails. Tapping a photo opens a larger preview with metadata (date taken, dimensions)
+2. **Selection mode:** Activated by a "Select" button or long-press on a thumbnail. Checkboxes appear on each thumbnail. Tapping toggles selection.
+3. **Batch actions:** When photos are selected, a toolbar appears: "Remove (N)" button. Possibly "Select All" / "Deselect All"
+4. **Shift-click range select:** On desktop, hold Shift and click to select a range (standard pattern in Google Photos, Lightroom, file managers)
+
+**Thumbnail generation strategy:**
+The app does not store photo files locally. Thumbnails must come from Google's baseUrl with size parameters. Google's Picker API supports appending `=w120-h120-c` (120x120 cropped) or `=s120` (120px on longest side) to baseUrls. This means:
+- Thumbnails are loaded on-demand from Google, not pre-generated
+- Each thumbnail request requires a valid (non-expired) baseUrl + auth token
+- The backend must proxy thumbnails the same way it proxies slideshow photos
+- For performance, load thumbnails lazily (only when scrolled into view)
+
+**New endpoint needed:**
+```
+GET /api/photo/thumbnail/:photoId
+  - Resolves photo by ID from user's cache
+  - Appends =w240-h240-c to baseUrl (240x240 cropped square)
+  - Proxies through backend with auth token
+  - Returns image binary
+```
+
+**Performance considerations:**
+- With 137 photos (current), a full grid loads 137 thumbnail requests. At 240x240 JPEG that's ~10-30KB each = 1.5-4MB total. Manageable.
+- With 2000 photos (Picker API max), that's 2000 requests. Needs lazy loading via `IntersectionObserver` or `loading="lazy"` on img tags.
+- Virtual scrolling (render only visible rows) is overkill for under 2000 photos but could be considered if performance is an issue.
+
+**Photo removal behavior:**
+Removing a photo from Okno does NOT delete it from Google Photos. It only removes the cached reference. The photo is no longer shown in the slideshow or grid. This distinction must be clearly communicated in the UI: "Remove from Okno" not "Delete."
+
+**Complexity:** MEDIUM-HIGH
+
+**Dependencies on existing features:**
+- `photo-cache.js` (or its DB replacement) -- needs a per-user photo lookup and deletion API
+- `photo-proxy.js` -- needs a new thumbnail endpoint
+- New HTML page: `manage.html` or added as a tab/section in the existing settings page
+- Must use the same neumorphic design system as `settings.html` and `index.html`
+
+**Confidence:** HIGH for grid layout/UX patterns. MEDIUM for Google baseUrl thumbnail sizing parameters (based on legacy Library API docs -- the Picker API likely uses the same `=w{N}-h{N}-c` parameters but should be verified during implementation).
+
+---
+
+#### D-2: URL-Based Invite Links
+
+**Why valuable:** Instead of telling someone "go to okno.moonacle.com and enter code ABC123", the admin can share a link: `okno.moonacle.com/?invite=ABC123`. The code is pre-filled. One tap to start.
+
+**What it looks like:**
+- Admin generates invite code via CLI
+- CLI outputs both the code and the full URL
+- Recipient clicks link, sees "You've been invited! Sign in with Google to set up your photo frame."
+- Google OAuth starts immediately (or after one confirmation click)
+
+**Complexity:** LOW (just URL parameter parsing on the landing page)
+
+**Dependencies:** TS-4 (invite code system must exist first)
+
+**Confidence:** HIGH -- trivial frontend addition.
+
+---
+
+#### D-3: User Profile / Account Page
+
+**Why valuable:** Users need a place to see their account info, manage their Google connection, and delete their account. This is both a usability feature and a trust/privacy signal.
+
+**What it looks like:**
+```
+/account page:
+
+  [Profile]
+  Name: Sam Shennan
+  Email: sam@example.com
+  Connected since: Feb 8, 2026
+
+  [Google Photos]
+  Photos cached: 137
+  Last sync: 2 minutes ago
+
+  [Danger Zone]
+  [Disconnect Google Account]    -- Revokes OAuth, clears photos
+  [Delete My Account]            -- Removes all data from Okno
+```
+
+**Complexity:** LOW-MEDIUM
+
+**Dependencies:**
+- Database must store user profile info (from Google userinfo API at OAuth time)
+- Account deletion must cascade: remove user, tokens, photos, settings, sessions
+
+**Confidence:** HIGH -- standard account management pattern.
+
+---
+
+#### D-4: Graceful Token Expiry Handling Per User
+
+**Why valuable:** With multiple users, token issues become per-user problems instead of app-wide failures. User A's expired token must not crash User B's slideshow.
+
+**What users expect:**
+- If their Google token is revoked, they see a clear message on their slideshow: "Re-authenticate to continue"
+- Other users' slideshows are unaffected
+- Re-authentication is simple (tap a button, sign in again)
+
+**What the slideshow shows during token failure:**
+```
+[Last successfully loaded photo stays visible]
+
+  Overlay: "Connection to Google Photos lost.
+            Open Settings to reconnect."
+
+  [The slideshow pauses but doesn't crash]
+```
+
+**Complexity:** MEDIUM
+
+**Current state:** Token errors crash the entire photo-proxy response with a 502. In multi-user, this must become a per-user graceful degradation.
+
+**Implementation pattern:**
+- Photo-proxy catches auth errors (401, 403) and returns a specific error code: `{ error: 'auth_expired', userId: 'abc' }`
+- Frontend detects this error and shows a reconnection overlay
+- The slideshow keeps displaying the last photo (current behavior on network error) rather than showing a broken state
+- The user can tap a "Reconnect" button that opens the OAuth flow in a new tab
+
+**Dependencies:**
+- `photo-proxy.js` -- must handle per-user auth errors gracefully
+- `slideshow.html` -- must show reconnection UI
+
+**Confidence:** HIGH -- error handling pattern is well-established.
+
+---
+
+#### D-5: Slideshow Device Setup QR Code
+
+**Why valuable:** After a user authenticates and picks photos on their phone, they need to open the slideshow on their iPad. A QR code pointing to their personal slideshow URL makes this frictionless.
+
+**What it looks like:**
+After completing photo selection, the settings page shows:
+```
+  [Your frame is ready!]
+
+  [QR CODE]
+
+  Scan with your iPad to start the slideshow.
+  URL: okno.moonacle.com/slideshow.html
+```
+
+**Complexity:** LOW (QR code generation library, minimal UI)
+
+**Dependencies:** None -- the slideshow URL is the same for all users (session-based), so the QR just points to the base slideshow URL. Could be done with a simple JS QR library like `qrcode` or a QR SVG generator.
+
+**Confidence:** HIGH -- trivial feature.
+
+---
+
+### Anti-Features (Deliberately NOT Building)
+
+These are features commonly requested or commonly built in this domain that would be wrong to build now. Each has a clear rationale for exclusion.
+
+---
+
+#### AF-1: Client-Side Token Storage (IndexedDB/localStorage)
+
+**Why avoid:** The earlier Multi-User Architecture decision (Feb 13) recommended client-side primary storage. This is being REVERSED for v2.0. Here is why:
+
+The fundamental UX of Okno is: set up on your phone, run on your iPad. Client-side storage means tokens stored in the phone's browser cannot be accessed by the iPad's browser. The user would need to authenticate separately on the iPad (Guided Access kiosk mode makes this nearly impossible) or use the same browser profile on both devices (not realistic).
+
+Server-side token storage solves this: authenticate once on any device, the iPad's slideshow uses the server's stored token. This is how the current single-user app works, and it works well.
+
+**What to do instead:** Store tokens server-side in the database, scoped by user_id. The session cookie (httpOnly, secure) identifies the user. The backend retrieves their tokens from the DB.
+
+---
+
+#### AF-2: Admin Dashboard UI
+
+**Why avoid:** Building a web UI for admin tasks (user management, invite code generation, analytics) is significant scope for a small user base. The admin is the VPS owner who has SSH access.
+
+**What to do instead:** CLI scripts that run on the VPS:
+```bash
+node admin.js create-invite --uses 5 --expires 30d
+node admin.js list-users
+node admin.js delete-user --email user@example.com
+node admin.js list-invites
+```
+
+This covers 100% of admin needs for an invite-only app with under 100 users. Build the admin UI in a future version when (if) user management becomes burdensome.
+
+---
+
+#### AF-3: Shared Albums / Social Features
+
+**Why avoid:** Okno is a personal photo frame, not a social photo platform. Adding album sharing, comments, likes, or collaborative curation adds massive complexity and changes the product's identity.
+
+**What to do instead:** Each user has their own isolated photo collection. If two users want to share photos, they do it through Google Photos sharing (which already exists and is excellent).
+
+---
+
+#### AF-4: Real-Time Photo Sync
+
+**Why avoid:** There is no push API from Google Photos. Implementing real-time sync would require either:
+- Polling the Google API for changes (burns quota, unreliable)
+- A webhook service (Google doesn't offer one for Photos)
+
+**What to do instead:** Users add photos by starting a new Picker session. The cache merges new selections with existing ones. This explicit user action is both simpler and more predictable.
+
+---
+
+#### AF-5: Photo Editing / Cropping / Filtering
+
+**Why avoid:** The photo management grid is for viewing and removing photos, not editing them. Adding crop, rotate, filter, or enhancement tools is out of scope for a photo frame app.
+
+**What to do instead:** The grid shows photos as-is. Users who want to edit photos use Google Photos (which has excellent editing tools) and the edited version appears in Okno automatically on the next baseUrl refresh.
+
+---
+
+#### AF-6: Multi-Device Sync for Same User
+
+**Why avoid:** Supporting multiple iPads per user (or an iPad and a TV) adds device management complexity. Each device could show different photo subsets, different settings, different positions in the slideshow.
+
+**What to do instead:** One user = one device. If a user wants two frames, they create two accounts (two Google accounts). This matches the physical reality: different rooms, different frames, different photo selections.
+
+---
+
+#### AF-7: Open Registration
+
+**Why avoid:** The Google OAuth 100-user lifetime cap for unverified apps is a hard constraint. Open registration risks hitting this cap with throwaway or one-time users. Invite codes ensure each slot is intentionally allocated.
+
+**What to do instead:** Invite-only for v2.0. Re-evaluate in v2.1+ after:
+1. Assessing actual demand
+2. Completing Google OAuth verification (if demand warrants)
+3. Implementing rate limiting and abuse prevention
+
+---
+
+#### AF-8: Video Playback
+
+**Why avoid:** Explicitly deferred to v2.1+ in project scoping. Video adds decoding complexity, bandwidth considerations, audio handling, and iPad memory pressure that should not block multi-tenant launch.
+
+**What to do instead:** Continue showing photos only. Add video support as a dedicated feature phase after multi-tenant is stable.
 
 ---
 
 ## Feature Dependencies
 
 ```
-[Bug Fixes] -----> Independent, do first
-     |
-     v
-[Ken Burns] -----> Independent (CSS only, no backend)
-     |
-[Blurred Background] -----> Independent, but shares wrapper architecture with Ken Burns
-     |                        RECOMMEND: Build together since both modify the img element structure
-     v
-[Date/Time Overlays] -----> Depends on photo wrapper (if using wrapper approach from blurred bg)
-     |                        But can be built independently as fixed-position elements
-     v
-[Stripe Donate] -----> Fully independent (frontend link + Stripe Dashboard config)
-     |
-[Demo Mode] -----> Depends on: Ken Burns, Blurred Background, Overlays (demo should showcase all features)
-     |              Also needs: sample photos curated and stored
-     v
-[README] -----> Depends on: ALL above (needs screenshots of final product)
-                Must be last.
+                    TS-6: Database Migration
+                         |
+                    TS-7: Auto-Migration
+                         |
+              +----------+----------+
+              |          |          |
+        TS-1: Per-User   TS-2: Data   TS-3: Session
+        OAuth            Isolation    Management
+              |          |          |
+              +----------+----------+
+                         |
+                    TS-4: Invite Codes
+                         |
+                    TS-5: Per-User Slideshow
+                         |
+              +----------+----------+
+              |          |          |
+        D-1: Photo    D-2: Invite  D-3: Account
+        Grid          Links        Page
+              |
+        D-4: Token
+        Expiry
 ```
 
-### Recommended Build Order
-
-1. **Ken Burns + Blurred Background** (together) -- Both modify the photo element architecture. Build as a unit.
-2. **Date/Time Overlays** -- Quick addition once photo structure is settled.
-3. **Stripe Donate** -- Independent, can be done anytime. Quick.
-4. **Demo Mode** -- Needs all visual features working to showcase them.
-5. **README** -- Last. Captures the final product.
-
----
-
-## Anti-Features (Things to deliberately NOT build in v1.1)
-
-| Anti-Feature | Why Someone Might Want It | Why Avoid | What to Do Instead |
-|--------------|---------------------------|-----------|-------------------|
-| **Multiple transition styles** | "Add slide, dissolve, wipe, zoom transitions" | Each transition is separate CSS/JS. Testing matrix explodes. Users pick one and forget. Ken Burns IS the premium transition. | Ken Burns + crossfade is the entire transition story. Two is enough. Apple TV has one. |
-| **Animated text overlays** | "Photo date should fly in, clock should pulse" | Animated text is distracting on an ambient display. Motion should be reserved for the photo (Ken Burns), not chrome. | Static text with simple fade-in (inherited from photo crossfade). |
-| **Custom overlay positioning** | "Let users drag overlays to custom positions" | Massive UI complexity for negligible value. Users position once and forget. | Fixed positions (bottom-left, bottom-right). Consistent, predictable. |
-| **Donation amount tracking/dashboard** | "Show how much has been donated" | Over-engineers a tip jar. Requires database, analytics. | Stripe Dashboard already tracks all payments. |
-| **Interactive demo features** | "Let demo users configure settings, change interval" | Demo should be a showcase, not a sandbox. Configuration adds friction to the 10-second portfolio experience. | Demo runs with optimal settings, no configurability. The point is to impress, not to teach. |
-| **Video demo on README** | "Embed a YouTube video walkthrough" | Videos are maintenance overhead (re-record when UI changes). GIFs are sufficient and auto-play on GitHub. | Animated GIF hero image. |
-| **Donation receipts/emails** | "Send thank-you emails to donors" | Requires email infrastructure (SendGrid, SES). Over-engineers a tip jar. | Stripe automatically sends receipts. The on-site "thank you" message is sufficient. |
-| **Weather/Spotify/news overlays** | "Add more data to the ambient display" | Scope creep. Each integration is a separate API, separate failure mode. The product is a PHOTO frame. | v2.0+ consideration at most. Keep v1.1 focused on photos. |
+**Dependency chain explanation:**
+1. Database must exist before any per-user feature can be built
+2. Auto-migration must run to preserve existing user's data
+3. Per-user OAuth, data isolation, and session management can be built in parallel once DB exists
+4. Invite codes gate new user registration -- requires sessions and user model
+5. Per-user slideshow requires all three isolation features
+6. Differentiators (grid, invite links, account page) build on top of the table stakes
 
 ---
 
-## Config Schema Extension
+## MVP Definition
 
-v1.1 adds four new boolean toggles to the existing config system:
+**The minimum for multi-tenant to work (in order of implementation):**
+
+1. **TS-6: Database migration** -- SQLite schema, connection module
+2. **TS-7: Auto-migration** -- Import existing JSON data as first user
+3. **TS-1: Per-user OAuth** -- Refactor auth.js for multi-user token storage
+4. **TS-2: Data isolation** -- All queries scoped by user_id
+5. **TS-3: Session management** -- Session stores userId, routes check ownership
+6. **TS-4: Invite codes** -- Code validation before OAuth flow
+7. **TS-5: Per-user slideshow** -- Photo proxy scoped to authenticated user
+
+**Defer to post-MVP within v2.0:**
+- D-1: Photo management grid (high value but not blocking multi-tenant)
+- D-3: Account page (nice to have, not critical for initial users)
+
+**Defer to post-v2.0:**
+- D-4: Graceful per-user token expiry (important but can iterate)
+- D-5: QR code setup (convenience feature)
+
+---
+
+## Feature Prioritization Matrix
+
+| Feature | User Value | Technical Risk | Effort | Priority | Phase |
+|---------|-----------|---------------|--------|----------|-------|
+| TS-6: DB Migration | Foundation | MEDIUM | MEDIUM | P0 | 1 |
+| TS-7: Auto-Migration | High (data preservation) | LOW | LOW | P0 | 1 |
+| TS-1: Per-User OAuth | Critical | HIGH | HIGH | P0 | 1 |
+| TS-2: Data Isolation | Critical | MEDIUM | MEDIUM | P0 | 1 |
+| TS-3: Session Mgmt | Critical | LOW | LOW | P0 | 1 |
+| TS-4: Invite Codes | High | LOW | LOW | P0 | 1 |
+| TS-5: Per-User Slideshow | Critical | MEDIUM | MEDIUM | P0 | 1-2 |
+| D-1: Photo Grid | High | MEDIUM | MEDIUM-HIGH | P1 | 2 |
+| D-2: Invite Links | Medium | LOW | LOW | P1 | 1 |
+| D-3: Account Page | Medium | LOW | LOW-MEDIUM | P2 | 2 |
+| D-4: Token Expiry | Medium | MEDIUM | MEDIUM | P2 | 2-3 |
+| D-5: QR Code | Low | LOW | LOW | P3 | 3+ |
+
+---
+
+## Photo Grid UX Patterns (Deep Dive)
+
+This section provides additional detail for D-1 since it is the most UX-complex new feature.
+
+### Grid Layout Options Considered
+
+| Layout | Description | Pros | Cons | Used By |
+|--------|-------------|------|------|---------|
+| **Uniform square (recommended)** | Fixed-size square cells, photos cropped to fill | Clean, predictable, easy to build | Crops photos | Google Photos, Apple Photos, Instagram |
+| Masonry | Variable height, fixed width | Shows full photos | Complex layout, no consistent rows | Pinterest |
+| Justified | Variable width, rows fill container | Elegant | Requires JS layout engine | Flickr, 500px |
+
+**Recommendation: Uniform square grid.** It's the simplest to build with CSS Grid, matches user expectations (Google Photos uses it), and the management grid is a tool, not a gallery -- visual perfection is less important than usability.
+
+### Interaction States
+
+| State | Visual | Actions Available |
+|-------|--------|-------------------|
+| **Browse** (default) | Thumbnails in grid, count shown | Tap photo for preview, scroll, "Select" button |
+| **Preview** | Single photo enlarged, metadata shown | Close, navigate prev/next, "Remove" |
+| **Selection** | Checkboxes on thumbnails, selected photos highlighted | Toggle selection, "Remove Selected (N)", "Select All", "Cancel" |
+| **Removing** | Confirmation dialog: "Remove N photos from your frame?" | Confirm, Cancel |
+
+### Mobile vs Desktop
+
+| Device | Grid Columns | Selection Mode | Notes |
+|--------|-------------|----------------|-------|
+| Phone (320-480px) | 3 columns | Tap to toggle | Primary management device |
+| Tablet (768px+) | 4-5 columns | Tap or long-press | Uncommon for management |
+| Desktop (1024px+) | 5-6 columns | Click, Shift-click range | Secondary management device |
+
+### Thumbnail Loading Strategy
+
+1. **Initial load:** Load first 20-30 thumbnails immediately (above the fold)
+2. **Lazy loading:** Use `loading="lazy"` on img tags or `IntersectionObserver` for remaining
+3. **Placeholder:** Show a subtle gray box with the neumorphic inset style while loading
+4. **Error state:** If thumbnail fails to load (expired baseUrl), show a broken-image placeholder with "Refresh" action
+5. **Caching:** Browser-level caching via `Cache-Control: max-age=3600` on thumbnail responses (thumbnails are small, can afford to cache for an hour)
+
+---
+
+## Per-User Settings (Detail for TS-2)
+
+Currently, settings are global (`config.json`). In multi-tenant, each user needs their own settings.
+
+### Which Settings Become Per-User
+
+| Setting | Per-User? | Rationale |
+|---------|-----------|-----------|
+| `interval` | YES | User A may want 30s, User B wants 60s |
+| `displayMode` | YES | Different iPads, different preferences |
+| `onThisDay` | YES | Personal preference |
+| `portraitPairs` | YES | Personal preference |
+| `transitionTime` | YES | Personal preference |
+| `kenBurns` | YES | Personal preference |
+| `blurredBackground` | YES | Personal preference |
+| `showPhotoDate` | YES | Personal preference |
+| `showClock` | YES | Personal preference |
+
+**Result:** ALL current settings become per-user. There are no "system-wide" settings in the current config. In the future, system-wide settings might include things like rate limits or maintenance mode, but those would be environment variables, not database config.
+
+### Settings API Changes
+
+Current:
+```
+GET  /api/config    -- returns global config
+POST /api/config    -- updates global config
+```
+
+v2.0:
+```
+GET  /api/config    -- returns config for authenticated user (resolved from session)
+POST /api/config    -- updates config for authenticated user
+```
+
+The frontend code (`settings.html`, `slideshow.html`) needs zero changes since it already calls `/api/config`. The backend transparently scopes to the authenticated user.
+
+---
+
+## Admin CLI Tooling (Detail for v2.0 Scope)
+
+### Commands Needed
+
+```bash
+# Invite management
+node admin.js create-invite [--uses N] [--expires Nd]
+node admin.js list-invites [--active] [--expired]
+node admin.js revoke-invite CODE
+
+# User management
+node admin.js list-users
+node admin.js user-info EMAIL
+node admin.js delete-user EMAIL [--confirm]
+
+# System info
+node admin.js stats   # total users, photos, active sessions
+```
+
+### Implementation Pattern
+
+The admin CLI shares the database module with the Express app but does not start the HTTP server. It imports the DB layer, runs queries, and outputs results to stdout.
 
 ```javascript
-// Current config (v1.0)
-const defaults = {
-  interval: 30,
-  displayMode: 'cover',
-  onThisDay: false,
-  portraitPairs: false,
-};
+// admin.js
+const db = require('./db');
 
-// Extended config (v1.1)
-const defaults = {
-  interval: 30,
-  displayMode: 'cover',
-  onThisDay: false,
-  portraitPairs: false,
-  kenBurns: true,           // NEW: Ken Burns effect (default ON for wow factor)
-  blurredBackground: true,   // NEW: Blurred background fill (default ON)
-  photoDateOverlay: true,    // NEW: Photo date text overlay (default ON)
-  clockOverlay: false,       // NEW: Clock overlay (default OFF -- less essential)
-};
+const command = process.argv[2];
+switch (command) {
+  case 'create-invite':
+    // Generate random code, insert into invite_codes table
+    break;
+  case 'list-users':
+    // SELECT * FROM users
+    break;
+  // ...
+}
 ```
 
-**Default ON rationale:** Ken Burns, blurred background, and photo date overlay are the visual differentiators. New users and demo mode should see the best version of the product by default. Clock is off by default because it is less universally desired.
-
-The existing `config.js` validation pattern (allowedKeys, type checking) will automatically accept new boolean keys with no schema migration needed -- new keys simply merge with defaults.
+**Complexity:** LOW -- it's just a CLI wrapper around database queries.
 
 ---
 
-## Settings Page Extension
+## Google OAuth Verification (Blocking Concern)
 
-Four new toggle rows in the "Features" section of `settings.html`:
+### Current Status
 
-```
-Features Section (existing):
-  - On This Day      [toggle]
-  - Portrait Pairs   [toggle]
+The app uses `photospicker.mediaitems.readonly` scope. Google requires OAuth verification review for all apps accessing Google Photos APIs. Without verification:
+- Users see "Google hasn't verified this app" warning during sign-in
+- App is limited to 100 lifetime users
+- Users must click "Advanced" then "Go to [app name] (unsafe)" to proceed
 
-Visual Effects Section (NEW):
-  - Ken Burns        [toggle]  "Cinematic zoom and pan on photos"
-  - Blurred Fill     [toggle]  "Blurred background instead of black bars"
+### Impact on v2.0
 
-Overlays Section (NEW):
-  - Photo Date       [toggle]  "Show when each photo was taken"
-  - Clock            [toggle]  "Show current time"
-```
+For invite-only friends-and-family use (5-20 users), this is manageable:
+- Users trust the app owner (Sam) and will click through the warning
+- 100-user cap is not a concern
 
-Group the new toggles into logical sections to avoid a long undifferentiated list. The existing settings page design (neumorphic toggles with icon + label + description) provides the pattern.
+For wider distribution:
+- The warning scares away non-technical users
+- 100-user cap becomes a hard blocker
+- Verification requires: privacy policy page, demo video, domain verification, 3-5 business days
 
----
+### Recommendation
 
-## Summary: Feature Categorization
+Do NOT block v2.0 on Google verification. Build and ship with the unverified app flow. Begin verification in parallel:
+1. Write privacy policy (needed for the app anyway)
+2. Record demo video of the OAuth flow
+3. Verify domain ownership in Google Search Console
+4. Submit for verification
 
-### Table Stakes (must have for each feature to feel complete)
-
-| Feature | Table Stakes Behavior |
-|---------|----------------------|
-| Ken Burns | Smooth, randomized direction, matches interval timing, toggleable, overflow clipped |
-| Blurred Background | Same-photo blur, heavy blur (40px+), dimmed, scaled to fill edges, toggleable |
-| Photo Date | Formatted month+year, semi-transparent pill, positioned unobtrusively, handles missing dates |
-| Clock | Updates every minute, locale-aware format, consistent style with photo date |
-| Stripe Donate | Pre-set amounts, secure (Stripe hosted), thank-you confirmation, no account required |
-| Demo Mode | No auth required, high-quality photos, all features active, clear demo indicator, exit path to real product |
-| README | Hero image, feature screenshots, architecture diagram, product decisions section, live demo link |
-
-### Differentiators (competitive advantage, portfolio wow factor)
-
-| Feature | Why It Differentiates |
-|---------|----------------------|
-| Ken Burns + Blurred Background COMBINED | The combination creates a cinematic experience that matches Apple TV quality. Most DIY photo frames have neither. Having both is the "wow" moment. |
-| Product Decisions in README | Most portfolio READMEs show what was built. Showing WHAT WAS NOT BUILT and WHY demonstrates product leadership thinking that interviewers value. |
-| Demo Mode with optimal defaults | The interviewer experiences the product in 10 seconds without any setup. This is a portfolio differentiator that 95% of side projects lack. |
-| Photo date overlay with nostalgia framing | "March 2019" on a photo creates an emotional response. Commercial frames cannot do this (they lack the metadata). Self-hosted advantage. |
-
-### Prioritized Build Order with Rationale
-
-| Order | Feature | Rationale |
-|-------|---------|-----------|
-| 1 | Bug fixes from v1.0 QA | Fix data loss and UX bugs before adding new features. Foundation must be solid. |
-| 2 | Ken Burns + Blurred Background | Highest visual impact. Both modify the photo element architecture, so build together. This is the "before/after" moment. |
-| 3 | Date/Time Overlays | Quick wins that add ambient information. Layer on top of the visual improvements. |
-| 4 | Stripe Donate | Independent, small scope. Can be done in parallel or as a break from visual work. |
-| 5 | Demo Mode | Requires all visual features to be working (demo showcases the final product). |
-| 6 | README | Must be last. Captures screenshots of the final product with all features active. |
+If verification fails or takes too long, the invite-only model still works for the target user base.
 
 ---
 
 ## Sources
 
-- Ken Burns effect parameters: Based on training data knowledge of Apple TV screensaver behavior, CSS animation best practices, and digital photo frame app feature lists. **Confidence: HIGH** -- CSS transform/animation is extremely well-understood and stable. The recommended parameters (1.0-1.15x scale, linear easing, random transform-origin) are the documented standard across multiple implementations.
-- Blurred background technique: Based on training data knowledge of CSS `filter: blur()`, `object-fit`, and the two-layer image approach. Verified by existing use in Aura frames and Samsung Frame TV. **Confidence: HIGH** -- pure CSS technique, well-documented, widely used.
-- Stripe Payment Links: Based on training data of Stripe's product offering. **Confidence: MEDIUM** -- Stripe products evolve. Verify Payment Links availability and pricing at stripe.com/payments/payment-links before implementation. As of training cutoff, Payment Links are free (standard Stripe processing fees apply, 2.9% + 30c).
-- Demo mode patterns: Based on training data knowledge of portfolio project best practices. No single authoritative source. **Confidence: MEDIUM** -- the pattern is logical and widely practiced but specific implementation details are opinion, not documented standard.
-- README structure: Based on training data knowledge of high-quality GitHub READMEs and portfolio presentation. **Confidence: HIGH** -- README best practices are stable and well-documented across many guides.
+### HIGH Confidence (Official Documentation, Codebase Analysis)
+- [Google Photos Authorization Scopes](https://developers.google.com/photos/overview/authorization) -- scope classification, verification requirements
+- [Google OAuth 2.0 for Web Server Apps](https://developers.google.com/identity/protocols/oauth2/web-server) -- token refresh behavior, 100 refresh token limit per account
+- [Google Cloud Unverified Apps](https://support.google.com/cloud/answer/7454865) -- 100-user cap, verification process
+- [Google Sensitive Scope Verification](https://developers.google.com/identity/protocols/oauth2/production-readiness/sensitive-scope-verification) -- verification requirements and timeline
+- [Google API Limits and Quotas](https://developers.google.com/photos/overview/api-limits-quotas) -- rate limits for multi-user considerations
+- Codebase analysis: `server.js`, `auth.js`, `photo-cache.js`, `photo-proxy.js`, `config.js`, `picker.js` -- all source files read directly
+
+### MEDIUM Confidence (Verified Community Sources)
+- [Dan Schlosser: Building the Image Grid from Google Photos](https://medium.com/@danrschlosser/building-the-image-grid-from-google-photos-6a09e193c74a) -- grid layout algorithm, virtual scrolling pattern
+- [Gallery UI Design Best Practices (Mobbin)](https://mobbin.com/glossary/gallery) -- grid layout variants, thumbnail patterns
+- [Immich (self-hosted photo management)](https://github.com/immich-app/immich) -- multi-user architecture patterns
+- [Lychee (self-hosted photo management)](https://lycheeorg.github.io/) -- user isolation model
+- [Auth.js Refresh Token Rotation](https://authjs.dev/guides/refresh-token-rotation) -- per-user token refresh patterns
+- [MDN: Lazy Loading](https://developer.mozilla.org/en-US/docs/Web/Performance/Guides/Lazy_loading) -- thumbnail loading strategy
+- [CSS-Tricks: Seamless Responsive Photo Grid](https://css-tricks.com/seamless-responsive-photo-grid/) -- CSS Grid layout implementation
+- [MDN: Aspect Ratios](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Box_sizing/Aspect_ratios) -- `aspect-ratio` property for square thumbnails
+- [Userpilot: Onboarding Invited Users](https://userpilot.com/blog/onboard-invited-users-saas/) -- invite flow UX patterns
+
+### LOW Confidence (Needs Validation During Implementation)
+- Google Picker API thumbnail URL parameters (`=w240-h240-c`) -- inferred from legacy Library API docs, not explicitly verified for Picker API responses
+- Picker session behavior with per-user OAuth clients -- confirmed architecturally possible but not tested with multiple simultaneous users
+- `session-file-store` performance with 20+ concurrent session files -- likely fine but untested at this scale
+- Per-user baseUrl refresh scheduling under rate limits with 10+ active users -- theoretical analysis only
 
 ---
-
-*Feature research for: Okno v1.1 "Make It Shine"*
-*Researched: 2026-02-15*
+*Feature research for: v2.0 "Multi-Tenant" -- multi-tenant photo frame with invite-based access and photo management grid*
+*Researched: 2026-02-27*

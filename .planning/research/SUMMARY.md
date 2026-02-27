@@ -1,339 +1,300 @@
-# Research Summary: v1.1 "Make It Shine"
+# Research Summary: v2.0 "Multi-Tenant"
 
-**Project:** Okno (Google Photos digital photo frame PWA)
-**Milestone:** v1.1 "Make It Shine"
-**Domain:** Visual effects, monetization, and demo mode for a 24/7 photo frame
-**Researched:** 2026-02-15
+**Project:** Okno
+**Milestone:** v2.0 "Multi-Tenant"
+**Domain:** Multi-tenant architecture + photo management grid
+**Researched:** 2026-02-27
 **Confidence:** HIGH
+
+---
 
 ## Executive Summary
 
-The v1.1 milestone adds visual polish (Ken Burns effect, blurred backgrounds, date/time overlays), monetization (Stripe donate button), and portfolio showcase capability (demo mode) to the existing photo frame PWA. Research reveals that **all new features can be implemented with zero new npm dependencies** using pure CSS animations, vanilla JavaScript, and Stripe Payment Links.
+Okno v2.0 converts a single-user photo frame app into a multi-user system. The core challenge is not building multi-tenant from scratch -- it is a surgical refactor of modules that currently assume exactly one user. Every backend module (`auth.js`, `photo-cache.js`, `photo-proxy.js`, `config.js`, `picker.js`) shares a global `oAuth2Client` singleton and file-based JSON storage. The fundamental change is replacing those global singletons with per-user isolation keyed by `userId` from the session. The recommended approach is SQLite (`better-sqlite3`) for all persistence, a `requireAuth` middleware that attaches `req.userId` to every request, and a factory function that creates per-user OAuth clients from DB-stored tokens rather than a shared global instance. Only 2 new npm dependencies are needed.
 
-The most critical finding: **v1.1's visual effects must be carefully orchestrated to avoid GPU memory exhaustion on the target hardware** (iPad Pro 1st Gen, A9X chip, 24/7 operation). Ken Burns and blurred backgrounds both create GPU compositing layers; stacking these effects during photo transitions creates peak memory pressure that can crash the PWA after hours of operation. The recommended approach is to use CSS-only implementations with modest scale ranges (1.0x to 1.15x zoom), blur tiny background images instead of full-resolution ones, and serialize transition choreography to prevent triple-stacking of GPU layers.
+The right stack is intentionally minimal: `better-sqlite3` + `express-rate-limit` as new production dependencies, `sharp` promoted from devDependencies, and `session-file-store` replaced with a SQLite-backed session store (or a hand-rolled 30-line implementation). No ORM, no migration library, no CLI framework, no TypeScript, no JWT. These additions would contradict the project's existing "no build step, vanilla JS" philosophy and add operational complexity that the workload does not justify. SQLite in WAL mode handles thousands of writes per second; the app's maximum load is roughly 8 writes per minute at 500 users. PostgreSQL would be pure overhead.
 
-The second most important finding: **demo mode is the highest-value feature for portfolio presentation** but introduces security risk if not properly isolated. Demo mode must use a completely separate photo source (bundled sample images) with no access to authenticated API endpoints to prevent accidental exposure of the real user's cache or settings.
+The primary risk is data isolation failure -- specifically, the shared `OAuth2Client` singleton causing User A's slideshow to serve User B's photos or vice versa. This is not a subtle bug; it will be immediately visible when the first family member becomes a second user. All four research files converge on the same priority: eliminate global state (OAuth client, in-memory cache, JSON files) before any other multi-tenant work proceeds. The feature dependency chain is strictly ordered: database schema and migration must land first, then per-user OAuth and session changes, then invite code gating, then per-user slideshow, then the photo management grid as a post-MVP differentiator.
+
+---
 
 ## Key Findings
 
-### Recommended Stack (STACK.md)
+### Recommended Stack (from STACK.md)
 
-**Zero new npm dependencies needed.** All v1.1 features use the existing vanilla HTML/CSS/JS stack:
+The existing stack is validated and stays unchanged. Only four changes are needed for v2.0:
 
-**Core approach:**
-- **Ken Burns:** Pure CSS `@keyframes` with `transform: scale()` — GPU-accelerated, no library needed
-- **Blurred backgrounds:** CSS `filter: blur()` on duplicate `<img>` element OR blur a tiny low-res image — no canvas library needed
-- **Date/time overlays:** Vanilla JS with `toLocaleDateString()` and `toLocaleTimeString()` — no date library needed
-- **Stripe donate:** Stripe Payment Links (URL-only, no backend code) — zero npm packages, not even the `stripe` SDK
-- **Demo mode:** Static sample photos in `/public/demo/` served via existing Express static middleware — no external API
-- **README polish:** Mermaid diagrams (GitHub native rendering) + shields.io badges — no build tools
+**New production dependencies:**
+- `better-sqlite3` v12.6.2 -- synchronous SQLite driver; single-file DB, no daemon, trivially backupable. WAL mode supports concurrent reads with serialized writes. The app's write volume (~8 writes/min at 500 users) is far below SQLite's ceiling of thousands/sec.
+- `express-rate-limit` v8.2.1 -- rate limiting for auth and invite code endpoints. Prevents brute-force abuse now that multiple users can attempt login.
 
-**Critical version requirements:**
-- None — all features use browser-native APIs supported on iOS 16 Safari
+**Promoted from devDependencies:**
+- `sharp` ^0.34.5 -- already in the project for build scripts. Runtime thumbnail generation for the photo management grid requires it in production.
 
-**What NOT to use:**
-- GSAP, anime.js, or any JS animation library (CSS does Ken Burns natively)
-- Canvas-based blur or StackBlur (CSS `filter: blur()` is GPU-accelerated)
-- date-fns, luxon, moment.js (Intl API is built-in)
-- Full Stripe integration with Checkout Sessions and webhooks (Payment Links for a donate button)
+**Replaced:**
+- `session-file-store` -- replaced by `better-sqlite3-session-store` (or a hand-rolled 30-line express-session Store implementation using the same DB connection). SQLite sessions share the same file as all other data and support atomic expiry cleanup.
 
-**Confidence:** HIGH — CSS animations, `filter: blur()`, Intl API, and Stripe Payment Links are all mature, well-documented features. The specific approaches are proven in the existing codebase (backdrop-filter already in use, CSS transitions validated).
+**Explicitly rejected:** PostgreSQL (ops overhead, no benefit at this workload), Prisma/Drizzle (require TypeScript/build step), Knex (abstraction over raw SQL for 5 tables is unnecessary), JWT (instant logout is critical for a frame app; server sessions already work), Redis (another daemon; SQLite sessions are sufficient).
 
-### Expected Features (FEATURES.md)
-
-**Must have (table stakes):**
-- **Ken Burns:** Smooth constant-speed animation, randomized direction, matches slide interval, toggleable, no performance degradation
-- **Blurred background:** Same-photo blur, heavy blur (30-40px), reduced brightness, seamless color match, toggleable
-- **Photo date overlay:** Formatted human-readable date, positioned unobtrusively, handles missing metadata
-- **Clock overlay:** Updates every minute, locale-aware format, consistent styling
-- **Stripe donate:** Pre-set amounts, secure (Stripe-hosted), thank-you confirmation, no account required for donor
-- **Demo mode:** No auth required, high-quality photos, all features functional, clear demo indicator, easy exit to real product
-- **README:** Hero image/GIF, one-line description, feature screenshots, architecture diagram, live demo link
-
-**Should have (differentiators):**
-- **Ken Burns + Blurred Background combined:** Creates cinematic experience matching Apple TV quality — most DIY frames have neither
-- **Product Decisions in README:** Shows what was NOT built and why — demonstrates product leadership thinking
-- **Demo Mode with optimal defaults:** Interviewer experiences product in 10 seconds without setup — 95% of side projects lack this
-- **Photo date with nostalgia framing:** "March 2019" creates emotional response — commercial frames cannot do this (lack metadata)
-
-**Defer (v2+):**
-- Multiple transition styles (slide, dissolve, wipe) — Ken Burns + crossfade is sufficient
-- Animated text overlays — motion reserved for photos, not chrome
-- Custom overlay positioning — fixed positions are predictable and sufficient
-- Donation tracking dashboard — Stripe Dashboard already tracks
-- Interactive demo features — demo should showcase, not teach
-- Weather/Spotify/news overlays — scope creep, each is a separate API
-
-**Confidence:** HIGH — table stakes behaviors are derived from Apple TV screensavers, commercial digital frames (Aura, Samsung Frame TV), and portfolio project best practices. Differentiators identified through competitive analysis.
-
-### Architecture Approach (v1.1-ARCHITECTURE.md)
-
-**Three architectural categories:**
-
-1. **CSS-layer visual effects** (Ken Burns, blurred backgrounds, overlays) — integrate into frontend slideshow DOM/CSS only, zero backend changes
-2. **Backend service additions** (demo mode, Stripe) — new Express routes, new data sources
-3. **Bug fixes** — targeted changes to existing modules
-
-**Critical architectural constraint:** The existing **A/B image swap pattern** in `slideshow.html` dynamically creates and destroys `<img>` elements per transition. Every visual effect must be duplicated per-slot and cleaned up on transition. The pattern already handles blob URL revocation and DOM cleanup — new effects must hook into that same lifecycle.
-
-**Major integration points:**
-
-1. **Ken Burns:** Apply CSS animation class after `img.classList.add('active')`, remove on cleanup. Requires `overflow: hidden` on `#slideshow` container. Uses `will-change: transform` for GPU layer promotion.
-
-2. **Blurred background:** Changes DOM structure from single `<img>` to wrapper `<div>` containing background `<div>` + foreground `<img>`. Most significant architectural change — touches `createPhotoElement()`, `showSinglePhoto()`, `showDualPortraits()`, cleanup logic, and blob URL revocation.
-
-3. **Date/time overlays:** Fixed-position `<div>` elements outside `#slideshow`, updated on photo transitions (date) or every minute (clock). Must use `env(safe-area-inset-*)` for iOS PWA safe areas.
-
-4. **Demo mode:** Server-side `DEMO_MODE=true` flag. New `demo-photos.js` module serves from `/public/demo/` instead of Google Photos cache. Modifies `photo-proxy.js`, `auth.js`, `health.js`. Frontend detects demo mode from `/auth/status` response.
-
-5. **Stripe:** New `donate.js` router OR (simpler) just replace PayPal URL in `index.html` with Stripe Payment Link URL. No backend code needed with Payment Link approach.
-
-**Config schema extensions:**
-```javascript
-const defaults = {
-  // v1.0
-  interval: 30,
-  displayMode: 'cover',
-  onThisDay: false,
-  portraitPairs: false,
-  // v1.1 NEW
-  kenBurns: true,           // default ON for wow factor
-  blurredBackground: true,  // default ON
-  showPhotoDate: true,      // default ON
-  showClock: false,         // default OFF
-};
+**New directory structure:**
+```
+db/          -- database.js (singleton), migrate.js (PRAGMA user_version migrations)
+cli/         -- create-invite.js, list-users.js, delete-user.js, import-data.js
+data/        -- okno.db, thumbnails/{userId}/{mediaItemId}.webp
 ```
 
-**Memory leak prevention checklist (24/7 operation):**
-- Blob URLs: Every `createObjectURL()` has matching `revokeObjectURL()`
-- DOM elements: Every appended element removed after transition
-- CSS animations: Removed with element
-- Intervals: `clockInterval` cleared on `exitSlideshow()`
-- GPU layers: `will-change` elements destroyed with DOM removal
+**Net change: +2 dependencies, -1 dependency, sharp moved from dev to prod.**
 
-**Confidence:** HIGH — based on complete codebase reading of all source files. Architecture recommendations derive from existing patterns in `slideshow.html`, `config.js`, and service worker.
+### Expected Features (from FEATURES.md)
 
-### Critical Pitfalls (PITFALLS.md)
+**Must have (table stakes -- required for multi-tenant to function):**
+- TS-1: Per-user Google OAuth -- refactor singleton `oAuth2Client` to per-user factory function
+- TS-2: Per-user data isolation -- all DB queries scoped by `user_id`, never unscoped
+- TS-3: Session management -- session stores `userId` (not just `authenticated: true`)
+- TS-4: Invite code access control -- gating with CLI-generated codes before OAuth
+- TS-5: Per-user slideshow -- photo proxy resolves user from session, not global cache
+- TS-6: Database migration -- SQLite schema replacing three JSON files
+- TS-7: Auto-migration of existing data -- one-time import of `tokens.json`, `cache.json`, `config.json` as first user
 
-1. **Ken Burns CSS Transform Creates Unbounded GPU Memory on iOS Safari**
-   - Severity: CRITICAL (frame crashes after hours)
-   - Each animated 2732x2048 image consumes ~21MB GPU texture memory. A9X has limited VRAM shared with system RAM.
-   - **Avoidance:** Single animated element (not two during crossfade), force GPU layer teardown with `transform: none` before `remove()`, keep scale range modest (1.0-1.15x), add memory watchdog, use `will-change: transform` only on active element.
+**Should have (differentiators for v2.0):**
+- D-1: Photo management grid -- view and remove cached photos; lazy-loading square thumbnail grid
+- D-2: URL-based invite links -- `/?invite=CODE` pre-fills the code field; trivial frontend addition
+- D-3: User account/profile page -- connected account info, photo count, account deletion
 
-2. **CSS `filter: blur()` on Full-Screen Background Triggers Continuous Repaint**
-   - Severity: CRITICAL (persistent jank, battery drain, potential crash)
-   - `blur(40px)` on 2732x2048 may fall back to software rendering on iOS 16 Safari
-   - **Avoidance:** Blur a TINY image (64x48) and scale it up, OR pre-blur server-side, OR use canvas element (compute once per photo). Never blur a full-res image. Never apply blur to an element also being animated with `transform`.
+**Defer to post-v2.0:**
+- D-4: Graceful per-user token expiry UI (reconnect overlay without crashing slideshow)
+- D-5: QR code for iPad setup
+- Video playback
+- Open registration (blocked by Google 100-user lifetime cap for unverified apps)
+- Admin dashboard UI (CLI is sufficient for invite-only scale)
 
-3. **Ken Burns + Blur + Crossfade Triple-Stack During Transitions**
-   - Severity: CRITICAL (peak GPU load can trigger jetsam kill)
-   - During transition: outgoing photo (Ken Burns + fade), incoming photo (Ken Burns + fade), 2 background blurs = 4 full-screen GPU layers
-   - **Avoidance:** Sequential transitions (stop old Ken Burns, crossfade, start new Ken Burns). Background blur should NOT animate during crossfade. Budget rule: no more than 2 GPU-promoted layers at any time, briefly 3 during transitions, never 4+.
+**Hard constraints to design around:**
+- Google's 100-user lifetime cap for unverified apps -- invite-only model is the correct design response, not a workaround
+- Google Picker baseUrls expire every 60 minutes -- thumbnails cannot rely on expiring Google URLs; must be server-proxied
 
-4. **Demo Mode Creates Authentication Bypass**
-   - Severity: CRITICAL (security)
-   - If demo mode skips auth checks, could allow unauthenticated access to `/api/config`, `/api/picker/*`, `/api/health`, or real user's cached photos
-   - **Avoidance:** Separate code path (serve from `/public/demo/`, not `/api/photo/random`). Demo-specific endpoint if needed. Server-side `DEMO_MODE=true` flag, not URL parameter. Read-only access (no settings modification, no picker, no feedback).
+**All existing settings become per-user** -- there are no system-wide settings in the current `config.json`. The frontend `/api/config` API signature does not change; the backend transparently scopes to the authenticated user.
 
-5. **Blob URL Leak Rate Doubles with Background Blur Images**
-   - Severity: HIGH (memory leak timeline halved)
-   - Blurred background adds second image element per photo. Current cleanup targets `.photo:not(.active)` — background elements may be orphaned.
-   - **Avoidance:** Share same blob URL for foreground and background, OR use data URI for tiny background image, OR extend cleanup selector to include `.photo-bg:not(.active)`.
+### Architecture Approach (from ARCHITECTURE.md)
 
-**Confidence:** MEDIUM on GPU performance claims (based on training knowledge, needs on-device validation), HIGH on security and code path analysis (verified in codebase).
+The v2.0 architecture is the existing architecture with one new structural rule: every data-access path flows through a `userId` extracted from `req.session.userId`. The backend proxy pattern (already required because Google Photos URLs need Authorization headers that browser `<img>` tags cannot provide) makes server-side token storage mandatory. The earlier client-side storage decision (`.planning/decisions/MULTI-USER-ARCHITECTURE.md`, Feb 13) is superseded by this requirement.
+
+**Major component changes:**
+
+| Component | Change | Why |
+|-----------|--------|-----|
+| `db/database.js` (NEW) | Single SQLite connection, WAL mode, auto-migration on startup | All persistent state moves here |
+| `auth.js` | Replace global `oAuth2Client` with `getOAuthClientForUser(userId)` factory | Core isolation fix |
+| `photo-cache.js` | Replace global in-memory cache with per-user DB queries + per-user refresh scheduling | Data isolation |
+| `photo-proxy.js` | Load user tokens from DB via session; stream responses instead of buffering | Isolation + performance |
+| `config.js` | All settings per-user in `user_config` table | Every setting is personal |
+| `server.js` | Add `requireAuth` middleware; swap session store; add invite routes | Auth enforcement |
+| `photo-grid.js` (NEW) | Serve cached photo thumbnails, handle photo removal | D-1 feature |
+| `refresh-scheduler.js` (NEW) | Single scheduler for all users' refresh state with jitter | Replace N independent timers |
+| `demo-photos.js`, `feedback.js` | Unchanged -- not user-scoped | No change needed |
+
+**Database schema (6 tables):** `users`, `tokens`, `photo_cache`, `user_config`, `invite_codes`, `refresh_state`. Config stored as JSON blob in `user_config` (preserves existing validated-allowlist pattern, avoids column-per-setting sprawl). Schema versioned via `PRAGMA user_version` with a hand-rolled 20-line migration runner.
+
+**requireAuth middleware:** Mounted after session middleware, before all API routes. Attaches `req.userId` from `req.session.userId`. API requests get 401 JSON; page requests redirect to `/`. Demo, auth, and health routes bypass it. This single middleware enforces isolation across all endpoints without repeating auth logic per handler.
+
+**Per-user baseUrl refresh:** Replace the single global `setInterval` with a central scheduler that checks every 60 seconds for users whose baseUrls are stale, with 5-minute random jitter per user to prevent thundering herd.
+
+**Migration strategy:** On first startup with the new code, if `okno.db` does not exist but `tokens.json` does, automatically migrate existing user data as the first DB user. Wrap all inserts in a transaction. Rename JSON files to `.migrated` (keep as backup, do not delete). One-time, atomic, non-destructive.
+
+### Critical Pitfalls (from PITFALLS.md)
+
+**Critical severity (data leaks, security breaches):**
+
+1. **Shared OAuth2Client singleton** -- When User B authenticates, their tokens overwrite User A's on the shared client object. User A's slideshow fetches the next photo using User B's token: 403 errors or, worse, silently serves wrong photos. Prevention: replace `oAuth2Client` export with `getOAuthClientForUser(userId)` factory. Must be resolved in Phase 1 before any second user authenticates.
+
+2. **Single global photo cache** -- `cache.json` and the in-memory cache object have no `userId`. User B's Picker selection merges into User A's collection. The existing deduplication logic uses Google media item IDs which are unique per-library -- it provides zero cross-user protection. Prevention: DB `UNIQUE(user_id, photo_id)` constraint plus per-user in-memory `Map<userId, UserCache>`.
+
+3. **Session fixation** -- OAuth callback sets `authenticated: true` without calling `req.session.regenerate()`. The pre-login session ID remains valid post-login, enabling session hijacking. Prevention: call `session.regenerate()` after successful OAuth callback, copy user data to new session before redirecting.
+
+4. **Refresh token loss** -- Google issues a `refresh_token` only on first consent. Current code saves to a single `tokens.json`. With two users authenticating in sequence, User A's refresh token is permanently overwritten. User A's slideshow works for ~1 hour then fails with no recovery path except revoking and re-authenticating. Prevention: store each user's refresh token immediately in DB on OAuth callback; never overwrite with `null`.
+
+5. **Missing `sameSite` cookie attribute** -- Current session config omits `sameSite`. Modern browsers default to `Lax`, but this is environment-dependent. POST endpoints are vulnerable to CSRF in multi-user context. Prevention: explicitly set `sameSite: 'lax'` in session cookie config.
+
+**Moderate severity (performance degradation, bad UX):**
+
+6. **N independent baseUrl refresh timers** -- Naive conversion creates one `setInterval` per user. At 10 users: 10 timers fire Google API calls every 50 minutes. Timer accumulation on repeated logins/logouts causes orphaned timers. Prevention: single central scheduler with per-user staleness check and jitter.
+
+7. **Photo proxy memory buffering** -- Current proxy uses `arrayBuffer()` to load entire photos into Node.js memory before sending. With concurrent slideshow viewers this spikes memory. Prevention: stream response body via `imageResponse.body.pipe(res)`.
+
+8. **Photo grid thumbnail load spike** -- 500 thumbnails simultaneously on grid page open exhausts server sockets. Prevention: pagination (20-50 per page), `loading="lazy"`, and per-user concurrency limit on proxy.
+
+9. **Google 100-user unverified app warning** -- The "This app isn't verified" screen confuses non-technical users before they reach the invite code flow. Prevention: add onboarding text on login page explaining what to click; plan for Google OAuth verification before hitting 50 users.
+
+10. **Atomic cutover for file-to-DB migration** -- A hybrid state where some code paths read files and others read DB creates race conditions with `fs.readFileSync`/`fs.writeFileSync`. Prevention: migrate ALL storage to DB in a single deployment; no fallback file reads in production code.
+
+---
 
 ## Implications for Roadmap
 
-Based on research, recommended phase structure:
+The feature dependency graph from FEATURES.md maps directly to a phase structure. Each phase has a hard prerequisite from the previous phase. The architecture and pitfalls research confirms this ordering -- the shared singleton bug blocks everything else.
 
-### Phase 1: Bug Fixes
-**Rationale:** Clean foundation before adding features. Bug fixes touch core infrastructure (`photo-cache.js`, `photo-proxy.js`, `slideshow.html`) — regressions in these could cascade into new features.
+### Phase 1: Database Foundation + Data Migration
 
-**Delivers:** 6 bugs fixed from v1.0 QA (picker merge, OTD fallback visibility, 502 resilience, calendar indicator, dual mode letterboxing, settings persistence).
+**Rationale:** The JSON files cannot support concurrent multi-user access. All subsequent features require a DB with per-user rows. The auto-migration of the existing user's data must happen in this phase so the production system has zero downtime on upgrade.
 
-**Avoids:** Pitfall #8 (regressions in stable features). Fix one bug per commit, manual regression checklist.
+**Delivers:** SQLite schema (6 tables), PRAGMA user_version migration runner (`db/migrate.js`), DB connection singleton (`db/database.js`), one-time import of `tokens.json`/`cache.json`/`config.json` as first user, CLI admin scripts skeleton (`cli/`).
 
-**Research needed:** No — bugs are targeted fixes with clear scope.
+**Features addressed:** TS-6, TS-7
 
-### Phase 2: Visual Effects (Ken Burns + Blurred Background)
-**Rationale:** Highest visual impact. Both modify photo element architecture, so build together. This is the "before/after" moment for portfolio showcase.
+**Pitfalls avoided:** Atomic cutover (no hybrid file/DB state); data loss during migration (transaction-wrapped, files renamed not deleted).
 
-**Delivers:** Ken Burns cinematic zoom/pan, blurred background fill for portrait photos in landscape mode.
+**Research flag:** Standard patterns -- SQLite migration with PRAGMA user_version is well-documented. Skip research-phase.
 
-**Addresses:** Table stakes behaviors for both features. Implements architecture changes to DOM structure (wrapper pattern for blur).
+---
 
-**Avoids:** Pitfalls #1, #2, #3 (GPU memory, blur jank, triple-stack). Must implement sequential transition choreography from the start.
+### Phase 2: Per-User Auth + Session Hardening
 
-**Research needed:** DEEP research during phase planning — GPU memory profiling on actual iPad Pro 1st Gen, blur performance testing (CSS vs tiny-image vs server-side), transition timing choreography.
+**Rationale:** The shared OAuth2Client singleton is the single highest-risk bug in the codebase. Until it is replaced, adding any second user causes data leakage. Session fixation, missing sameSite, and refresh token loss all belong in this phase -- they are auth-layer security issues that must be resolved before invite codes let new users in.
 
-### Phase 3: Date/Time Overlays
-**Rationale:** Quick wins layered on top of visual improvements. Independent of photo lifecycle (fixed-position elements). Minimal risk.
+**Delivers:** `getOAuthClientForUser(userId)` factory replacing global `oAuth2Client` export; `req.session.userId` replacing `req.session.authenticated`; `session.regenerate()` call on OAuth callback; `sameSite: 'lax'` on cookie config; per-user token storage in DB on OAuth callback; `requireAuth` middleware attached in `server.js`.
 
-**Delivers:** Photo date overlay (bottom-left), clock overlay (bottom-right), both toggleable.
+**Features addressed:** TS-1, TS-3
 
-**Uses:** Vanilla JS `toLocaleDateString()` and `toLocaleTimeString()`, existing photo metadata from `X-Photo-CreateTime` header.
+**Pitfalls avoided:** Pitfall 1 (singleton), Pitfall 3 (session fixation), Pitfall 4 (refresh token loss), Pitfall 5 (sameSite CSRF).
 
-**Avoids:** Pitfall #6 (overlay misposition), Pitfall #11 (clock timer leak). Use `env(safe-area-inset-*)` from the start, clean up clock interval on exit.
+**Research flag:** Standard patterns -- express-session and google-auth-library multi-instance are well-documented. Skip research-phase.
 
-**Research needed:** No — straightforward DOM updates with existing patterns.
+---
 
-### Phase 4: Config Integration
-**Rationale:** Wire all new features into settings system after they are implemented and tested. Features can be tested with hardcoded `true` values first.
+### Phase 3: Per-User Data Isolation
 
-**Delivers:** 4 new config keys (`kenBurns`, `blurredBackground`, `showPhotoDate`, `showClock`), 2 new settings sections (Visual Effects, Overlays).
+**Rationale:** Once auth is per-user, the data layer must follow. Photo cache, config, and all API endpoints must be scoped by `userId`. This phase is the mechanical application of the architecture pattern: add `WHERE user_id = ?` to every query, convert photo-proxy to streaming, replace the global refresh timer with the central scheduler.
 
-**Avoids:** Pitfall #10 (config key migration). Add defaults to `config.js` before deploying feature code that reads them.
+**Delivers:** `photo-cache.js` reads/writes from DB keyed by `userId`; `config.js` reads/writes per-user config rows; `photo-proxy.js` loads user's tokens from DB and streams (not buffers) responses; all API endpoints use `req.userId`; `refresh-scheduler.js` with per-user staleness tracking and jitter.
 
-**Research needed:** No — follows existing config pattern.
+**Features addressed:** TS-2, TS-5
 
-### Phase 5: Demo Mode
-**Rationale:** After visual effects are done, demo mode can showcase them. Demo mode is also useful for portfolio presentation — having working visual effects makes the demo more impressive.
+**Pitfalls avoided:** Pitfall 2 (shared cache), Pitfall 6 (N independent timers), Pitfall 7 (memory buffering).
 
-**Delivers:** Sample photo library (8-12 high-quality images), demo mode toggle, demo indicator UI, auth bypass for demo users.
+**Research flag:** Standard patterns -- no research-phase needed.
 
-**Implements:** Separate backend module (`demo-photos.js`), modifications to `photo-proxy.js`, `auth.js`, `health.js`, `index.html`.
+---
 
-**Avoids:** Pitfall #4 (auth bypass vulnerability). Design isolation boundary BEFORE writing code. Separate photo storage, no API access.
+### Phase 4: Invite Code Access Control
 
-**Research needed:** MODERATE research during planning — sample photo curation (royalty-free sources), metadata structure for demo photos, auth bypass security review.
+**Rationale:** Invite codes gate new user registration. They cannot be built until auth (Phase 2) and data isolation (Phase 3) are in place -- invite code redemption creates a new user record and requires a working session and per-user token flow. This is the "open the door" phase that makes Okno ready for a second real user.
 
-### Phase 6: Stripe Donate Button
-**Rationale:** Completely independent of all other features. Touches only `index.html` (donation button) and adds a new backend route. Zero interaction with slideshow code. Lowest priority for portfolio showcase.
+**Delivers:** `invite_codes` table (already in schema); CLI `create-invite.js` script; landing page invite code input with URL parameter pre-fill (`?invite=CODE`); backend validation with `crypto.timingSafeEqual()`; `express-rate-limit` on redemption endpoint; session stores `pendingInviteCode` through OAuth flow; post-callback user creation linked to invite code.
 
-**Delivers:** Replace PayPal placeholder with Stripe Payment Link, thank-you message on success.
+**Features addressed:** TS-4, D-2 (URL invite links, trivially added alongside invite code input)
 
-**Uses:** Stripe Payment Links (URL-only, no backend code).
+**Pitfalls avoided:** Timing attack (timingSafeEqual); brute force (rate limit); invite reuse (consumed flag in DB); Google 100-user cap (invite-only model is the architectural response, not a workaround).
 
-**Avoids:** Pitfall #7 (overengineering), Pitfall #13 (CSP configuration). Use Payment Link approach, not full Checkout integration.
+**Research flag:** Standard patterns -- no research-phase needed.
 
-**Research needed:** No — 15-minute task to create Payment Link in Stripe Dashboard and replace URL in HTML.
+---
 
-### Phase 7: README Polish
-**Rationale:** Must be last. Captures screenshots of the final product with all features active. README is portfolio artifact — needs to show completed product.
+### Phase 5: Photo Management Grid
 
-**Delivers:** Hero GIF (Ken Burns + blur in action), feature screenshots, architecture diagram (Mermaid), product decisions section, live demo link.
+**Rationale:** The grid is the highest-value post-MVP differentiator. It builds on all four previous phases (needs per-user DB, per-user proxy, auth middleware). Developing it after the first real second user validates the Phase 4 invite flow de-risks the core multi-tenant conversion before adding new UI complexity.
 
-**Uses:** Mermaid diagrams (GitHub native rendering), shields.io badges, screenshots from actual iPad or dev tools.
+**Delivers:** `GET /api/photo/grid` endpoint with pagination; `DELETE /api/photo/:id` endpoint; `/photos.html` page with CSS Grid square thumbnail layout; `loading="lazy"` on thumbnails; skeleton loading placeholders; concurrency limit on thumbnail proxy requests; per-user thumbnail directory (`data/thumbnails/{userId}/`).
 
-**Research needed:** No — content creation, not implementation.
+**Features addressed:** D-1
+
+**Pitfalls avoided:** Pitfall 8 (thumbnail load spike -- pagination + lazy loading); UX Pitfall 2 (skeleton screens prevent broken appearance); Google baseUrl expiry (server-proxied thumbnails do not break when baseUrls expire).
+
+**Research flag:** Verify Google Picker API thumbnail URL parameter format (`=w240-h240-c`) -- inferred from legacy Library API docs, needs confirmation during implementation. Run a quick spike to confirm behavior with Picker-sourced media items before building the grid endpoint. Also verify Picker session cleanup API (`DELETE /v1/sessions/{sessionId}`).
+
+---
+
+### Phase 6: Account Page + Polish
+
+**Rationale:** Account page and graceful token expiry are valuable but non-blocking. Ship after the grid is proven stable. The account page provides self-service account deletion, which is a reasonable expectation for a multi-user app.
+
+**Delivers:** `/account.html` with profile info (name, email, connected since), photo count, last sync time; account deletion endpoint with cascading DB delete; Google OAuth disconnection flow; reconnect overlay in `slideshow.html` for per-user expired tokens.
+
+**Features addressed:** D-3, D-4
+
+**Research flag:** Standard patterns -- no research-phase needed.
+
+---
 
 ### Phase Ordering Rationale
 
-- **Bug fixes first** — foundation must be solid before adding features
-- **Ken Burns + Blur together** — both modify DOM structure, avoid duplicate refactoring
-- **Overlays after visual effects** — layer on top, minimal risk
-- **Config integration after implementation** — features can be tested hardcoded first
-- **Demo mode after visual polish** — showcases completed features
-- **Stripe last** — independent, lowest priority
-- **README last** — documents completed product
-
-### Dependency Graph
-
-```
-Bug Fixes (Phase 1)
-    |
-    v
-Ken Burns + Blur (Phase 2) <--- CRITICAL PATH, needs deep research
-    |
-    v
-Date/Time Overlays (Phase 3)
-    |
-    v
-Config Integration (Phase 4)
-    |
-    +---> Demo Mode (Phase 5) <--- needs moderate research
-    |
-    +---> Stripe (Phase 6) <--- trivial, can be done anytime
-    |
-    v
-README (Phase 7)
-```
+- **Phases 1-4 are strictly sequential.** No per-user auth without a DB (Phase 1 before 2). No data isolation without per-user auth (Phase 2 before 3). No invite codes without isolation -- invite redemption creates a user record that requires the full auth+isolation stack (Phase 3 before 4).
+- **Phase 5 (grid) can overlap Phase 4 development** (different files) but should not be shipped until the first real second user validates Phase 4 invite flow end-to-end.
+- **Phase 6 is genuinely optional for the v2.0 milestone.** Phases 1-5 constitute a working multi-tenant system. Phase 6 is polish.
+- **The photo grid (Phase 5) is not on the critical path for multi-tenant launch.** The MVP is Phases 1-4. Include Phase 5 in v2.0 only if time permits without rushing the auth/isolation work.
 
 ### Research Flags
 
-**Needs deep research during phase planning:**
-- **Phase 2 (Ken Burns + Blur):** GPU memory profiling, blur performance testing, transition choreography design. This is the highest-risk phase due to Pitfalls #1, #2, #3.
-
-**Needs moderate research during phase planning:**
-- **Phase 5 (Demo Mode):** Sample photo curation, auth bypass security review.
+**Needs deeper research during planning:**
+- **Phase 5 (Photo Grid):** Google Picker API thumbnail URL parameter format (`=w240-h240-c`) is inferred from legacy Library API documentation, not explicitly confirmed for Picker API responses. Spike recommended before building the grid thumbnail endpoint.
 
 **Standard patterns (skip research-phase):**
-- Phase 1 (Bug Fixes): Targeted fixes, well-scoped
-- Phase 3 (Overlays): Simple DOM updates
-- Phase 4 (Config): Follows existing pattern
-- Phase 6 (Stripe): Payment Links approach is trivial
-- Phase 7 (README): Content creation
+- **Phase 1 (DB Foundation):** better-sqlite3, PRAGMA user_version -- HIGH confidence, official documentation.
+- **Phase 2 (Auth):** express-session regenerate, google-auth-library multi-instance -- well-documented.
+- **Phase 3 (Data Isolation):** Mechanical application of standard multi-tenant query scoping pattern.
+- **Phase 4 (Invite Codes):** crypto.randomBytes, timingSafeEqual, express-rate-limit -- standard Node.js patterns.
+- **Phase 6 (Account + Polish):** Standard CRUD and session management patterns.
+
+---
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | Zero new dependencies. All features use browser-native APIs (CSS animations, filter, Intl). Validated against existing codebase patterns (backdrop-filter already in use). |
-| Features | HIGH | Table stakes behaviors derived from Apple TV, commercial frames (Aura, Samsung Frame TV), portfolio best practices. Differentiators identified through competitive analysis. |
-| Architecture | HIGH | Based on complete codebase reading. DOM structure changes (wrapper pattern for blur) are the most significant risk but well-understood. Integration points mapped to existing code. |
-| Pitfalls | MEDIUM | GPU performance claims based on training knowledge, need on-device validation on iPad Pro 1st Gen with iOS 16.x. Security and code path analysis is HIGH confidence (verified in codebase). |
+| Stack | HIGH | All recommendations verified against npm, official docs, and existing project code. Only 2 net-new dependencies. Alternatives evaluated and explicitly rejected with rationale. |
+| Features | HIGH | Table stakes derived from codebase analysis of single-user assumptions; differentiators from established photo app UX patterns. Google 100-user cap verified against official Cloud docs. |
+| Architecture | HIGH | Based on complete codebase analysis (all 12 backend + frontend files). Factory function pattern verified against google-auth-library docs. Schema designed around actual query patterns in the app. |
+| Pitfalls | HIGH for data isolation + auth (verified by direct codebase analysis of auth.js, photo-cache.js, photo-proxy.js, picker.js); MEDIUM for performance estimates (memory/load projections are estimates, not measurements on live system). |
 
 **Overall confidence:** HIGH
 
 ### Gaps to Address During Planning
 
-**GPU performance validation:**
-- Pitfalls #1, #2, #3 all depend on iOS 16 Safari GPU compositing behavior on A9X chip. Claims like "21MB per compositing layer" and "blur falls back to software rendering" need validation.
-- **Mitigation:** Deep research during Phase 2 planning. Run Safari Web Inspector on actual iPad, measure compositor layers and memory during Ken Burns + blur transitions. Prototype tiny-image blur approach vs CSS blur and benchmark frame rates.
+1. **Google Picker thumbnail URL parameters** -- the `=w240-h240-c` format is documented for the Google Photos Library API but its exact behavior with Picker API media items is inferred, not confirmed. Validate during Phase 5 spike before building the grid endpoint.
 
-**Stripe Payment Links current feature set:**
-- Recommendation assumes Payment Links support "customer chooses amount" for donations.
-- **Mitigation:** Verify in Stripe Dashboard before Phase 6. If not available, use 2-3 preset amounts ($5, $10, $25) as separate Payment Links.
+2. **Session store package viability** -- `better-sqlite3-session-store` v0.1.0 was last updated 4 years ago. The hand-rolled 30-line Store implementation is the documented fallback if the package has issues. Decide which approach to use at the start of Phase 2; the hand-rolled version eliminates a dependency.
 
-**Demo photo licensing:**
-- Need 8-12 royalty-free photos for demo mode.
-- **Mitigation:** Research Unsplash License and Pexels License during Phase 5 planning. Confirm no attribution required for commercial use. Fallback: use original non-personal photos.
+3. **Google Picker session concurrency limits** -- Google does not publish exact limits for concurrent Picker sessions per project. With multiple users each creating Picker sessions, this could become a blocker. Implement session cleanup (`DELETE /v1/sessions/{sessionId}`) as a precaution in Phase 3/4.
 
-**Service Worker cache invalidation:**
-- Pitfall #12 — after deploy, iPad PWA may serve stale v1.0 HTML.
-- **Mitigation:** Update `CACHE_VERSION` in `sw.js` to `'okno-v1.1'` during first deployment of any v1.1 code. Document forced update procedure (SSH to VPS, update sw.js).
+4. **Token encryption at rest** -- Research recommends AES-256-GCM encryption for stored OAuth tokens as best practice for multi-user. For an invite-only app with <20 users on a private VPS, this may be acceptable to defer. Decide before Phase 2 schema is finalized: encrypted column sizes differ from plaintext, and retrofitting encryption requires a migration.
 
-## Sources
-
-### Primary (HIGH confidence)
-
-**Codebase analysis:**
-- All source files read directly: `server.js`, `auth.js`, `photo-proxy.js`, `photo-cache.js`, `config.js`, `picker.js`, `health.js`, `feedback.js`, `slideshow.html`, `index.html`, `settings.html`, `sw.js`, `package.json`
-- Existing patterns validated: CSS transitions (slideshow.html line 93), backdrop-filter usage (lines 146, 240), On This Day date formatting (line 874), blob URL revocation (lines 786-815), A/B swap cleanup pattern, config validation (config.js)
-
-**Web standards (well-established):**
-- CSS `@keyframes`, `transform: scale()`, `will-change` — supported since iOS 9
-- CSS `filter: blur()` — supported since iOS 9.3
-- Intl API (`toLocaleDateString`, `toLocaleTimeString`) — supported since iOS 10
-- `env(safe-area-inset-*)` — standard iOS PWA safe area API
-
-**Stripe:**
-- Stripe Payment Links — well-established Stripe product (launched ~2021, training data cutoff January 2025)
-
-### Secondary (MEDIUM confidence)
-
-**iOS Safari GPU compositing:**
-- GPU layer promotion for `transform` and `will-change` — well-documented in WebKit sources but exact performance thresholds on iPad Pro 1st Gen (A9X) need on-device testing
-- `filter: blur()` GPU vs CPU rendering — varies by iOS version and context, needs validation on iOS 16.x specifically
-
-**Ken Burns parameters:**
-- 1.0x to 1.15x scale range, linear easing, random transform-origin — based on training knowledge of Apple TV screensaver behavior and digital frame apps. Parameters are reasonable but should be tuned during implementation.
-
-**Demo mode patterns:**
-- Bundled sample photos, separate code path, auth isolation — based on portfolio project best practices. No single authoritative source but pattern is logical and widely practiced.
-
-### Tertiary (LOW confidence, needs validation)
-
-**GPU memory claims:**
-- "21MB per compositing layer for 2732x2048 image" — based on 2732 * 2048 * 4 bytes, but actual GPU allocation may differ
-- A9X GPU VRAM budget — iPad Pro 1st Gen has 4GB RAM shared between CPU and GPU, but exact allocation is undocumented
-
-**Research limitations:**
-- WebSearch and WebFetch were unavailable during this research session. All performance claims about iOS Safari should be validated against current Apple developer documentation and tested on the actual iPad Pro 1st Gen device during Phase 2 planning.
+5. **Google OAuth verification timeline** -- If user count approaches 50, the "This app isn't verified" warning becomes a real UX barrier that invite codes cannot solve. Starting the verification process (privacy policy, demo video, domain verification) in parallel with v2.0 development prevents a later blocker.
 
 ---
 
-**Research completed:** 2026-02-15
-**Ready for roadmap:** Yes
+## Sources
 
-**Next step:** Roadmap creation using this summary as input. Phase 2 (Ken Burns + Blur) flagged for deep research during planning.
+### Primary (HIGH Confidence -- Official Documentation + Codebase Analysis)
+
+- [better-sqlite3 npm](https://www.npmjs.com/package/better-sqlite3) -- v12.6.2, downloads, Node 22 compatibility
+- [better-sqlite3 GitHub](https://github.com/WiseLibs/better-sqlite3) -- benchmarks, synchronous API, WAL mode behavior
+- [SQLite WAL mode](https://sqlite.org/wal.html) -- official SQLite concurrency documentation
+- [SQLite PRAGMA user_version](https://levlaz.org/sqlite-db-migrations-with-pragma-user_version/) -- migration pattern without a library
+- [sharp npm](https://www.npmjs.com/package/sharp) -- v0.34.5, WebP output, resize API
+- [express-rate-limit npm](https://www.npmjs.com/package/express-rate-limit) -- v8.2.1
+- [Node.js crypto documentation](https://nodejs.org/api/crypto.html) -- randomBytes, timingSafeEqual
+- [Google Photos Authorization Scopes](https://developers.google.com/photos/overview/authorization) -- scope classification, verification requirements
+- [Google OAuth 2.0 for Web Server Apps](https://developers.google.com/identity/protocols/oauth2/web-server) -- token refresh, refresh_token issuance rules
+- [Google Cloud Unverified Apps](https://support.google.com/cloud/answer/7454865) -- 100-user lifetime cap, verification process
+- [OWASP Session Fixation](https://owasp.org/www-community/attacks/Session_fixation) -- session regenerate requirement
+- [OWASP CSRF Prevention](https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html) -- sameSite cookie attribute
+- Direct codebase analysis: `server.js`, `auth.js`, `photo-cache.js`, `photo-proxy.js`, `config.js`, `picker.js`, `health.js` -- all files read to identify single-user assumptions and injection points
+
+### Secondary (MEDIUM Confidence -- Community Sources)
+
+- [better-sqlite3-session-store npm](https://www.npmjs.com/package/better-sqlite3-session-store) -- v0.1.0, 367 weekly downloads, last updated 4 years ago; hand-rolled fallback documented
+- [Google API Limits and Quotas](https://developers.google.com/photos/overview/api-limits-quotas) -- rate limit estimates for multi-user refresh scheduling
+- [CSS-Tricks: Seamless Responsive Photo Grid](https://css-tricks.com/seamless-responsive-photo-grid/) -- CSS Grid layout for photo management
+- [MDN: Lazy Loading](https://developer.mozilla.org/en-US/docs/Web/Performance/Guides/Lazy_loading) -- thumbnail loading strategy
+- [Dan Schlosser: Building the Image Grid from Google Photos](https://medium.com/@danrschlosser/building-the-image-grid-from-google-photos-6a09e193c74a) -- grid UX patterns
+- [Immich self-hosted photo management](https://github.com/immich-app/immich) -- multi-user architecture reference
+- [Auth.js Refresh Token Rotation](https://authjs.dev/guides/refresh-token-rotation) -- per-user token refresh patterns
+
+### Tertiary (LOW Confidence -- Needs Validation)
+
+- Google Picker API thumbnail URL parameter format (`=w240-h240-c`) -- inferred from legacy Library API docs; must be confirmed during Phase 5 implementation
+- Picker API concurrent session limits -- Google does not publish exact numbers; cleanup recommendation based on docs advising proactive management
+- VPS memory projections with multiple concurrent in-memory caches -- estimates based on typical JSON metadata sizes, not measured on the live system
+
+---
+
+*Research completed: 2026-02-27*
+*Ready for roadmap: yes*
