@@ -3,7 +3,8 @@
 ## Milestones
 
 - **v1.0 MVP** -- Phases 1-3 (shipped 2026-02-15)
-- **v1.1 Make It Shine** -- Phases 4-7 (in progress)
+- **v1.1 Make It Shine** -- Phases 4-7 (Phases 4-6 shipped 2026-02-16, Phase 7 deferred)
+- **v2.0 Multi-Tenant** -- Phases 8-12 (planned)
 
 ## Phases
 
@@ -18,104 +19,187 @@ See `.planning/milestones/v1.0-ROADMAP.md` for full details.
 
 </details>
 
-### v1.1 "Make It Shine"
+<details>
+<summary>v1.1 "Make It Shine" (Phases 4-7) -- Phases 4-6 SHIPPED 2026-02-16</summary>
 
-**Goal:** Elevate Okno from functional MVP to portfolio-quality showcase with cinematic visual effects, bug fixes, Stripe donation, demo mode, and a polished README.
+- [x] Phase 4: Bug Fixes + Stability (3/3 plans) -- completed 2026-02-15
+- [x] Phase 5: Visual Effects + Overlays (3/3 plans) -- completed 2026-02-15
+- [x] Phase 6: Stripe + Demo Mode (3/3 plans) -- completed 2026-02-16
+- [ ] Phase 7: README + Portfolio Polish -- deferred to v2.0 Phase 12
+
+**Phase 4: Bug Fixes + Stability**
+Goal: Users experience a reliable, bug-free slideshow regardless of how they interact with the app.
+Requirements: BUGFIX-01 through BUGFIX-06, DEPLOY-01
+
+**Phase 5: Visual Effects + Overlays**
+Goal: The slideshow delivers a cinematic viewing experience with smooth Ken Burns zoom/pan, blurred background fill, and contextual date/time overlays.
+Requirements: VISUAL-01 through VISUAL-05, OVERLAY-01 through OVERLAY-03
+
+**Phase 6: Stripe + Demo Mode**
+Goal: Visitors can experience Okno without Google auth and supporters can donate with one click.
+Requirements: PAY-01, PAY-02, DEMO-01 through DEMO-04
+
+**Phase 7: README + Portfolio Polish**
+Goal: The GitHub repository communicates product quality at a glance.
+Requirements: PORT-01 through PORT-04 -- absorbed into v2.0 Phase 12.
+
+</details>
 
 ---
 
-### Phase 4: Bug Fixes + Stability
+### v2.0 "Multi-Tenant"
 
-**Goal:** Users experience a reliable, bug-free slideshow regardless of how they interact with the app.
+**Goal:** Transform Okno from a single-user app into a multi-tenant platform where multiple Google users can each run their own photo frame with isolated data, invite-based access, a photo management grid, and a polished GitHub README.
 
-**Dependencies:** None (first v1.1 phase, builds on shipped v1.0)
+---
 
-**Requirements:** BUGFIX-01, BUGFIX-02, BUGFIX-03, BUGFIX-04, BUGFIX-05, BUGFIX-06, DEPLOY-01
+### Phase 8: Database Foundation + Data Migration
 
-**Plans:** 3 plans
+**Goal:** All persistent storage moves from file-based JSON to a proper database, and the existing user's data migrates automatically with zero downtime.
+
+**Depends on:** Phase 6 (shipped v1.1 codebase)
+
+**Requirements:** DB-01, DB-02, DB-03
+
+**Success Criteria** (what must be TRUE):
+1. App starts up using SQLite for all persistent storage -- no reads from tokens.json, cache.json, or config.json in production code paths
+2. Existing user's photos, tokens, and settings appear in the database as the first user account after upgrade -- no manual intervention required
+3. Original JSON files are preserved as .migrated backups -- no data loss even if migration has issues
+
+**Plans:** TBD
 
 Plans:
-- [x] 04-01-PLAN.md -- Picker batch merge + session countdown timer
-- [x] 04-02-PLAN.md -- Slideshow error handling + UI edge case fixes
-- [x] 04-03-PLAN.md -- Service Worker error guard + v1.1 cache version bump
-
-**Success Criteria:**
-1. User adds photos via Picker in multiple sessions and all selections accumulate (no data loss from overwrite)
-2. User sees a visible countdown warning when Picker session is about to expire (no silent timeout)
-3. User in On This Day mode sees a readable fallback message when no photos match today (no black screen)
-4. User in dual mode sees landscape photos handled gracefully without letterboxing artifacts
-5. Slideshow recovers from 502 errors without requiring manual intervention or page reload
+- [ ] 08-01: TBD
+- [ ] 08-02: TBD
 
 ---
 
-### Phase 5: Visual Effects + Overlays
+### Phase 9: Per-User Auth + Data Isolation
 
-**Goal:** The slideshow delivers a cinematic viewing experience with smooth Ken Burns zoom/pan, blurred background fill, and contextual date/time overlays.
+**Goal:** Multiple Google accounts can authenticate independently, and each user's photos, tokens, settings, and slideshow are fully isolated from every other user.
 
-**Dependencies:** Phase 4 (clean foundation, no regressions in slideshow core)
+**Depends on:** Phase 8 (database must exist for per-user storage)
 
-**Requirements:** VISUAL-01, VISUAL-02, VISUAL-03, VISUAL-04, VISUAL-05, OVERLAY-01, OVERLAY-02, OVERLAY-03
+**Requirements:** AUTH-01, AUTH-02, AUTH-03, AUTH-04, ISOL-01, ISOL-02, ISOL-03, ISOL-04
 
-**Success Criteria:**
-1. Photos animate with a smooth, slow Ken Burns zoom/pan effect that varies direction per photo and runs without visible jank on iPad Pro 1st Gen
-2. Non-filling photos display with a blurred version of themselves as background instead of black bars
-3. User can see when each photo was taken (e.g. "March 2019") and the current time as unobtrusive overlays
-4. User can independently toggle Ken Burns, blurred background, photo date, and clock on/off from the settings page
-5. Ken Burns animation respects `prefers-reduced-motion` and disables automatically for users who need it
+**Success Criteria** (what must be TRUE):
+1. Two different Google accounts can be authenticated simultaneously -- User A's session is independent of User B's session
+2. User A's slideshow shows only User A's photos -- never User B's photos, even when both are active
+3. User A's settings changes (interval, Ken Burns toggle, etc.) do not affect User B's settings
+4. A token refresh or expiry for User A does not interrupt User B's slideshow
+5. All API routes resolve the current user from the session -- no global state or singleton OAuth client
 
-**Research Flag:** DEEP -- GPU memory profiling on iPad Pro 1st Gen (A9X), blur performance testing (CSS vs tiny-image), transition choreography to avoid triple-stacking GPU layers. See research/SUMMARY.md Pitfalls #1, #2, #3.
-
-**Plans:** 3 plans
+**Plans:** TBD
 
 Plans:
-- [x] 05-01-PLAN.md -- Config defaults + settings page toggles (Visual Effects + Overlays sections)
-- [x] 05-02-PLAN.md -- Ken Burns effect + transition choreography + prefers-reduced-motion
-- [x] 05-03-PLAN.md -- Blurred background fill + date/time overlays + SW cache version bump
+- [ ] 09-01: TBD
+- [ ] 09-02: TBD
+- [ ] 09-03: TBD
 
 ---
 
-### Phase 6: Stripe + Demo Mode
+### Phase 10: Access Control + Admin + Resilience
 
-**Goal:** Visitors can experience Okno without Google auth (demo mode) and supporters can donate with one click (Stripe).
+**Goal:** New users join via invite codes, admins manage the system from the CLI, expired tokens degrade gracefully, and iPads can be set up by scanning a QR code.
 
-**Dependencies:** Phase 5 (demo mode needs visual effects working to showcase them)
+**Depends on:** Phase 9 (invite code redemption creates a user record that requires the full auth + isolation stack)
 
-**Requirements:** PAY-01, PAY-02, DEMO-01, DEMO-02, DEMO-03, DEMO-04
+**Requirements:** ACCESS-01, ACCESS-02, ACCESS-03, ACCESS-04, EXPIRY-01, EXPIRY-02, EXPIRY-03, ADMIN-01, ADMIN-02, ADMIN-03, SETUP-01
 
-**Success Criteria:**
-1. Unauthenticated visitor clicks "Try Demo" on the home page and sees a full slideshow with sample photos, Ken Burns, blur, and overlays -- no Google account needed
-2. Demo mode shows a clear indicator so viewers know they are seeing sample content, not real photos
-3. User clicks donate button in feedback modal and is taken to a Stripe-hosted payment page (not PayPal)
-4. Demo mode is fully isolated from real user data -- no access to cached photos, settings, or auth tokens
+**Success Criteria** (what must be TRUE):
+1. A new user enters an invite code, signs in with Google, and lands in their own isolated photo frame -- the full onboarding flow works end-to-end
+2. An expired or already-used invite code shows a clear error message -- no silent failures or confusing redirects
+3. An invite code pre-filled via URL parameter (?invite=CODE) skips the manual entry step
+4. When a user's Google token expires or is revoked, their slideshow shows a reconnect overlay instead of crashing -- and other users are unaffected
+5. Admin can generate invite codes, list users with photo counts, and delete a user with all their data via CLI commands on the VPS
 
-**Research Flag:** MODERATE -- sample photo curation (royalty-free licensing), auth bypass security review.
-
-**Plans:** 3 plans
+**Plans:** TBD
 
 Plans:
-- [x] 06-01-PLAN.md -- Stripe donate button on settings page + "Try Demo" button on home page
-- [x] 06-02-PLAN.md -- Demo backend (sample photos + API endpoints)
-- [x] 06-03-PLAN.md -- Demo slideshow page + end-of-demo CTA + SW cache v1.3
+- [ ] 10-01: TBD
+- [ ] 10-02: TBD
+- [ ] 10-03: TBD
 
 ---
 
-### Phase 7: README + Portfolio Polish
+### Phase 11: Photo Management Grid
 
-**Goal:** The GitHub repository communicates product quality, technical depth, and product leadership at a glance.
+**Goal:** Users can view and manage their cached photo collection through a thumbnail grid interface.
 
-**Dependencies:** Phases 5 and 6 (needs screenshots of final product with all visual effects and demo mode working)
+**Depends on:** Phase 9 (per-user data isolation must be complete for the grid to show only the current user's photos)
+
+**Requirements:** GRID-01, GRID-02, GRID-03, GRID-04
+
+**Success Criteria** (what must be TRUE):
+1. User sees a grid of thumbnail images representing all their cached photos
+2. User can select and remove unwanted photos from their cache -- removed photos no longer appear in the slideshow
+3. Grid loads smoothly with large collections (2000 photos) -- thumbnails appear progressively, no page freeze or server overload
+
+**Plans:** TBD
+
+Plans:
+- [ ] 11-01: TBD
+- [ ] 11-02: TBD
+
+---
+
+### Phase 12: Portfolio Polish
+
+**Goal:** The GitHub repository communicates product quality, technical depth, and product leadership at a glance -- documenting the completed multi-tenant product.
+
+**Depends on:** Phases 8-11 (documents the completed v2.0 product; absorbs deferred v1.1 Phase 7 scope)
 
 **Requirements:** PORT-01, PORT-02, PORT-03, PORT-04
 
-**Success Criteria:**
-1. GitHub visitor sees a hero image or GIF showing the slideshow in action (Ken Burns + blur visible) within the first scroll
-2. Architecture diagram (Mermaid) communicates the system design without needing to read code
-3. Product decisions section explains what was NOT built and why -- demonstrating product leadership thinking
+**Success Criteria** (what must be TRUE):
+1. GitHub visitor sees a hero image or GIF showing the multi-user slideshow in action within the first scroll
+2. Architecture diagram (Mermaid) communicates the multi-tenant system design -- database, per-user auth, isolation, invite flow -- without needing to read code
+3. Product decisions section explains key tradeoffs (SQLite over Postgres, invite codes over open registration, server-side tokens over client-side, etc.)
 4. Live demo link lets an interviewer experience the product in under 10 seconds
 
 ---
 
-## Coverage
+## v2.0 Coverage
+
+| Requirement | Phase | Category |
+|-------------|-------|----------|
+| DB-01 | Phase 8 | Database & Migration |
+| DB-02 | Phase 8 | Database & Migration |
+| DB-03 | Phase 8 | Database & Migration |
+| AUTH-01 | Phase 9 | Authentication |
+| AUTH-02 | Phase 9 | Authentication |
+| AUTH-03 | Phase 9 | Authentication |
+| AUTH-04 | Phase 9 | Authentication |
+| ISOL-01 | Phase 9 | Data Isolation |
+| ISOL-02 | Phase 9 | Data Isolation |
+| ISOL-03 | Phase 9 | Data Isolation |
+| ISOL-04 | Phase 9 | Data Isolation |
+| ACCESS-01 | Phase 10 | Access Control |
+| ACCESS-02 | Phase 10 | Access Control |
+| ACCESS-03 | Phase 10 | Access Control |
+| ACCESS-04 | Phase 10 | Access Control |
+| EXPIRY-01 | Phase 10 | Token Expiry |
+| EXPIRY-02 | Phase 10 | Token Expiry |
+| EXPIRY-03 | Phase 10 | Token Expiry |
+| ADMIN-01 | Phase 10 | Admin CLI |
+| ADMIN-02 | Phase 10 | Admin CLI |
+| ADMIN-03 | Phase 10 | Admin CLI |
+| SETUP-01 | Phase 10 | Device Setup |
+| GRID-01 | Phase 11 | Photo Grid |
+| GRID-02 | Phase 11 | Photo Grid |
+| GRID-03 | Phase 11 | Photo Grid |
+| GRID-04 | Phase 11 | Photo Grid |
+| PORT-01 | Phase 12 | Portfolio |
+| PORT-02 | Phase 12 | Portfolio |
+| PORT-03 | Phase 12 | Portfolio |
+| PORT-04 | Phase 12 | Portfolio |
+
+**v2.0 Coverage: 30/30 requirements mapped**
+
+## v1.1 Coverage
+
+<details>
+<summary>v1.1 coverage (25/25 mapped -- all shipped except Phase 7 deferred to Phase 12)</summary>
 
 | Requirement | Phase | Category |
 |-------------|-------|----------|
@@ -140,12 +224,12 @@ Plans:
 | DEMO-02 | Phase 6 | Demo Mode |
 | DEMO-03 | Phase 6 | Demo Mode |
 | DEMO-04 | Phase 6 | Demo Mode |
-| PORT-01 | Phase 7 | Portfolio |
-| PORT-02 | Phase 7 | Portfolio |
-| PORT-03 | Phase 7 | Portfolio |
-| PORT-04 | Phase 7 | Portfolio |
+| PORT-01 | Phase 7/12 | Portfolio |
+| PORT-02 | Phase 7/12 | Portfolio |
+| PORT-03 | Phase 7/12 | Portfolio |
+| PORT-04 | Phase 7/12 | Portfolio |
 
-**v1.1 Coverage: 25/25 requirements mapped**
+</details>
 
 ## Progress
 
@@ -157,4 +241,9 @@ Plans:
 | 4. Bug Fixes + Stability | v1.1 | 3/3 | Complete | 2026-02-15 |
 | 5. Visual Effects + Overlays | v1.1 | 3/3 | Complete | 2026-02-15 |
 | 6. Stripe + Demo Mode | v1.1 | 3/3 | Complete | 2026-02-16 |
-| 7. README + Portfolio Polish | v1.1 | 0/? | Not Started | -- |
+| 7. README + Portfolio Polish | v1.1 | 0/? | Deferred | -- |
+| 8. Database Foundation + Data Migration | v2.0 | 0/? | Not Started | -- |
+| 9. Per-User Auth + Data Isolation | v2.0 | 0/? | Not Started | -- |
+| 10. Access Control + Admin + Resilience | v2.0 | 0/? | Not Started | -- |
+| 11. Photo Management Grid | v2.0 | 0/? | Not Started | -- |
+| 12. Portfolio Polish | v2.0 | 0/? | Not Started | -- |

@@ -68,12 +68,12 @@ Requirements for "Multi-Tenant" milestone. Multi-user architecture, photo manage
 
 All v1.1 requirements completed in Phases 4-6. See MILESTONES.md for details.
 
-- [x] BUGFIX-01 through BUGFIX-06 — Phase 4
-- [x] DEPLOY-01 — Phase 4
-- [x] VISUAL-01 through VISUAL-05 — Phase 5
-- [x] OVERLAY-01 through OVERLAY-03 — Phase 5
-- [x] PAY-01, PAY-02 — Phase 6
-- [x] DEMO-01 through DEMO-04 — Phase 6
+- [x] BUGFIX-01 through BUGFIX-06 -- Phase 4
+- [x] DEPLOY-01 -- Phase 4
+- [x] VISUAL-01 through VISUAL-05 -- Phase 5
+- [x] OVERLAY-01 through OVERLAY-03 -- Phase 5
+- [x] PAY-01, PAY-02 -- Phase 6
+- [x] DEMO-01 through DEMO-04 -- Phase 6
 
 ## v2.1+ Requirements
 
@@ -104,10 +104,10 @@ Deferred to future milestone.
 
 | Feature | Reason |
 |---------|--------|
-| Client-side token storage (IndexedDB) | Breaks "set up on phone, run on iPad" UX — tokens must be server-side |
+| Client-side token storage (IndexedDB) | Breaks "set up on phone, run on iPad" UX -- tokens must be server-side |
 | Shared albums / social features | Okno is a personal photo frame, not a social platform |
-| Real-time photo sync | No Google Photos push API — explicit Picker flow is sufficient |
-| Photo editing / cropping | Out of scope for a photo frame app — use Google Photos for editing |
+| Real-time photo sync | No Google Photos push API -- explicit Picker flow is sufficient |
+| Photo editing / cropping | Out of scope for a photo frame app -- use Google Photos for editing |
 | Multi-device per user | One user = one device. Use two accounts for two frames. |
 | Admin dashboard UI | CLI sufficient for invite-only with <100 users |
 | Native iOS app | PWA + Guided Access sufficient, avoids $100 fee |
@@ -117,42 +117,42 @@ Deferred to future milestone.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DB-01 | — | Pending |
-| DB-02 | — | Pending |
-| DB-03 | — | Pending |
-| AUTH-01 | — | Pending |
-| AUTH-02 | — | Pending |
-| AUTH-03 | — | Pending |
-| AUTH-04 | — | Pending |
-| ACCESS-01 | — | Pending |
-| ACCESS-02 | — | Pending |
-| ACCESS-03 | — | Pending |
-| ACCESS-04 | — | Pending |
-| ISOL-01 | — | Pending |
-| ISOL-02 | — | Pending |
-| ISOL-03 | — | Pending |
-| ISOL-04 | — | Pending |
-| GRID-01 | — | Pending |
-| GRID-02 | — | Pending |
-| GRID-03 | — | Pending |
-| GRID-04 | — | Pending |
-| EXPIRY-01 | — | Pending |
-| EXPIRY-02 | — | Pending |
-| EXPIRY-03 | — | Pending |
-| SETUP-01 | — | Pending |
-| ADMIN-01 | — | Pending |
-| ADMIN-02 | — | Pending |
-| ADMIN-03 | — | Pending |
-| PORT-01 | — | Pending |
-| PORT-02 | — | Pending |
-| PORT-03 | — | Pending |
-| PORT-04 | — | Pending |
+| DB-01 | Phase 8 | Pending |
+| DB-02 | Phase 8 | Pending |
+| DB-03 | Phase 8 | Pending |
+| AUTH-01 | Phase 9 | Pending |
+| AUTH-02 | Phase 9 | Pending |
+| AUTH-03 | Phase 9 | Pending |
+| AUTH-04 | Phase 9 | Pending |
+| ISOL-01 | Phase 9 | Pending |
+| ISOL-02 | Phase 9 | Pending |
+| ISOL-03 | Phase 9 | Pending |
+| ISOL-04 | Phase 9 | Pending |
+| ACCESS-01 | Phase 10 | Pending |
+| ACCESS-02 | Phase 10 | Pending |
+| ACCESS-03 | Phase 10 | Pending |
+| ACCESS-04 | Phase 10 | Pending |
+| EXPIRY-01 | Phase 10 | Pending |
+| EXPIRY-02 | Phase 10 | Pending |
+| EXPIRY-03 | Phase 10 | Pending |
+| ADMIN-01 | Phase 10 | Pending |
+| ADMIN-02 | Phase 10 | Pending |
+| ADMIN-03 | Phase 10 | Pending |
+| SETUP-01 | Phase 10 | Pending |
+| GRID-01 | Phase 11 | Pending |
+| GRID-02 | Phase 11 | Pending |
+| GRID-03 | Phase 11 | Pending |
+| GRID-04 | Phase 11 | Pending |
+| PORT-01 | Phase 12 | Pending |
+| PORT-02 | Phase 12 | Pending |
+| PORT-03 | Phase 12 | Pending |
+| PORT-04 | Phase 12 | Pending |
 
 **Coverage:**
 - v2.0 requirements: 30 total
-- Mapped to phases: 0 (awaiting roadmap)
-- Unmapped: 30
+- Mapped to phases: 30
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-02-27*
-*Last updated: 2026-02-27 after initial definition*
+*Last updated: 2026-02-27 after roadmap creation*
