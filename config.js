@@ -1,7 +1,4 @@
-const fs = require('fs');
-const path = require('path');
-
-const CONFIG_PATH = path.join(__dirname, 'config.json');
+const db = require('./db/database');
 
 // Default config values
 const defaults = {
@@ -19,22 +16,38 @@ const defaults = {
 // In-memory config (populated on first load)
 let currentConfig = null;
 
+// Prepared statements (lazy-initialized)
+let stmtSelect = null;
+let stmtUpsert = null;
+
+function getStatements() {
+  if (!stmtSelect) {
+    stmtSelect = db.prepare('SELECT settings FROM user_settings WHERE user_id = 1');
+    stmtUpsert = db.prepare(`
+      INSERT INTO user_settings (user_id, settings, updated_at)
+      VALUES (1, @settings, datetime('now'))
+      ON CONFLICT(user_id) DO UPDATE SET
+        settings = excluded.settings,
+        updated_at = datetime('now')
+    `);
+  }
+  return { stmtSelect, stmtUpsert };
+}
+
 /**
- * Load config from config.json, merging with defaults for any missing keys.
- * Creates config.json with defaults if it doesn't exist.
+ * Load config from database, merging with defaults for any missing keys.
+ * Returns defaults if no row exists yet.
  * @returns {object} The loaded config
  */
 function loadConfig() {
   try {
-    if (fs.existsSync(CONFIG_PATH)) {
-      const raw = fs.readFileSync(CONFIG_PATH, 'utf8');
-      const saved = JSON.parse(raw);
-      // Merge: defaults first, then saved values override
+    const { stmtSelect } = getStatements();
+    const row = stmtSelect.get();
+    if (row) {
+      const saved = JSON.parse(row.settings);
       currentConfig = { ...defaults, ...saved };
     } else {
       currentConfig = { ...defaults };
-      // Write defaults to disk so config.json exists
-      fs.writeFileSync(CONFIG_PATH, JSON.stringify(currentConfig, null, 2), 'utf8');
     }
   } catch (err) {
     console.error('Failed to load config, using defaults:', err.message);
@@ -44,7 +57,7 @@ function loadConfig() {
 }
 
 /**
- * Save partial config updates. Merges updates into current config and writes to disk.
+ * Save partial config updates. Merges updates into current config and writes to DB.
  * @param {object} updates - Key/value pairs to update
  * @returns {object} The updated config
  */
@@ -85,7 +98,8 @@ function saveConfig(updates) {
   currentConfig = { ...currentConfig, ...validated };
 
   try {
-    fs.writeFileSync(CONFIG_PATH, JSON.stringify(currentConfig, null, 2), 'utf8');
+    const { stmtUpsert } = getStatements();
+    stmtUpsert.run({ settings: JSON.stringify(currentConfig) });
   } catch (err) {
     console.error('Failed to save config:', err.message);
   }
@@ -94,7 +108,7 @@ function saveConfig(updates) {
 }
 
 /**
- * Get current in-memory config. Loads from disk if not yet loaded.
+ * Get current in-memory config. Loads from DB if not yet loaded.
  * @returns {object} The current config
  */
 function getConfig() {

@@ -10,3 +10,4 @@ okno.env
 feedback/
 demo-originals/
 data/
+*.migrated
