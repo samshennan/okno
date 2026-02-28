@@ -1,4 +1,4 @@
-const fs = require('fs');
+const db = require('./db/database');
 const { oAuth2Client } = require('./auth');
 const winston = require('winston');
 
@@ -17,9 +17,6 @@ const logger = winston.createLogger({
   ]
 });
 
-// Cache file path
-const CACHE_PATH = './cache.json';
-
 // Refresh interval: 50 minutes (before 60-minute expiry)
 const REFRESH_INTERVAL_MS = 50 * 60 * 1000;
 
@@ -34,18 +31,36 @@ let cache = {
 // Refresh interval handle
 let refreshIntervalHandle = null;
 
-// Load cache from disk
+// Prepared statements (lazy-initialized)
+let stmts = null;
+
+function getStatements() {
+  if (!stmts) {
+    stmts = {
+      selectAll: db.prepare('SELECT media_item_id, media_item_data, session_id FROM photo_cache WHERE user_id = 1'),
+      insertItem: db.prepare(`
+        INSERT OR IGNORE INTO photo_cache (user_id, session_id, media_item_id, media_item_data, created_at)
+        VALUES (1, ?, ?, ?, datetime('now'))
+      `),
+      updateSessionId: db.prepare('UPDATE photo_cache SET session_id = ? WHERE user_id = 1'),
+      updateItem: db.prepare('UPDATE photo_cache SET media_item_data = ?, session_id = ? WHERE user_id = 1 AND media_item_id = ?'),
+    };
+  }
+  return stmts;
+}
+
+// Load cache from database
 function loadCache() {
   try {
-    if (fs.existsSync(CACHE_PATH)) {
-      const data = fs.readFileSync(CACHE_PATH, 'utf8');
-      const parsed = JSON.parse(data);
-      cache = {
-        sessionId: parsed.sessionId || null,
-        mediaItems: parsed.mediaItems || [],
-        lastRefresh: parsed.lastRefresh || null,
-        lastApiCall: parsed.lastApiCall || null
-      };
+    const { selectAll } = getStatements();
+    const rows = selectAll.all();
+    if (rows.length > 0) {
+      cache.mediaItems = rows.map(row => JSON.parse(row.media_item_data));
+      // All rows for a user share the same session_id; use the first non-null
+      cache.sessionId = rows.find(r => r.session_id)?.session_id || null;
+      // Runtime-only values -- baseUrls expire every 60min, no point persisting
+      cache.lastRefresh = null;
+      cache.lastApiCall = null;
       logger.info(`Loaded ${cache.mediaItems.length} items from cache`);
       return true;
     }
@@ -55,14 +70,9 @@ function loadCache() {
   return false;
 }
 
-// Save cache to disk
+// saveCache is now a no-op -- persistence happens inline in setItems and refreshBaseUrls
 function saveCache() {
-  try {
-    fs.writeFileSync(CACHE_PATH, JSON.stringify(cache, null, 2));
-    logger.info('Cache saved to disk');
-  } catch (error) {
-    logger.error('Failed to save cache:', { error: error.message });
-  }
+  /* persisted on write */
 }
 
 // Set items in cache (called after Picker completion)
@@ -83,7 +93,20 @@ function setItems(items, sessionId) {
 
   logger.info(`Merged ${newItems.length} new items (${items.length - newItems.length} duplicates skipped), total: ${cache.mediaItems.length}`);
 
-  saveCache();
+  // Persist new items to DB in a transaction
+  try {
+    const { insertItem, updateSessionId } = getStatements();
+    const insertMany = db.transaction((newItems, sessionId) => {
+      for (const item of newItems) {
+        insertItem.run(sessionId, item.id, JSON.stringify(item));
+      }
+      // Update session_id for all rows for this user
+      updateSessionId.run(sessionId);
+    });
+    insertMany(newItems, sessionId);
+  } catch (error) {
+    logger.error('Failed to persist items to DB:', { error: error.message });
+  }
 
   // Start refresh interval if not already running
   if (!refreshIntervalHandle && cache.mediaItems.length > 0) {
@@ -238,7 +261,19 @@ async function refreshBaseUrls() {
 
     cache.lastRefresh = new Date().toISOString();
     cache.lastApiCall = new Date().toISOString();
-    saveCache();
+
+    // Persist updated items to DB in a transaction
+    try {
+      const { updateItem } = getStatements();
+      const updateMany = db.transaction((allItems, sessionId) => {
+        for (const item of allItems) {
+          updateItem.run(JSON.stringify(item), sessionId, item.id);
+        }
+      });
+      updateMany(allItems, cache.sessionId);
+    } catch (dbError) {
+      logger.error('Failed to persist refreshed items to DB:', { error: dbError.message });
+    }
 
     logger.info(`Refreshed ${allItems.length} baseUrls`);
   } catch (error) {
