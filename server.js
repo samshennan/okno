@@ -4,7 +4,8 @@ const express = require('express');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const session = require('express-session');
-const FileStore = require('session-file-store')(session);
+const db = require('./db/database');
+const SqliteStore = require('better-sqlite3-session-store')(session);
 const winston = require('winston');
 const path = require('path');
 const fs = require('fs');
@@ -57,14 +58,17 @@ app.use(morgan('combined', {
   stream: { write: (message) => logger.info(message.trim()) }
 }));
 
-// Session middleware with file store (1 year expiry for "forever" sessions)
+// Session middleware with SQLite store (1 year expiry for "forever" sessions)
 app.use(session({
   secret: process.env.SESSION_SECRET || 'dev-secret-change-in-production',
   resave: false,
   saveUninitialized: false,
-  store: new FileStore({
-    path: './sessions',
-    ttl: 86400 * 365  // 1 year
+  store: new SqliteStore({
+    client: db,
+    expired: {
+      clear: true,
+      intervalMs: 900000  // Clean expired sessions every 15 minutes
+    }
   }),
   cookie: {
     secure: process.env.NODE_ENV === 'production',  // true in production (HTTPS)
@@ -140,7 +144,7 @@ const PORT = process.env.PORT || 3100;
 app.listen(PORT, () => {
   logger.info(`Server listening on port ${PORT}`);
   logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
-  logger.info(`Session store: file (./sessions, ttl=1 year)`);
+  logger.info(`Session store: SQLite (data/okno.db)`);
 });
 
 // Export app for testing

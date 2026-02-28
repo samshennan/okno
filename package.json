@@ -15,6 +15,7 @@
   "license": "ISC",
   "dependencies": {
     "better-sqlite3": "^12.6.2",
+    "better-sqlite3-session-store": "^0.1.0",
     "dotenv": "^16.4.5",
     "express": "^4.18.2",
     "express-session": "^1.18.0",
@@ -22,7 +23,6 @@
     "helmet": "^7.1.0",
     "morgan": "^1.10.0",
     "multer": "^2.0.2",
-    "session-file-store": "^1.5.0",
     "winston": "^3.11.0"
   },
   "devDependencies": {
@@ -30,7 +30,6 @@
     "@types/express": "^5.0.6",
     "@types/express-session": "^1.18.2",
     "@types/morgan": "^1.9.10",
-    "@types/session-file-store": "^1.2.6",
     "sharp": "^0.34.5"
   }
 }
