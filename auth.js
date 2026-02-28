@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { OAuth2Client } = require('google-auth-library');
 const crypto = require('crypto');
-const fs = require('fs');
+const db = require('./db/database');
 const winston = require('winston');
 
 // Configure logger
@@ -29,16 +29,42 @@ const oAuth2Client = new OAuth2Client(
   process.env.GOOGLE_CLIENT_SECRET
 );
 
-// Token storage file
-const TOKEN_PATH = './tokens.json';
+// Prepared statements for token persistence (lazy-initialized)
+let stmtSelectTokens = null;
+let stmtUpsertTokens = null;
 
-// Load tokens from file on startup
+function getTokenStatements() {
+  if (!stmtSelectTokens) {
+    stmtSelectTokens = db.prepare('SELECT * FROM tokens WHERE user_id = 1');
+    stmtUpsertTokens = db.prepare(`
+      INSERT INTO tokens (user_id, access_token, refresh_token, expiry_date, scope, token_type, updated_at)
+      VALUES (1, @access_token, @refresh_token, @expiry_date, @scope, @token_type, datetime('now'))
+      ON CONFLICT(user_id) DO UPDATE SET
+        access_token = @access_token,
+        refresh_token = COALESCE(@refresh_token, tokens.refresh_token),
+        expiry_date = @expiry_date,
+        scope = @scope,
+        token_type = @token_type,
+        updated_at = datetime('now')
+    `);
+  }
+  return { stmtSelectTokens, stmtUpsertTokens };
+}
+
+// Load tokens from database on startup
 function loadTokens() {
   try {
-    if (fs.existsSync(TOKEN_PATH)) {
-      const tokens = JSON.parse(fs.readFileSync(TOKEN_PATH, 'utf8'));
-      oAuth2Client.setCredentials(tokens);
-      logger.info('Tokens loaded from disk');
+    const { stmtSelectTokens } = getTokenStatements();
+    const row = stmtSelectTokens.get();
+    if (row) {
+      oAuth2Client.setCredentials({
+        access_token: row.access_token,
+        refresh_token: row.refresh_token,
+        expiry_date: row.expiry_date,
+        scope: row.scope,
+        token_type: row.token_type
+      });
+      logger.info('Tokens loaded from database');
       return true;
     }
   } catch (error) {
@@ -47,31 +73,18 @@ function loadTokens() {
   return false;
 }
 
-// Save tokens to file
+// Save tokens to database (UPSERT preserves refresh_token via COALESCE)
 function saveTokens(tokens) {
   try {
-    // Load existing tokens to preserve refresh_token
-    let existingTokens = {};
-    if (fs.existsSync(TOKEN_PATH)) {
-      existingTokens = JSON.parse(fs.readFileSync(TOKEN_PATH, 'utf8'));
-    }
-
-    // Merge tokens - preserve refresh_token if not in new tokens
-    // (Google only sends refresh_token on first authorization)
-    const mergedTokens = {
-      ...existingTokens,
-      ...tokens
-    };
-
-    // If refresh_token exists in new tokens, use it; otherwise keep existing
-    if (tokens.refresh_token) {
-      mergedTokens.refresh_token = tokens.refresh_token;
-    } else if (existingTokens.refresh_token) {
-      mergedTokens.refresh_token = existingTokens.refresh_token;
-    }
-
-    fs.writeFileSync(TOKEN_PATH, JSON.stringify(mergedTokens, null, 2));
-    logger.info('Tokens saved to disk');
+    const { stmtUpsertTokens } = getTokenStatements();
+    stmtUpsertTokens.run({
+      access_token: tokens.access_token || null,
+      refresh_token: tokens.refresh_token || null,
+      expiry_date: tokens.expiry_date || null,
+      scope: tokens.scope || null,
+      token_type: tokens.token_type || null
+    });
+    logger.info('Tokens saved to database');
   } catch (error) {
     logger.error('Failed to save tokens:', { error: error.message });
   }
@@ -165,7 +178,7 @@ router.get('/callback', async (req, res) => {
       logger.info('Email verified', { email: userEmail });
     }
 
-    // Save tokens to disk
+    // Save tokens to database
     saveTokens(tokens);
 
     // Mark session as authenticated
