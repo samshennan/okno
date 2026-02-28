@@ -90,12 +90,12 @@ Plans:
 4. A token refresh or expiry for User A does not interrupt User B's slideshow
 5. All API routes resolve the current user from the session -- no global state or singleton OAuth client
 
-**Plans:** TBD
+**Plans:** 3 plans
 
 Plans:
-- [ ] 09-01: TBD
-- [ ] 09-02: TBD
-- [ ] 09-03: TBD
+- [ ] 09-01-PLAN.md -- Auth foundation + per-user OAuth2Client + login page + route protection
+- [ ] 09-02-PLAN.md -- Per-user data isolation (picker, photo-proxy, health, photo-cache, config)
+- [ ] 09-03-PLAN.md -- Frontend auth flows (reconnect overlay, logout button, 401 handling)
 
 ---
 
