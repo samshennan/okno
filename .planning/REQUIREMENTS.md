@@ -9,9 +9,9 @@ Requirements for "Multi-Tenant" milestone. Multi-user architecture, photo manage
 
 ### Database & Migration
 
-- [ ] **DB-01**: App uses SQLite database for all persistent storage (users, tokens, photos, settings, invite codes)
-- [ ] **DB-02**: Existing JSON files (tokens.json, cache.json, config.json) auto-migrate to DB as first user on first startup
-- [ ] **DB-03**: Migrated JSON files renamed to .migrated as backup
+- [x] **DB-01**: App uses SQLite database for all persistent storage (users, tokens, photos, settings, invite codes)
+- [x] **DB-02**: Existing JSON files (tokens.json, cache.json, config.json) auto-migrate to DB as first user on first startup
+- [x] **DB-03**: Migrated JSON files renamed to .migrated as backup
 
 ### Authentication
 
@@ -117,9 +117,9 @@ Deferred to future milestone.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DB-01 | Phase 8 | Pending |
-| DB-02 | Phase 8 | Pending |
-| DB-03 | Phase 8 | Pending |
+| DB-01 | Phase 8 | Complete |
+| DB-02 | Phase 8 | Complete |
+| DB-03 | Phase 8 | Complete |
 | AUTH-01 | Phase 9 | Pending |
 | AUTH-02 | Phase 9 | Pending |
 | AUTH-03 | Phase 9 | Pending |

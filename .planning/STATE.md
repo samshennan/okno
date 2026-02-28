@@ -5,15 +5,15 @@
 See: .planning/PROJECT.md (updated 2026-02-27)
 
 **Core value:** Display random photos from Google Photos on an iPad in a beautiful, hands-off way that requires no interaction after initial setup.
-**Current focus:** v2.0 "Multi-Tenant" -- Phase 8: Database Foundation + Data Migration
+**Current focus:** v2.0 "Multi-Tenant" -- Phase 9: Per-User Auth + Data Isolation
 
 ## Current Position
 
 **Milestone:** v2.0 "Multi-Tenant"
-Phase: 8 of 12 (Database Foundation + Data Migration)
-Plan: 03 of 03 (complete)
-Status: Complete (pending verification)
-Last activity: 2026-02-28 -- Completed 08-03-PLAN.md (photo-cache + session store DB migration, VPS verified)
+Phase: 9 of 12 (Per-User Auth + Data Isolation)
+Plan: 00 of TBD (not started)
+Status: Ready to plan
+Last activity: 2026-02-28 -- Completed Phase 8 (Database Foundation + Data Migration), verified 9/9 must-haves
 
 Progress: [#####################...........] 68% (v1.0+v1.1: 20/20 plans | v2.0: 3/13 plans)
 
@@ -77,11 +77,11 @@ See PROJECT.md for full decision log.
 ## Session Continuity
 
 **Last session:** 2026-02-28
-**Stopped at:** Completed 08-03-PLAN.md (photo-cache + session store DB migration, VPS verified)
-**Resume:** Run phase verifier, then Phase 9
+**Stopped at:** Phase 8 complete and verified (9/9 must-haves passed)
+**Resume:** `/gsd:discuss-phase 9` or `/gsd:plan-phase 9`
 
 ---
 
-**Project Status:** Phase 8 complete -- all 3 plans done, VPS verified
+**Project Status:** Phase 8 complete -- all 3 plans done, verified, Phase 9 ready to plan
 **Deployment:** https://okno.moonacle.com
 **GitHub:** https://github.com/samshennan/okno

@@ -70,8 +70,8 @@ Requirements: PORT-01 through PORT-04 -- absorbed into v2.0 Phase 12.
 
 Plans:
 - [x] 08-01-PLAN.md -- Database foundation (better-sqlite3, schema, migration runner, JSON-to-DB seed)
-- [ ] 08-02-PLAN.md -- Replace config.js + auth.js JSON persistence with DB queries
-- [ ] 08-03-PLAN.md -- Replace photo-cache.js + session store with DB, VPS deploy verification
+- [x] 08-02-PLAN.md -- Replace config.js + auth.js JSON persistence with DB queries
+- [x] 08-03-PLAN.md -- Replace photo-cache.js + session store with DB, VPS deploy verification
 
 ---
 
@@ -243,7 +243,7 @@ Plans:
 | 5. Visual Effects + Overlays | v1.1 | 3/3 | Complete | 2026-02-15 |
 | 6. Stripe + Demo Mode | v1.1 | 3/3 | Complete | 2026-02-16 |
 | 7. README + Portfolio Polish | v1.1 | 0/? | Deferred | -- |
-| 8. Database Foundation + Data Migration | v2.0 | 1/3 | In Progress | -- |
+| 8. Database Foundation + Data Migration | v2.0 | 3/3 | Complete | 2026-02-28 |
 | 9. Per-User Auth + Data Isolation | v2.0 | 0/? | Not Started | -- |
 | 10. Access Control + Admin + Resilience | v2.0 | 0/? | Not Started | -- |
 | 11. Photo Management Grid | v2.0 | 0/? | Not Started | -- |
