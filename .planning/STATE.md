@@ -11,11 +11,11 @@ See: .planning/PROJECT.md (updated 2026-02-27)
 
 **Milestone:** v2.0 "Multi-Tenant"
 Phase: 9 of 12 (Per-User Auth + Data Isolation)
-Plan: 01 of 03
+Plan: 02 of 03
 Status: In progress
-Last activity: 2026-03-01 -- Completed 09-01-PLAN.md (auth foundation, login page, route protection)
+Last activity: 2026-03-01 -- Completed 09-02-PLAN.md (data module parameterisation by userId)
 
-Progress: [#######################.........] 73% (v1.0+v1.1: 20/20 plans | v2.0: 4/13 plans)
+Progress: [########################........] 76% (v1.0+v1.1: 20/20 plans | v2.0: 5/13 plans)
 
 ## What We Shipped
 
@@ -34,10 +34,10 @@ Progress: [#######################.........] 73% (v1.0+v1.1: 20/20 plans | v2.0:
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 24 (v1.0: 11, v1.1: 9, v2.0: 4)
+- Total plans completed: 25 (v1.0: 11, v1.1: 9, v2.0: 5)
 - v1.0: 7 days (11 plans)
 - v1.1: 2 days (9 plans)
-- v2.0: in progress (4 plans, 23 min)
+- v2.0: in progress (5 plans, 26 min)
 
 ## Accumulated Context
 
@@ -73,6 +73,13 @@ See PROJECT.md for full decision log.
 - Transient OAuth2Client for login/callback flows (user identity unknown at that point)
 - Removed config.loadConfig() startup call (per-user config loading deferred to Plan 02)
 
+**09-02 implementation decisions:**
+- Lazy require('./auth') inside refreshBaseUrls to avoid circular dependency
+- getUserCache loads from DB on first access per user (no module-level loadCache call)
+- config.js uses all positional parameters (?) instead of mixed positional/named (@) for better-sqlite3
+- Health endpoint returns basic status with zeroed auth/cache when no userId in session
+- Per-user cache pattern: Map<userId, Data> with lazy initialiser functions
+
 ### Blockers/Concerns
 
 - Google Picker API 2000 photo limit remains
@@ -80,16 +87,15 @@ See PROJECT.md for full decision log.
 - Google 100-user unverified app cap -- invite-only is the design response
 - Picker API thumbnail URL format (=w240-h240-c) needs validation in Phase 11
 - Session store: better-sqlite3-session-store v0.1.0 is stale but functional -- deployed and verified on VPS
-- Downstream modules (picker.js, photo-proxy.js, photo-cache.js, health.js) still import old oAuth2Client singleton (now undefined) -- Plan 02 must fix
 
 ## Session Continuity
 
 **Last session:** 2026-03-01
-**Stopped at:** Completed 09-01-PLAN.md (auth foundation)
+**Stopped at:** Completed 09-02-PLAN.md (data module parameterisation)
 **Resume file:** None
 
 ---
 
-**Project Status:** Phase 9 plan 1 of 3 complete -- auth foundation, login page, route protection
+**Project Status:** Phase 9 plan 2 of 3 complete -- auth foundation + data isolation. All modules parameterised by userId.
 **Deployment:** https://okno.moonacle.com
 **GitHub:** https://github.com/samshennan/okno
