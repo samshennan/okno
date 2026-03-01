@@ -13,8 +13,8 @@ const defaults = {
   showClock: false,        // Show current time on slideshow
 };
 
-// In-memory config (populated on first load)
-let currentConfig = null;
+// Per-user config: Map<userId, config>
+const userConfigs = new Map();
 
 // Prepared statements (lazy-initialized)
 let stmtSelect = null;
@@ -22,10 +22,10 @@ let stmtUpsert = null;
 
 function getStatements() {
   if (!stmtSelect) {
-    stmtSelect = db.prepare('SELECT settings FROM user_settings WHERE user_id = 1');
+    stmtSelect = db.prepare('SELECT settings FROM user_settings WHERE user_id = ?');
     stmtUpsert = db.prepare(`
       INSERT INTO user_settings (user_id, settings, updated_at)
-      VALUES (1, @settings, datetime('now'))
+      VALUES (?, ?, datetime('now'))
       ON CONFLICT(user_id) DO UPDATE SET
         settings = excluded.settings,
         updated_at = datetime('now')
@@ -35,35 +35,38 @@ function getStatements() {
 }
 
 /**
- * Load config from database, merging with defaults for any missing keys.
+ * Load config from database for a specific user, merging with defaults.
  * Returns defaults if no row exists yet.
+ * @param {number} userId
  * @returns {object} The loaded config
  */
-function loadConfig() {
+function loadConfig(userId) {
   try {
     const { stmtSelect } = getStatements();
-    const row = stmtSelect.get();
+    const row = stmtSelect.get(userId);
     if (row) {
       const saved = JSON.parse(row.settings);
-      currentConfig = { ...defaults, ...saved };
-    } else {
-      currentConfig = { ...defaults };
+      const config = { ...defaults, ...saved };
+      userConfigs.set(userId, config);
+      return config;
     }
   } catch (err) {
     console.error('Failed to load config, using defaults:', err.message);
-    currentConfig = { ...defaults };
   }
-  return currentConfig;
+  const config = { ...defaults };
+  userConfigs.set(userId, config);
+  return config;
 }
 
 /**
- * Save partial config updates. Merges updates into current config and writes to DB.
+ * Save partial config updates for a specific user. Merges updates into current config and writes to DB.
+ * @param {number} userId
  * @param {object} updates - Key/value pairs to update
  * @returns {object} The updated config
  */
-function saveConfig(updates) {
-  if (!currentConfig) {
-    loadConfig();
+function saveConfig(userId, updates) {
+  if (!userConfigs.has(userId)) {
+    loadConfig(userId);
   }
 
   // Validate known keys and types
@@ -95,27 +98,30 @@ function saveConfig(updates) {
     validated[key] = value;
   }
 
-  currentConfig = { ...currentConfig, ...validated };
+  const current = userConfigs.get(userId);
+  const updated = { ...current, ...validated };
+  userConfigs.set(userId, updated);
 
   try {
     const { stmtUpsert } = getStatements();
-    stmtUpsert.run({ settings: JSON.stringify(currentConfig) });
+    stmtUpsert.run(userId, JSON.stringify(updated));
   } catch (err) {
     console.error('Failed to save config:', err.message);
   }
 
-  return currentConfig;
+  return updated;
 }
 
 /**
- * Get current in-memory config. Loads from DB if not yet loaded.
+ * Get current in-memory config for a specific user. Loads from DB if not yet loaded.
+ * @param {number} userId
  * @returns {object} The current config
  */
-function getConfig() {
-  if (!currentConfig) {
-    loadConfig();
+function getConfig(userId) {
+  if (!userConfigs.has(userId)) {
+    loadConfig(userId);
   }
-  return { ...currentConfig };
+  return { ...userConfigs.get(userId) };
 }
 
 module.exports = { loadConfig, saveConfig, getConfig, defaults };

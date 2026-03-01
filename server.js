@@ -141,7 +141,7 @@ app.use('/api/feedback', requireAuth, feedbackRouter);
 const config = require('./config');
 
 app.get('/api/config', requireAuth, (req, res) => {
-  res.json(config.getConfig());
+  res.json(config.getConfig(req.session.userId));
 });
 
 app.post('/api/config', requireAuth, (req, res) => {
@@ -149,7 +149,7 @@ app.post('/api/config', requireAuth, (req, res) => {
   if (!updates || typeof updates !== 'object') {
     return res.status(400).json({ error: 'Request body must be a JSON object' });
   }
-  const updated = config.saveConfig(updates);
+  const updated = config.saveConfig(req.session.userId, updates);
   logger.info('Config updated:', updated);
   res.json(updated);
 });
