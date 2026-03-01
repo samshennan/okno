@@ -20,25 +20,28 @@ const logger = winston.createLogger({
   ]
 });
 
-// Google Photos Picker API scope
-const SCOPES = ['https://www.googleapis.com/auth/photospicker.mediaitems.readonly'];
+// OAuth scopes -- openid/email/profile for user identity, photospicker for photo access
+const SCOPES = [
+  'openid',
+  'email',
+  'profile',
+  'https://www.googleapis.com/auth/photospicker.mediaitems.readonly'
+];
 
-// OAuth2 client (redirectUri will be set dynamically per request)
-const oAuth2Client = new OAuth2Client(
-  process.env.GOOGLE_CLIENT_ID,
-  process.env.GOOGLE_CLIENT_SECRET
-);
+// Per-user OAuth2Client cache (avoids token refresh race conditions)
+const clientCache = new Map();
 
-// Prepared statements for token persistence (lazy-initialized)
+// Prepared statements (lazy-initialized)
 let stmtSelectTokens = null;
 let stmtUpsertTokens = null;
+let stmtUpsertUser = null;
 
 function getTokenStatements() {
   if (!stmtSelectTokens) {
-    stmtSelectTokens = db.prepare('SELECT * FROM tokens WHERE user_id = 1');
+    stmtSelectTokens = db.prepare('SELECT * FROM tokens WHERE user_id = ?');
     stmtUpsertTokens = db.prepare(`
       INSERT INTO tokens (user_id, access_token, refresh_token, expiry_date, scope, token_type, updated_at)
-      VALUES (1, @access_token, @refresh_token, @expiry_date, @scope, @token_type, datetime('now'))
+      VALUES (?, @access_token, @refresh_token, @expiry_date, @scope, @token_type, datetime('now'))
       ON CONFLICT(user_id) DO UPDATE SET
         access_token = @access_token,
         refresh_token = COALESCE(@refresh_token, tokens.refresh_token),
@@ -51,83 +54,108 @@ function getTokenStatements() {
   return { stmtSelectTokens, stmtUpsertTokens };
 }
 
-// Load tokens from database on startup
-function loadTokens() {
-  try {
-    const { stmtSelectTokens } = getTokenStatements();
-    const row = stmtSelectTokens.get();
-    if (row) {
-      oAuth2Client.setCredentials({
-        access_token: row.access_token,
-        refresh_token: row.refresh_token,
-        expiry_date: row.expiry_date,
-        scope: row.scope,
-        token_type: row.token_type
-      });
-      logger.info('Tokens loaded from database');
-      return true;
-    }
-  } catch (error) {
-    logger.error('Failed to load tokens:', { error: error.message });
+function getUserStatements() {
+  if (!stmtUpsertUser) {
+    stmtUpsertUser = db.prepare(`
+      INSERT INTO users (email, display_name, last_login)
+      VALUES (?, ?, datetime('now'))
+      ON CONFLICT(email) DO UPDATE SET
+        display_name = excluded.display_name,
+        last_login = datetime('now')
+      RETURNING id
+    `);
   }
-  return false;
+  return { stmtUpsertUser };
 }
 
-// Save tokens to database (UPSERT preserves refresh_token via COALESCE)
-function saveTokens(tokens) {
+// Save tokens to database for a specific user (UPSERT preserves refresh_token via COALESCE)
+function saveTokens(userId, tokens) {
   try {
     const { stmtUpsertTokens } = getTokenStatements();
-    stmtUpsertTokens.run({
+    stmtUpsertTokens.run(userId, {
       access_token: tokens.access_token || null,
       refresh_token: tokens.refresh_token || null,
       expiry_date: tokens.expiry_date || null,
       scope: tokens.scope || null,
       token_type: tokens.token_type || null
     });
-    logger.info('Tokens saved to database');
+    logger.info('Tokens saved to database', { userId });
   } catch (error) {
-    logger.error('Failed to save tokens:', { error: error.message });
+    logger.error('Failed to save tokens:', { userId, error: error.message });
   }
 }
 
-// Listen for token refresh events
-oAuth2Client.on('tokens', (tokens) => {
-  logger.info('Token refresh event received');
-  saveTokens(tokens);
-});
+// Get or create a per-user OAuth2Client with credentials loaded from DB
+function getOAuth2ClientForUser(userId) {
+  if (clientCache.has(userId)) return clientCache.get(userId);
 
-// Load tokens on module initialization
-const hasTokens = loadTokens();
-if (hasTokens) {
-  logger.info('OAuth client initialized with existing tokens');
-} else {
-  logger.info('OAuth client initialized - no existing tokens');
+  const client = new OAuth2Client(
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET
+  );
+
+  // Load tokens from DB
+  const { stmtSelectTokens } = getTokenStatements();
+  const row = stmtSelectTokens.get(userId);
+  if (row) {
+    client.setCredentials({
+      access_token: row.access_token,
+      refresh_token: row.refresh_token,
+      expiry_date: row.expiry_date,
+      scope: row.scope,
+      token_type: row.token_type
+    });
+  }
+
+  // Listen for token refresh events -- save per-user
+  client.on('tokens', (tokens) => {
+    logger.info('Token refresh event received', { userId });
+    saveTokens(userId, tokens);
+  });
+
+  clientCache.set(userId, client);
+  return client;
+}
+
+// requireAuth middleware -- gates protected routes
+function requireAuth(req, res, next) {
+  if (!req.session?.userId) {
+    if (req.path.startsWith('/api/')) {
+      return res.status(401).json({ error: 'authentication_required' });
+    }
+    return res.redirect('/login');
+  }
+  next();
 }
 
 // GET /auth/login - Start OAuth flow
 router.get('/login', (req, res) => {
   try {
-    // Set redirectUri dynamically based on request
+    // Create a transient client for URL generation (no user known yet)
+    const tempClient = new OAuth2Client(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET
+    );
     const redirectUri = `${req.protocol}://${req.get('host')}/auth/callback`;
-    oAuth2Client.redirectUri = redirectUri;
+    tempClient.redirectUri = redirectUri;
 
     // Generate random state for CSRF protection
     const state = crypto.randomBytes(32).toString('hex');
     req.session.oauthState = state;
 
     // Generate authorization URL
-    const authUrl = oAuth2Client.generateAuthUrl({
-      access_type: 'offline',  // Required for refresh token
+    const authUrl = tempClient.generateAuthUrl({
+      access_type: 'offline',
       scope: SCOPES,
       state: state,
-      prompt: 'consent'  // Force consent to ensure refresh token
+      prompt: 'consent'
     });
 
     logger.info('OAuth login initiated', { redirectUri, state: state.substring(0, 8) + '...' });
     res.redirect(authUrl);
   } catch (error) {
     logger.error('OAuth login failed:', { error: error.message });
-    res.status(500).send('Failed to initiate OAuth login');
+    res.redirect('/login?error=oauth_failed');
   }
 });
 
@@ -143,60 +171,85 @@ router.get('/callback', async (req, res) => {
     // Check for error from Google
     if (req.query.error) {
       logger.error('OAuth error from Google:', { error: req.query.error });
-      return res.status(400).send(`OAuth error: ${req.query.error}`);
+      return res.redirect('/login?error=oauth_failed');
     }
 
-    // Exchange authorization code for tokens
-    const { tokens } = await oAuth2Client.getToken(req.query.code);
-    oAuth2Client.setCredentials(tokens);
+    // Create a transient client for token exchange (no user known yet)
+    const tempClient = new OAuth2Client(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET
+    );
+    tempClient.redirectUri = `${req.protocol}://${req.get('host')}/auth/callback`;
 
-    // Verify user email is in allowlist
+    // Exchange authorization code for tokens
+    const { tokens } = await tempClient.getToken(req.query.code);
+
+    // Get user info (email + display name)
+    const oauth2Response = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+      headers: {
+        'Authorization': `Bearer ${tokens.access_token}`
+      }
+    });
+
+    if (!oauth2Response.ok) {
+      logger.error('Failed to get user info');
+      return res.redirect('/login?error=oauth_failed');
+    }
+
+    const userInfo = await oauth2Response.json();
+    const userEmail = userInfo.email?.toLowerCase();
+    const displayName = userInfo.name || userEmail;
+
+    // Check ALLOWED_EMAILS gate
     const allowedEmails = process.env.ALLOWED_EMAILS || '';
     if (allowedEmails) {
       const allowedList = allowedEmails.split(',').map(e => e.trim().toLowerCase());
-
-      // Get user info to check email
-      const oauth2Response = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
-        headers: {
-          'Authorization': `Bearer ${tokens.access_token}`
-        }
-      });
-
-      if (!oauth2Response.ok) {
-        logger.error('Failed to get user info');
-        return res.status(500).send('Failed to verify user identity');
-      }
-
-      const userInfo = await oauth2Response.json();
-      const userEmail = userInfo.email?.toLowerCase();
-
       if (!allowedList.includes(userEmail)) {
-        logger.warn('Unauthorized email attempted login', { email: userEmail });
-        return res.status(403).send(`Access denied. This photo frame is for family use only. Your email (${userEmail}) is not authorized.`);
+        logger.warn('Unauthorised email attempted login', { email: userEmail });
+        return res.redirect('/login?error=not_authorised');
       }
-
       logger.info('Email verified', { email: userEmail });
     }
 
-    // Save tokens to database
-    saveTokens(tokens);
+    // UPSERT user record
+    const { stmtUpsertUser } = getUserStatements();
+    const userRow = stmtUpsertUser.get(userEmail, displayName);
+    const userId = userRow.id;
 
-    // Mark session as authenticated
-    req.session.authenticated = true;
+    // Save tokens for this user
+    saveTokens(userId, tokens);
 
-    logger.info('OAuth callback successful - tokens obtained and saved');
+    // Create/update per-user OAuth2Client with fresh credentials
+    const userClient = getOAuth2ClientForUser(userId);
+    userClient.setCredentials(tokens);
+
+    // Store userId in session
+    req.session.userId = userId;
+
+    logger.info('OAuth callback successful', { userId, email: userEmail });
     res.redirect('/');
   } catch (error) {
     logger.error('OAuth callback failed:', { error: error.message });
-    res.status(500).send('Failed to complete OAuth flow');
+    res.redirect('/login?error=oauth_failed');
   }
 });
 
 // GET /auth/status - Check authentication status
 router.get('/status', (req, res) => {
-  const credentials = oAuth2Client.credentials;
+  const userId = req.session?.userId;
+  if (!userId) {
+    return res.json({
+      authenticated: false,
+      hasTokens: false,
+      hasRefreshToken: false,
+      tokenExpiry: null
+    });
+  }
+
+  const client = getOAuth2ClientForUser(userId);
+  const credentials = client.credentials;
   res.json({
-    authenticated: !!req.session.authenticated || (!!credentials.access_token && !!credentials.refresh_token),
+    authenticated: true,
     hasTokens: !!credentials.access_token,
     hasRefreshToken: !!credentials.refresh_token,
     tokenExpiry: credentials.expiry_date
@@ -205,18 +258,26 @@ router.get('/status', (req, res) => {
   });
 });
 
-// POST /auth/logout - Sign out and clear session
+// POST /auth/logout - Sign out, clear session, redirect to login
 router.post('/logout', (req, res) => {
+  const userId = req.session?.userId;
+
+  // Remove cached client if we know the user
+  if (userId && clientCache.has(userId)) {
+    clientCache.delete(userId);
+  }
+
   req.session.destroy((err) => {
     if (err) {
       logger.error('Logout failed:', { error: err.message });
       return res.status(500).json({ error: 'Failed to sign out' });
     }
-    logger.info('User signed out');
-    res.json({ success: true });
+    logger.info('User signed out', { userId });
+    res.redirect('/login');
   });
 });
 
-// Export router and oAuth2Client (needed by picker.js and photo-proxy.js)
+// Export router, per-user client factory, and auth middleware
 module.exports = router;
-module.exports.oAuth2Client = oAuth2Client;
+module.exports.getOAuth2ClientForUser = getOAuth2ClientForUser;
+module.exports.requireAuth = requireAuth;
