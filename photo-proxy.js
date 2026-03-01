@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { oAuth2Client } = require('./auth');
+const { getOAuth2ClientForUser } = require('./auth');
 const photoCache = require('./photo-cache');
 const winston = require('winston');
 
@@ -24,13 +24,16 @@ const logger = winston.createLogger({
 // Browser <img> tags cannot add headers, so backend must proxy
 router.get('/random', async (req, res) => {
   try {
+    const userId = req.session.userId;
+    const client = getOAuth2ClientForUser(userId);
+
     const onThisDay = req.query.onThisDay === 'true';
     const wantPortrait = req.query.portrait === 'true';
     let item;
 
     if (onThisDay) {
       try {
-        item = photoCache.getRandomOnThisDayItem();
+        item = photoCache.getRandomOnThisDayItem(userId);
       } catch (err) {
         logger.error('Error getting On This Day item', { error: err.message });
         // Fall through to 404 logic
@@ -46,13 +49,13 @@ router.get('/random', async (req, res) => {
         });
       }
     } else if (wantPortrait) {
-      item = photoCache.getRandomPortraitItem();
+      item = photoCache.getRandomPortraitItem(userId);
       // Fall back to any random item if no portraits available
       if (!item) {
-        item = photoCache.getRandomItem();
+        item = photoCache.getRandomItem(userId);
       }
     } else {
-      item = photoCache.getRandomItem();
+      item = photoCache.getRandomItem(userId);
     }
 
     // If no item (empty cache), return 503 with helpful message
@@ -64,7 +67,7 @@ router.get('/random', async (req, res) => {
     }
 
     // Get access token for Authorization header
-    const { token } = await oAuth2Client.getAccessToken();
+    const { token } = await client.getAccessToken();
 
     // Extract baseUrl from Picker API structure (nested in mediaFile)
     const baseUrl = item.mediaFile?.baseUrl || item.baseUrl;
@@ -115,7 +118,7 @@ router.get('/random', async (req, res) => {
     // On This Day headers
     if (onThisDay) {
       res.set('X-Photo-OnThisDay', 'true');
-      res.set('X-Photo-OnThisDayCount', String(photoCache.getOnThisDayCount()));
+      res.set('X-Photo-OnThisDayCount', String(photoCache.getOnThisDayCount(userId)));
     }
 
     // Portrait detection header based on item metadata

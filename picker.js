@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { oAuth2Client } = require('./auth');
+const { getOAuth2ClientForUser } = require('./auth');
 const photoCache = require('./photo-cache');
 const winston = require('winston');
 
@@ -22,8 +22,11 @@ const logger = winston.createLogger({
 // POST /api/picker/start - Create Picker API session
 router.post('/start', async (req, res) => {
   try {
+    const userId = req.session.userId;
+    const client = getOAuth2ClientForUser(userId);
+
     // Get access token
-    const { token } = await oAuth2Client.getAccessToken();
+    const { token } = await client.getAccessToken();
 
     // Create Picker API session
     const response = await fetch('https://photospicker.googleapis.com/v1/sessions', {
@@ -75,8 +78,11 @@ router.post('/start', async (req, res) => {
 // GET /api/picker/status/:sessionId - Poll Picker session status
 router.get('/status/:sessionId', async (req, res) => {
   try {
+    const userId = req.session.userId;
+    const client = getOAuth2ClientForUser(userId);
+
     // Get access token
-    const { token } = await oAuth2Client.getAccessToken();
+    const { token } = await client.getAccessToken();
 
     // Fetch session status
     const response = await fetch(
@@ -126,8 +132,11 @@ router.get('/status/:sessionId', async (req, res) => {
 // POST /api/picker/complete/:sessionId - List selected media items and cache them
 router.post('/complete/:sessionId', async (req, res) => {
   try {
+    const userId = req.session.userId;
+    const client = getOAuth2ClientForUser(userId);
+
     // Get access token
-    const { token } = await oAuth2Client.getAccessToken();
+    const { token } = await client.getAccessToken();
 
     // Paginate through all selected media items
     let allItems = [];
@@ -175,8 +184,8 @@ router.post('/complete/:sessionId', async (req, res) => {
 
     logger.info('All media items retrieved', { totalCount: allItems.length });
 
-    // Cache the items with session ID for future refresh
-    photoCache.setItems(allItems, req.params.sessionId);
+    // Cache the items with session ID for future refresh (userId is first parameter)
+    photoCache.setItems(userId, allItems, req.params.sessionId);
 
     logger.info('Media items cached', { count: allItems.length });
 

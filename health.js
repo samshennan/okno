@@ -1,14 +1,40 @@
 const express = require('express');
 const router = express.Router();
-const { oAuth2Client } = require('./auth');
+const { getOAuth2ClientForUser } = require('./auth');
 const photoCache = require('./photo-cache');
 
 // GET /api/health - Detailed diagnostics endpoint
 // Provides operational visibility per requirement INFRA-04
 router.get('/', (req, res) => {
   try {
-    // Get current OAuth credentials
-    const tokens = oAuth2Client.credentials;
+    const userId = req.session?.userId;
+
+    // If no userId (e.g. startup health check), return basic status
+    if (!userId) {
+      return res.json({
+        status: 'ok',
+        uptime: process.uptime(),
+        timestamp: new Date().toISOString(),
+        auth: {
+          hasTokens: false,
+          tokenExpiry: null,
+          hasRefreshToken: false,
+          expiresIn: null
+        },
+        cache: {
+          totalItems: 0,
+          portraitCount: 0,
+          sessionId: null,
+          lastRefresh: null
+        },
+        lastApiCall: null,
+        memory: process.memoryUsage()
+      });
+    }
+
+    // Get current OAuth credentials for this user
+    const client = getOAuth2ClientForUser(userId);
+    const tokens = client.credentials;
 
     // Calculate token expiry time in seconds
     let expiresIn = null;
@@ -32,12 +58,12 @@ router.get('/', (req, res) => {
         expiresIn: expiresIn  // Seconds until token expires
       },
       cache: {
-        totalItems: photoCache.size(),
-        portraitCount: photoCache.getPortraitCount(),
-        sessionId: photoCache.getSessionId() || null,
-        lastRefresh: photoCache.getLastRefresh() || null
+        totalItems: photoCache.size(userId),
+        portraitCount: photoCache.getPortraitCount(userId),
+        sessionId: photoCache.getSessionId(userId) || null,
+        lastRefresh: photoCache.getLastRefresh(userId) || null
       },
-      lastApiCall: photoCache.getLastApiCall() || null,
+      lastApiCall: photoCache.getLastApiCall(userId) || null,
       memory: process.memoryUsage()
     });
   } catch (error) {
@@ -54,11 +80,12 @@ router.get('/', (req, res) => {
 // POST /api/health/refresh - Manually refresh cache baseUrls
 router.post('/refresh', async (req, res) => {
   try {
-    await photoCache.refreshBaseUrls();
+    const userId = req.session.userId;
+    await photoCache.refreshBaseUrls(userId);
     res.json({
       success: true,
       message: 'Cache refresh initiated',
-      lastRefresh: photoCache.getLastRefresh()
+      lastRefresh: photoCache.getLastRefresh(userId)
     });
   } catch (error) {
     res.status(500).json({
