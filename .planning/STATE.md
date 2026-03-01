@@ -11,11 +11,11 @@ See: .planning/PROJECT.md (updated 2026-02-27)
 
 **Milestone:** v2.0 "Multi-Tenant"
 Phase: 9 of 12 (Per-User Auth + Data Isolation)
-Plan: 00 of TBD (not started)
-Status: Ready to plan
-Last activity: 2026-02-28 -- Completed Phase 8 (Database Foundation + Data Migration), verified 9/9 must-haves
+Plan: 01 of 03
+Status: In progress
+Last activity: 2026-03-01 -- Completed 09-01-PLAN.md (auth foundation, login page, route protection)
 
-Progress: [#####################...........] 68% (v1.0+v1.1: 20/20 plans | v2.0: 3/13 plans)
+Progress: [#######################.........] 73% (v1.0+v1.1: 20/20 plans | v2.0: 4/13 plans)
 
 ## What We Shipped
 
@@ -34,10 +34,10 @@ Progress: [#####################...........] 68% (v1.0+v1.1: 20/20 plans | v2.0:
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 23 (v1.0: 11, v1.1: 9, v2.0: 3)
+- Total plans completed: 24 (v1.0: 11, v1.1: 9, v2.0: 4)
 - v1.0: 7 days (11 plans)
 - v1.1: 2 days (9 plans)
-- v2.0: in progress (3 plans, 18 min)
+- v2.0: in progress (4 plans, 23 min)
 
 ## Accumulated Context
 
@@ -66,6 +66,13 @@ See PROJECT.md for full decision log.
 - COALESCE(new_refresh_token, existing) preserves refresh_token across OAuth refresh events
 - user_id=1 hardcoded for Phase 8 single-user (Phase 9 adds dynamic user resolution)
 
+**09-01 implementation decisions:**
+- Per-user OAuth2Client cache (Map<userId, OAuth2Client>) avoids token refresh race conditions
+- req.originalUrl for API detection in requireAuth (req.path is relative to mount point)
+- express.static with index:false after explicit auth-gated HTML routes
+- Transient OAuth2Client for login/callback flows (user identity unknown at that point)
+- Removed config.loadConfig() startup call (per-user config loading deferred to Plan 02)
+
 ### Blockers/Concerns
 
 - Google Picker API 2000 photo limit remains
@@ -73,15 +80,16 @@ See PROJECT.md for full decision log.
 - Google 100-user unverified app cap -- invite-only is the design response
 - Picker API thumbnail URL format (=w240-h240-c) needs validation in Phase 11
 - Session store: better-sqlite3-session-store v0.1.0 is stale but functional -- deployed and verified on VPS
+- Downstream modules (picker.js, photo-proxy.js, photo-cache.js, health.js) still import old oAuth2Client singleton (now undefined) -- Plan 02 must fix
 
 ## Session Continuity
 
-**Last session:** 2026-02-28
-**Stopped at:** Phase 8 complete and verified (9/9 must-haves passed)
-**Resume:** `/gsd:discuss-phase 9` or `/gsd:plan-phase 9`
+**Last session:** 2026-03-01
+**Stopped at:** Completed 09-01-PLAN.md (auth foundation)
+**Resume file:** None
 
 ---
 
-**Project Status:** Phase 8 complete -- all 3 plans done, verified, Phase 9 ready to plan
+**Project Status:** Phase 9 plan 1 of 3 complete -- auth foundation, login page, route protection
 **Deployment:** https://okno.moonacle.com
 **GitHub:** https://github.com/samshennan/okno
