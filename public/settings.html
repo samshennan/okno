@@ -346,6 +346,59 @@
       }
     }
 
+    /* Logout Section */
+    .logout-section {
+      margin-top: 8px;
+      padding-top: 0;
+    }
+
+    .settings-divider {
+      border: none;
+      border-top: 1px solid rgba(143, 181, 165, 0.15);
+      margin: 0 0 20px 0;
+    }
+
+    .logout-button {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+      padding: 14px 24px;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.938rem;
+      font-weight: 500;
+      color: #B8867B;
+      background: #F0F0F3;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: -4px -4px 10px rgba(255, 255, 255, 0.8),
+        4px 4px 10px rgba(174, 174, 192, 0.3);
+      letter-spacing: -0.01em;
+      justify-content: center;
+    }
+
+    .logout-button:hover {
+      transform: translateY(-1px);
+      color: #A06B60;
+      box-shadow: -6px -6px 14px rgba(255, 255, 255, 0.9),
+        6px 6px 14px rgba(174, 174, 192, 0.4);
+    }
+
+    .logout-button:active {
+      transform: translateY(0);
+      box-shadow: inset -2px -2px 4px rgba(255, 255, 255, 0.7),
+        inset 2px 2px 4px rgba(174, 174, 192, 0.2);
+    }
+
+    .logout-hint {
+      font-size: 0.75rem;
+      color: rgba(90, 107, 98, 0.45);
+      text-align: center;
+      margin-top: 8px;
+    }
+
     /* Donate Button */
     .btn-donate {
       display: inline-flex;
@@ -567,6 +620,18 @@
       </div>
     </div>
 
+    <!-- Account Section -->
+    <div class="settings-section">
+      <div class="section-title">Account</div>
+      <div class="logout-section">
+        <button id="logout-btn" class="logout-button">
+          <i data-lucide="log-out" style="width: 18px; height: 18px;"></i>
+          Sign Out
+        </button>
+        <p class="logout-hint">Signs you out and returns to the login page.</p>
+      </div>
+    </div>
+
     <!-- Actions -->
     <div class="actions">
       <button class="btn-back" onclick="window.location.href='/'">
@@ -599,6 +664,10 @@
     async function loadSettings() {
       try {
         const res = await fetch('/api/config');
+        if (res.status === 401) {
+          window.location.href = '/login';
+          return;
+        }
         if (res.ok) {
           const config = await res.json();
           settings = { ...settings, ...config };
@@ -666,6 +735,11 @@
           body: JSON.stringify(settings),
         });
 
+        if (res.status === 401) {
+          window.location.href = '/login';
+          return;
+        }
+
         if (res.ok) {
           const updated = await res.json();
           settings = { ...settings, ...updated };
@@ -724,24 +798,40 @@
       }
     }
 
-    // Show support section only for signed-in users
-    async function checkAuthForDonate() {
+    // Check auth status: redirect if not authenticated, show support section if authenticated
+    async function checkAuthStatus() {
       try {
         const res = await fetch('/auth/status');
         const data = await res.json();
         if (data.authenticated) {
           document.getElementById('supportSection').style.display = 'block';
+        } else {
+          // Safety net: server-side requireAuth already redirects,
+          // but handle the edge case where session expires while page is open
+          window.location.href = '/login';
+          return;
         }
       } catch (e) {
         // Silently fail -- donate section stays hidden
       }
     }
 
+    // Logout button handler
+    document.getElementById('logout-btn').addEventListener('click', async () => {
+      try {
+        await fetch('/auth/logout', { method: 'POST' });
+        window.location.href = '/login';
+      } catch (error) {
+        // Even on network error, try to redirect
+        window.location.href = '/login';
+      }
+    });
+
     // Initialize
     loadSettings();
     fetchOnThisDayCount();
     fetchPortraitCount();
-    checkAuthForDonate();
+    checkAuthStatus();
     lucide.createIcons();
   </script>
 </body>
