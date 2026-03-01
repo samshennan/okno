@@ -120,7 +120,8 @@ function getOAuth2ClientForUser(userId) {
 // requireAuth middleware -- gates protected routes
 function requireAuth(req, res, next) {
   if (!req.session?.userId) {
-    if (req.path.startsWith('/api/')) {
+    // Use originalUrl to check the full path (req.path is relative to mount point)
+    if (req.originalUrl.startsWith('/api/')) {
       return res.status(401).json({ error: 'authentication_required' });
     }
     return res.redirect('/login');

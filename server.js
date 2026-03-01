@@ -80,40 +80,71 @@ app.use(session({
 // Parse JSON request bodies
 app.use(express.json());
 
-// Serve static files from public directory (for Phase 2 frontend)
-app.use(express.static(path.join(__dirname, 'public')));
+// --- Public routes (no auth required) ---
 
-// Mount auth routes
+// Login page
+app.get('/login', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'login.html'));
+});
+
+// Mount auth routes (handles its own auth flow)
 const authRouter = require('./auth');
+const { requireAuth } = require('./auth');
 app.use('/auth', authRouter);
 
-// Mount picker routes
+// Demo routes (fully isolated from auth/cache)
+const demoRouter = require('./demo-photos');
+app.use('/api/demo', demoRouter);
+
+app.get('/demo', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'demo.html'));
+});
+
+logger.info('Public routes mounted (login, auth, demo)');
+
+// --- Auth-gated page routes (must come BEFORE express.static) ---
+
+app.get('/', requireAuth, (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+app.get('/index.html', requireAuth, (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+app.get('/slideshow.html', requireAuth, (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'slideshow.html'));
+});
+
+app.get('/settings.html', requireAuth, (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'settings.html'));
+});
+
+// Static assets (CSS, JS, icons, manifest, sw.js, logo.svg, demo directory)
+// index: false prevents express.static from serving index.html for /
+app.use(express.static(path.join(__dirname, 'public'), { index: false }));
+
+// --- Auth-gated API routes ---
+
 const pickerRouter = require('./picker');
-app.use('/api/picker', pickerRouter);
-logger.info('Picker routes mounted');
+app.use('/api/picker', requireAuth, pickerRouter);
 
-// Mount photo routes
 const photoRouter = require('./photo-proxy');
-app.use('/api/photo', photoRouter);
+app.use('/api/photo', requireAuth, photoRouter);
 
-// Mount health routes
 const healthRouter = require('./health');
-app.use('/api/health', healthRouter);
+app.use('/api/health', requireAuth, healthRouter);
 
-// Mount feedback routes
 const feedbackRouter = require('./feedback');
-app.use('/api/feedback', feedbackRouter);
+app.use('/api/feedback', requireAuth, feedbackRouter);
 
-// Mount config module and API routes
 const config = require('./config');
-config.loadConfig();
-logger.info('Config loaded:', config.getConfig());
 
-app.get('/api/config', (req, res) => {
+app.get('/api/config', requireAuth, (req, res) => {
   res.json(config.getConfig());
 });
 
-app.post('/api/config', (req, res) => {
+app.post('/api/config', requireAuth, (req, res) => {
   const updates = req.body;
   if (!updates || typeof updates !== 'object') {
     return res.status(400).json({ error: 'Request body must be a JSON object' });
@@ -123,21 +154,7 @@ app.post('/api/config', (req, res) => {
   res.json(updated);
 });
 
-logger.info('Photo, health, feedback, and config routes mounted');
-
-// Mount demo routes (fully isolated from auth/cache)
-const demoRouter = require('./demo-photos');
-app.use('/api/demo', demoRouter);
-
-// Serve demo.html at /demo route
-app.get('/demo', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'demo.html'));
-});
-
-logger.info('Demo routes mounted');
-
-// Root route now served by static index.html in public/
-// (removed inline HTML, using public/index.html instead)
+logger.info('Auth-gated routes mounted (picker, photo, health, feedback, config)');
 
 // Start server
 const PORT = process.env.PORT || 3100;
