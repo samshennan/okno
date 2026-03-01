@@ -525,6 +525,92 @@
       font-weight: 300;
     }
 
+    /* Reconnect overlay -- shown on 401 (session expired) */
+    #reconnect-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.85);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .reconnect-card {
+      background: #F0F0F3;
+      border-radius: 20px;
+      padding: 48px 40px;
+      max-width: 400px;
+      width: 90%;
+      text-align: center;
+      box-shadow: -8px -8px 20px rgba(255, 255, 255, 0.6),
+        8px 8px 20px rgba(174, 174, 192, 0.4);
+    }
+
+    .reconnect-icon {
+      width: 64px;
+      height: 64px;
+      margin: 0 auto 24px;
+      background: rgba(143, 181, 165, 0.08);
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #8FB5A5;
+    }
+
+    .reconnect-card h2 {
+      font-family: 'Inter', sans-serif;
+      font-size: 1.5rem;
+      font-weight: 400;
+      color: #4A5A52;
+      margin-bottom: 8px;
+      letter-spacing: -0.01em;
+    }
+
+    .reconnect-card p {
+      font-family: 'Inter', sans-serif;
+      font-size: 0.938rem;
+      color: rgba(90, 107, 98, 0.6);
+      margin-bottom: 32px;
+      line-height: 1.5;
+    }
+
+    .reconnect-button {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 32px;
+      font-family: 'Inter', sans-serif;
+      font-size: 1rem;
+      font-weight: 500;
+      color: #FFFFFF;
+      background: linear-gradient(145deg, #9AC0AF, #8FB5A5);
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: -4px -4px 10px rgba(255, 255, 255, 0.6),
+        4px 4px 10px rgba(143, 181, 165, 0.4);
+      letter-spacing: -0.01em;
+    }
+
+    .reconnect-button:hover {
+      transform: translateY(-2px);
+      background: linear-gradient(145deg, #8FB5A5, #7DA594);
+      box-shadow: -6px -6px 14px rgba(255, 255, 255, 0.7),
+        6px 6px 14px rgba(143, 181, 165, 0.5);
+    }
+
+    .reconnect-button:active {
+      transform: translateY(0);
+      box-shadow: -3px -3px 8px rgba(255, 255, 255, 0.5),
+        3px 3px 8px rgba(143, 181, 165, 0.3);
+    }
+
     /* Hide keyboard help on mobile/iPad */
     @media (max-width: 768px),
     (pointer: coarse) {
@@ -633,6 +719,21 @@
     <kbd>S</kbd> / <kbd>→</kbd> Next &nbsp;
     <kbd>←</kbd> Prev &nbsp;
     <kbd>Esc</kbd> Exit
+  </div>
+
+  <!-- Reconnect overlay (shown on 401 / session expired) -->
+  <div id="reconnect-overlay">
+    <div class="reconnect-card">
+      <div class="reconnect-icon">
+        <i data-lucide="lock" style="width: 32px; height: 32px;"></i>
+      </div>
+      <h2>Session Expired</h2>
+      <p>Your Google connection needs to be refreshed.</p>
+      <button id="reconnect-btn" class="reconnect-button">
+        <i data-lucide="refresh-cw" style="width: 18px; height: 18px;"></i>
+        Reconnect
+      </button>
+    </div>
   </div>
 
   <div id="controls">
@@ -876,6 +977,10 @@
     async function loadAppConfig() {
       try {
         const res = await fetch('/api/config');
+        if (res.status === 401) {
+          showReconnectOverlay();
+          return;
+        }
         if (res.ok) {
           window.appConfig = await res.json();
 
@@ -928,9 +1033,21 @@
         try {
           const response = await fetch(url);
 
-          // 4xx errors are intentional (e.g. 404 = no OTD photos), not transient -- return immediately
+          // 4xx errors are intentional (e.g. 404 = no OTD photos, 401 = session expired), not transient -- return immediately
           if (response.status >= 400 && response.status < 500) {
             return response;
+          }
+
+          // 502 with authentication_required: token refresh failed server-side -- return immediately (not transient)
+          if (response.status === 502) {
+            try {
+              const bodyText = await response.clone().text();
+              if (bodyText.includes('authentication_required')) {
+                return response;
+              }
+            } catch (e) {
+              // Ignore clone/parse errors, fall through to normal retry
+            }
           }
 
           // 502: trigger proactive baseUrl refresh on first occurrence, then retry normally
@@ -958,6 +1075,22 @@
       }
     }
 
+    // Reconnect overlay helpers
+    function showReconnectOverlay() {
+      document.getElementById('reconnect-overlay').style.display = 'flex';
+      // Stop the slideshow so we don't keep fetching and hitting 401
+      stopSlideshow();
+    }
+
+    function hideReconnectOverlay() {
+      document.getElementById('reconnect-overlay').style.display = 'none';
+    }
+
+    // Wire reconnect button -- sends user through Google OAuth flow
+    document.getElementById('reconnect-btn').addEventListener('click', () => {
+      window.location.href = '/auth/login';
+    });
+
     async function init() {
       try {
         // Load saved config before anything else
@@ -973,6 +1106,12 @@
 
         // Get photo count from health endpoint
         const healthRes = await fetch('/api/health');
+
+        if (healthRes.status === 401) {
+          showReconnectOverlay();
+          return;
+        }
+
         const health = await healthRes.json();
 
         if (!health.cache || health.cache.totalItems === 0) {
@@ -1089,7 +1228,28 @@
           throw err;
         }
 
-        // Handle 4xx responses (returned immediately by fetchWithRetry, no retries wasted)
+        // Handle 401 (session expired) -- show reconnect overlay
+        if (response.status === 401) {
+          console.warn('Session expired (401), showing reconnect overlay');
+          showReconnectOverlay();
+          return null;
+        }
+
+        // Handle 502 with authentication_required in body (token refresh failed server-side)
+        if (response.status === 502) {
+          try {
+            const body = await response.clone().text();
+            if (body.includes('authentication_required')) {
+              console.warn('Token refresh failed (502 authentication_required), showing reconnect overlay');
+              showReconnectOverlay();
+              return null;
+            }
+          } catch (e) {
+            // Ignore clone/parse errors, fall through to normal handling
+          }
+        }
+
+        // Handle other 4xx responses (returned immediately by fetchWithRetry, no retries wasted)
         if (response.status >= 400 && response.status < 500) {
           if (onThisDayEnabled && !onThisDayFallback) {
             console.log('On This Day: no photos for today, falling back to random');
@@ -1101,6 +1261,11 @@
           }
           console.error(`Client error: HTTP ${response.status}`);
           return null;
+        }
+
+        // Successful fetch -- hide reconnect overlay if it was visible
+        if (document.getElementById('reconnect-overlay').style.display !== 'none') {
+          hideReconnectOverlay();
         }
 
         // Store create time for OTD indicator
