@@ -205,10 +205,7 @@
       const error = params.get('error');
       const errorBox = document.getElementById('error-box');
 
-      if (error === 'not_authorised') {
-        errorBox.textContent = 'Your Google account is not authorised to use this photo frame. Contact the owner for access.';
-        errorBox.classList.add('visible');
-      } else if (error === 'oauth_failed') {
+      if (error === 'oauth_failed') {
         errorBox.textContent = 'Sign in failed. Please try again.';
         errorBox.classList.add('visible');
       }

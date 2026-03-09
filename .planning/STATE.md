@@ -5,17 +5,17 @@
 See: .planning/PROJECT.md (updated 2026-02-27)
 
 **Core value:** Display random photos from Google Photos on an iPad in a beautiful, hands-off way that requires no interaction after initial setup.
-**Current focus:** v2.0 "Multi-Tenant" -- Phase 9: Per-User Auth + Data Isolation
+**Current focus:** v2.0 "Multi-User" -- Phase 9: Per-User Auth + Data Isolation (checkpoint pending)
 
 ## Current Position
 
-**Milestone:** v2.0 "Multi-Tenant"
+**Milestone:** v2.0 "Multi-User"
 Phase: 9 of 12 (Per-User Auth + Data Isolation)
-Plan: 02 of 03
-Status: In progress
-Last activity: 2026-03-01 -- Completed 09-02-PLAN.md (data module parameterisation by userId)
+Plan: 03 of 03 (code complete, awaiting human verification checkpoint)
+Status: Checkpoint pending
+Last activity: 2026-03-09 -- Removed ALLOWED_EMAILS gate (open registration), rewrote ROADMAP with lean plan
 
-Progress: [########################........] 76% (v1.0+v1.1: 20/20 plans | v2.0: 5/13 plans)
+Progress: [##########################......] 80% (v1.0+v1.1: 20/20 plans | v2.0: 6/12 plans)
 
 ## What We Shipped
 

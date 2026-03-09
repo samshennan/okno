@@ -201,17 +201,6 @@ router.get('/callback', async (req, res) => {
     const userEmail = userInfo.email?.toLowerCase();
     const displayName = userInfo.name || userEmail;
 
-    // Check ALLOWED_EMAILS gate
-    const allowedEmails = process.env.ALLOWED_EMAILS || '';
-    if (allowedEmails) {
-      const allowedList = allowedEmails.split(',').map(e => e.trim().toLowerCase());
-      if (!allowedList.includes(userEmail)) {
-        logger.warn('Unauthorised email attempted login', { email: userEmail });
-        return res.redirect('/login?error=not_authorised');
-      }
-      logger.info('Email verified', { email: userEmail });
-    }
-
     // UPSERT user record
     const { stmtUpsertUser } = getUserStatements();
     const userRow = stmtUpsertUser.get(userEmail, displayName);
