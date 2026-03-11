@@ -90,9 +90,10 @@ See PROJECT.md for full decision log.
 
 ## Session Continuity
 
-**Last session:** 2026-03-11
-**Stopped at:** Phase 9 complete — human checkpoint approved, SUMMARY written, ROADMAP/STATE updated
-**Resume file:** None
+**Last session:** 2026-03-12 — iOS touch fix + SW v1.4 committed
+**Stopped at:** All prior work committed and pushed. Phase 10-01 PLAN.md ready, not yet executed.
+**Resume file:** .planning/handoffs/2026-03-12-ios-touch-fix-sw-v1.4.md
+**Next:** Execute Phase 10 — `/gsd:execute-phase 10` (fresh context window)
 
 ---
 
