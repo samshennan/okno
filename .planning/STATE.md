@@ -90,10 +90,10 @@ See PROJECT.md for full decision log.
 
 ## Session Continuity
 
-**Last session:** 2026-03-12 — iOS touch fix + SW v1.4 committed
-**Stopped at:** All prior work committed and pushed. Phase 10-01 PLAN.md ready, not yet executed.
-**Resume file:** .planning/handoffs/2026-03-12-ios-touch-fix-sw-v1.4.md
-**Next:** Execute Phase 10 — `/gsd:execute-phase 10` (fresh context window)
+**Last session:** 2026-03-12 — skills + security audit phase + web design skill
+**Stopped at:** OKNO codebase untouched. Created web-design skill, improved security-audit skill (Variant B for SQLite/Express), added Phases 13 (security audit) and 14 (re-run + skill refinement) to ROADMAP. Phase 10 still ready to execute.
+**Resume file:** .planning/handoffs/2026-03-12-skills-security-audit-web-design.md
+**Next:** Execute Phase 10 — `/gsd:execute-phase 10` (fresh context window). Consider running Phase 13 (security audit) before Phase 10 to surface issues first.
 
 ---
 

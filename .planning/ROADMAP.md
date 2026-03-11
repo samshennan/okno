@@ -114,6 +114,70 @@ Plans:
 
 ---
 
+### Phase 13: Architecture Review + Security Audit
+
+**Status:** NOT STARTED
+
+**Goal:** Review the full codebase architecture and identify any security vulnerabilities before the app is used by real users. Produce a written findings report and fix all critical/high issues.
+
+**Scope:**
+- **Architecture review:** assess module boundaries (`auth.js`, `photo-cache.js`, `picker.js`, `config.js`, `photo-proxy.js`), identify tight coupling, circular deps, and any structural risks introduced across v1.0–v2.0 phases
+- **Security audit (all 8 checklist sections):**
+  - 1. Environment variables + secret management
+  - 2. Session management (httpOnly cookies, session fixation)
+  - 3. Auth middleware coverage (all routes protected by `requireAuth`?)
+  - 4. Server-side validation (picker input, config updates, proxy params)
+  - 5. Dependency audit (`npm audit`) + lockfile check
+  - 6. Rate limiting on auth + expensive routes
+  - 7. CORS configuration
+  - 8. Error response leaks (stack traces, file paths exposed to client)
+- **Fix all CRITICAL and HIGH findings inline** — don't defer them
+- Produce `.planning/decisions/SECURITY-AUDIT-v2.md` with full checklist verdicts, findings, and remediation status
+
+**Context:**
+- There is already a `.planning/decisions/SECURITY-ASSESSMENT.md` from an earlier phase — review it first and carry forward any unresolved items.
+- The app is Node/Express — no Supabase, so RLS checks are N/A. Focus is on session security, input validation, auth middleware completeness, and rate limiting.
+- OAuth callback (`/auth/callback`) and the per-user `OAuth2Client` cache added in Phase 9 are the highest-risk new surfaces.
+
+**Success criteria:**
+- No CRITICAL or HIGH findings remain unfixed after the phase
+- All 8 audit sections have an explicit verdict (✅ / ❌ / ⚠️ / ⬚)
+- Architecture findings documented with recommended improvements (can be deferred to future phases if not urgent)
+
+---
+
+---
+
+### Phase 14: Security Audit Re-run + Skill Refinement
+
+**Status:** NOT STARTED
+
+**Trigger:** Run this phase after any major infrastructure upgrade (new auth surface, new API routes, new DB tables, dependency bumps). Not time-based — event-driven.
+
+**Goal:** Keep the `security-audit` skill sharp by using OKNO as a real-world test bed. Run the skill on the current codebase, evaluate the quality of the output, then feed findings back to improve the skill itself.
+
+**Scope:**
+- Re-run the `security-audit` skill on OKNO's current codebase
+- Compare findings against Phase 13's baseline (`SECURITY-AUDIT-v2.md`) — what's new, what's been fixed, what was missed last time
+- Fix any new CRITICAL or HIGH findings
+- Identify gaps in the skill's output: checks that produced false N/A verdicts, Supabase items that wasted space, Express/SQLite items that missed real issues
+- Update `~/.claude/skills/security-audit/SKILL.md` with any improvements discovered
+- Update the baseline document with the new audit results
+
+**What "major infrastructure upgrade" means for OKNO:**
+- Adding a new Express route that handles user data
+- Adding or changing a DB table
+- Changing session/auth logic
+- Bumping Node.js or a security-adjacent dependency (express, express-session, helmet, googleapis)
+- Opening the app to a significantly wider user base
+
+**Success criteria:**
+- Audit re-run produces output with ≤2 false N/A items in Section 2 (DB variant detection working)
+- Any new CRITICAL/HIGH finding from the re-run is fixed before the phase closes
+- At least one concrete improvement made to the `security-audit` skill based on what was learned
+
+---
+
 ## Progress
 
 | Phase | Status | Completed |
@@ -130,3 +194,5 @@ Plans:
 | 10. Resilience | ⬜ Not started | -- |
 | 11. Photo Management | ⬜ Not started | -- |
 | 12. Portfolio Polish | ⬜ Not started | -- |
+| 13. Architecture Review + Security Audit | ⬜ Not started | -- |
+| 14. Security Audit Re-run + Skill Refinement | ⬜ Event-driven | -- |
