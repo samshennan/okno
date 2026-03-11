@@ -67,10 +67,10 @@ See `.planning/milestones/v1.0-ROADMAP.md` for full details.
 
 **Goal:** The app handles edge cases gracefully — stale photo cache after restart, missing env vars, and token expiry — without manual intervention.
 
-**Scope (single plan, no sub-phases):**
-1. Fix stale baseUrl on restart: check cache age on DB load, trigger immediate refresh if >50 min old
-2. Startup env validation: throw on missing `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` / `SESSION_SECRET`
-3. Verify token expiry reconnect overlay works end-to-end (slideshow → overlay → re-auth → resume)
+**Plans:** 1 plan
+
+Plans:
+- [ ] 10-01-PLAN.md — Env validation, stale cache refresh on restart, token error 401 fix
 
 **Success criteria:**
 - Server restart → slideshow continues serving photos within 60 seconds (no 502 burst)
