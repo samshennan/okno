@@ -363,22 +363,40 @@
 
   <div id="slideshow"></div>
 
-  <!-- DEMO badge (top-right, always visible) -->
-  <div id="demoBadge" style="
+  <!-- DEMO badge + exit link (top-right, always visible) -->
+  <div style="
     position: fixed;
     top: 1rem;
     right: 1rem;
     z-index: 50;
-    background: rgba(0, 0, 0, 0.55);
-    backdrop-filter: blur(12px);
-    padding: 6px 14px;
-    border-radius: 20px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.85);
-    letter-spacing: 0.05em;
-    pointer-events: none;
-  ">DEMO</div>
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  ">
+    <div style="
+      background: rgba(0, 0, 0, 0.55);
+      backdrop-filter: blur(12px);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.85);
+      letter-spacing: 0.05em;
+      pointer-events: none;
+    ">DEMO</div>
+    <a href="/login" style="
+      background: rgba(0, 0, 0, 0.55);
+      backdrop-filter: blur(12px);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.85);
+      letter-spacing: 0.02em;
+      text-decoration: none;
+      transition: background 0.2s;
+    " onmouseover="this.style.background='rgba(0,0,0,0.75)'" onmouseout="this.style.background='rgba(0,0,0,0.55)'">Try it →</a>
+  </div>
 
   <!-- Photo date overlay (bottom-left, always visible when enabled) -->
   <div id="photoDateOverlay" class="slideshow-overlay"></div>

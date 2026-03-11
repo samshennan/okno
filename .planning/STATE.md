@@ -5,17 +5,17 @@
 See: .planning/PROJECT.md (updated 2026-02-27)
 
 **Core value:** Display random photos from Google Photos on an iPad in a beautiful, hands-off way that requires no interaction after initial setup.
-**Current focus:** v2.0 "Multi-User" -- Phase 9: Per-User Auth + Data Isolation (checkpoint pending)
+**Current focus:** v2.0 "Multi-User" -- Phase 10: Resilience (next up)
 
 ## Current Position
 
 **Milestone:** v2.0 "Multi-User"
-Phase: 9 of 12 (Per-User Auth + Data Isolation)
-Plan: 03 of 03 (code complete, awaiting human verification checkpoint)
-Status: Checkpoint pending
-Last activity: 2026-03-09 -- Removed ALLOWED_EMAILS gate (open registration), rewrote ROADMAP with lean plan
+Phase: 10 of 12 (Resilience)
+Plan: 00 of 01 (not started)
+Status: Ready to plan
+Last activity: 2026-03-11 -- Phase 9 complete (human checkpoint approved), Phase 10 next
 
-Progress: [##########################......] 80% (v1.0+v1.1: 20/20 plans | v2.0: 6/12 plans)
+Progress: [############################....] 85% (v1.0+v1.1: 20/20 plans | v2.0: 9/12 plans)
 
 ## What We Shipped
 
@@ -90,12 +90,12 @@ See PROJECT.md for full decision log.
 
 ## Session Continuity
 
-**Last session:** 2026-03-01
-**Stopped at:** Completed 09-02-PLAN.md (data module parameterisation)
+**Last session:** 2026-03-11
+**Stopped at:** Phase 9 complete — human checkpoint approved, SUMMARY written, ROADMAP/STATE updated
 **Resume file:** None
 
 ---
 
-**Project Status:** Phase 9 plan 2 of 3 complete -- auth foundation + data isolation. All modules parameterised by userId.
+**Project Status:** Phase 9 COMPLETE. Full multi-user auth live: any Google account can sign in, data fully isolated per user. Phase 10 (Resilience) is next.
 **Deployment:** https://okno.moonacle.com
 **GitHub:** https://github.com/samshennan/okno

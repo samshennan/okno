@@ -49,17 +49,15 @@ See `.planning/milestones/v1.0-ROADMAP.md` for full details.
 
 ---
 
-### Phase 9: Per-User Auth + Data Isolation
+### Phase 9: Per-User Auth + Data Isolation ✓
 
-**Status:** IN PROGRESS — code complete, awaiting checkpoint approval
+**Status:** COMPLETE (2026-03-11)
 
 **Goal:** Multiple Google accounts authenticate independently; each user's photos, tokens, settings, and slideshow are fully isolated.
 
 - [x] 09-01: Per-user OAuth2Client cache, requireAuth middleware, login page
 - [x] 09-02: Per-user data isolation across all modules (picker, proxy, cache, config, health)
-- [ ] 09-03: Frontend auth UX (reconnect overlay ✓, logout button ✓) → checkpoint approval
-
-**To complete:** approve checkpoint at https://okno.moonacle.com, create 09-03-SUMMARY.md, commit.
+- [x] 09-03: Frontend auth UX (reconnect overlay, logout button, 401 handling, demo exit link)
 
 ---
 
@@ -128,7 +126,7 @@ See `.planning/milestones/v1.0-ROADMAP.md` for full details.
 | 6. Stripe + Demo Mode | ✅ Complete | 2026-02-16 |
 | 7. README + Portfolio Polish | ↪ Deferred to Phase 12 | -- |
 | 8. Database Foundation | ✅ Complete | 2026-02-28 |
-| 9. Per-User Auth + Data Isolation | 🔄 Checkpoint pending | -- |
+| 9. Per-User Auth + Data Isolation | ✅ Complete | 2026-03-11 |
 | 10. Resilience | ⬜ Not started | -- |
 | 11. Photo Management | ⬜ Not started | -- |
 | 12. Portfolio Polish | ⬜ Not started | -- |
