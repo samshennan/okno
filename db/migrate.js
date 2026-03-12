@@ -56,7 +56,12 @@ function migrate(db) {
     })();
   }
 
-  // Future: if (version < 2) { ... db.pragma('user_version = 2'); }
+  if (version < 2) {
+    db.transaction(() => {
+      db.exec('ALTER TABLE photo_cache ADD COLUMN hidden INTEGER DEFAULT 0');
+      db.pragma('user_version = 2');
+    })();
+  }
 }
 
 module.exports = { migrate };

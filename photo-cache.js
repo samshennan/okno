@@ -31,13 +31,18 @@ let stmts = null;
 function getStatements() {
   if (!stmts) {
     stmts = {
-      selectAll: db.prepare('SELECT media_item_id, media_item_data, session_id FROM photo_cache WHERE user_id = ?'),
+      selectAll: db.prepare('SELECT media_item_id, media_item_data, session_id, hidden FROM photo_cache WHERE user_id = ?'),
       insertItem: db.prepare(`
         INSERT OR IGNORE INTO photo_cache (user_id, session_id, media_item_id, media_item_data, created_at)
         VALUES (?, ?, ?, ?, datetime('now'))
       `),
       updateSessionId: db.prepare('UPDATE photo_cache SET session_id = ? WHERE user_id = ?'),
       updateItem: db.prepare('UPDATE photo_cache SET media_item_data = ?, session_id = ? WHERE user_id = ? AND media_item_id = ?'),
+      hideItem: db.prepare('UPDATE photo_cache SET hidden = 1 WHERE user_id = ? AND media_item_id = ?'),
+      unhideItem: db.prepare('UPDATE photo_cache SET hidden = 0 WHERE user_id = ? AND media_item_id = ?'),
+      unhideAll: db.prepare('UPDATE photo_cache SET hidden = 0 WHERE user_id = ?'),
+      selectHidden: db.prepare('SELECT media_item_id, media_item_data FROM photo_cache WHERE user_id = ? AND hidden = 1'),
+      countHidden: db.prepare('SELECT COUNT(*) as count FROM photo_cache WHERE user_id = ? AND hidden = 1'),
     };
   }
   return stmts;
@@ -58,7 +63,11 @@ function getUserCache(userId) {
       const { selectAll } = getStatements();
       const rows = selectAll.all(userId);
       if (rows.length > 0) {
-        cacheData.mediaItems = rows.map(row => JSON.parse(row.media_item_data));
+        cacheData.mediaItems = rows.map(row => {
+          const item = JSON.parse(row.media_item_data);
+          item.hidden = !!row.hidden;
+          return item;
+        });
         cacheData.sessionId = rows.find(r => r.session_id)?.session_id || null;
         logger.info(`Loaded ${cacheData.mediaItems.length} items from cache`, { userId });
 
@@ -120,14 +129,15 @@ function getItem(userId, id) {
   return cache.mediaItems.find(item => item.id === id) || null;
 }
 
-// Get random item from cache
+// Get random item from cache (excludes hidden items)
 function getRandomItem(userId) {
   const cache = getUserCache(userId);
-  if (cache.mediaItems.length === 0) {
+  const visible = cache.mediaItems.filter(item => !item.hidden);
+  if (visible.length === 0) {
     return null;
   }
-  const randomIndex = Math.floor(Math.random() * cache.mediaItems.length);
-  return cache.mediaItems[randomIndex];
+  const randomIndex = Math.floor(Math.random() * visible.length);
+  return visible[randomIndex];
 }
 
 // Get items matching today's month+day across all years ("On This Day")
@@ -138,6 +148,7 @@ function getOnThisDayItems(userId) {
   const todayDay = now.getDate();    // 1-31
 
   return cache.mediaItems.filter(item => {
+    if (item.hidden) return false;
     if (!item.createTime) return false;
     try {
       const d = new Date(item.createTime);
@@ -165,6 +176,7 @@ function getOnThisDayCount(userId) {
 function getPortraitItems(userId) {
   const cache = getUserCache(userId);
   return cache.mediaItems.filter(item => {
+    if (item.hidden) return false;
     // Picker API stores dimensions in mediaFile.mediaFileMetadata
     const metadata = item.mediaFile?.mediaFileMetadata;
     if (!metadata) return false;
@@ -188,10 +200,10 @@ function getPortraitCount(userId) {
   return getPortraitItems(userId).length;
 }
 
-// Get cache size
+// Get cache size (visible items only)
 function size(userId) {
   const cache = getUserCache(userId);
-  return cache.mediaItems.length;
+  return cache.mediaItems.filter(item => !item.hidden).length;
 }
 
 // Get session ID
@@ -271,11 +283,15 @@ async function refreshBaseUrls(userId) {
       pageToken = data.nextPageToken;
     } while (pageToken);
 
-    // Update cache with fresh baseUrls (match by ID)
+    // Update cache with fresh baseUrls (match by ID), preserving hidden flag
     const itemMap = new Map(allItems.map(item => [item.id, item]));
     cache.mediaItems = cache.mediaItems.map(existingItem => {
       const freshItem = itemMap.get(existingItem.id);
-      return freshItem || existingItem; // Keep existing if not found in fresh data
+      if (freshItem) {
+        freshItem.hidden = existingItem.hidden || false;
+        return freshItem;
+      }
+      return existingItem; // Keep existing if not found in fresh data
     });
 
     cache.lastRefresh = new Date().toISOString();
@@ -317,6 +333,57 @@ function startRefreshInterval() {
   }, REFRESH_INTERVAL_MS);
 }
 
+// Hide a photo (persists to DB and updates in-memory cache)
+function hideItem(userId, mediaItemId) {
+  const cache = getUserCache(userId);
+  const item = cache.mediaItems.find(i => i.id === mediaItemId);
+  if (!item) return false;
+  const { hideItem: hideStmt } = getStatements();
+  hideStmt.run(userId, mediaItemId);
+  item.hidden = true;
+  return true;
+}
+
+// Unhide a photo (persists to DB and updates in-memory cache)
+function unhideItem(userId, mediaItemId) {
+  const cache = getUserCache(userId);
+  const item = cache.mediaItems.find(i => i.id === mediaItemId);
+  if (!item) return false;
+  const { unhideItem: unhideStmt } = getStatements();
+  unhideStmt.run(userId, mediaItemId);
+  item.hidden = false;
+  return true;
+}
+
+// Unhide all photos for a user
+function unhideAll(userId) {
+  const cache = getUserCache(userId);
+  const { unhideAll: unhideAllStmt } = getStatements();
+  unhideAllStmt.run(userId);
+  let count = 0;
+  for (const item of cache.mediaItems) {
+    if (item.hidden) {
+      item.hidden = false;
+      count++;
+    }
+  }
+  return count;
+}
+
+// Get all hidden items from DB (source of truth)
+function getHiddenItems(userId) {
+  const { selectHidden } = getStatements();
+  const rows = selectHidden.all(userId);
+  return rows.map(row => JSON.parse(row.media_item_data));
+}
+
+// Get count of hidden items from DB
+function hiddenCount(userId) {
+  const { countHidden } = getStatements();
+  const row = countHidden.get(userId);
+  return row.count;
+}
+
 // Export public API
 module.exports = {
   getItem,
@@ -330,5 +397,10 @@ module.exports = {
   getSessionId,
   getLastRefresh,
   getLastApiCall,
-  refreshBaseUrls
+  refreshBaseUrls,
+  hideItem,
+  unhideItem,
+  unhideAll,
+  getHiddenItems,
+  hiddenCount
 };
