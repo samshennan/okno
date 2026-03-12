@@ -213,11 +213,26 @@ router.get('/callback', async (req, res) => {
     const userClient = getOAuth2ClientForUser(userId);
     userClient.setCredentials(tokens);
 
-    // Store userId in session
-    req.session.userId = userId;
+    // Regenerate session to prevent session fixation attacks
+    req.session.regenerate((err) => {
+      if (err) {
+        logger.error('Session regeneration failed:', { error: err.message });
+        return res.redirect('/login?error=session_error');
+      }
 
-    logger.info('OAuth callback successful', { userId, email: userEmail });
-    res.redirect('/');
+      // Set userId on the NEW session
+      req.session.userId = userId;
+
+      // Save session before redirect to ensure it's persisted
+      req.session.save((saveErr) => {
+        if (saveErr) {
+          logger.error('Session save failed:', { error: saveErr.message });
+          return res.redirect('/login?error=session_error');
+        }
+        logger.info('OAuth callback successful', { userId, email: userEmail });
+        res.redirect('/');
+      });
+    });
   } catch (error) {
     logger.error('OAuth callback failed:', { error: error.message });
     res.redirect('/login?error=oauth_failed');
