@@ -5,17 +5,17 @@
 See: .planning/PROJECT.md (updated 2026-02-27)
 
 **Core value:** Display random photos from Google Photos on an iPad in a beautiful, hands-off way that requires no interaction after initial setup.
-**Current focus:** v2.0 "Multi-User" -- Phase 10: Resilience (complete)
+**Current focus:** v2.0 "Multi-User" -- Phase 11: Photo Management (in progress)
 
 ## Current Position
 
 **Milestone:** v2.0 "Multi-User"
-Phase: 10 of 12 (Resilience)
-Plan: 01 of 01 (complete)
-Status: Phase complete
-Last activity: 2026-03-12 -- Completed 10-01-PLAN.md (resilience gaps)
+Phase: 11 of 12 (Photo Management)
+Plan: 01 of 02 (complete)
+Status: In progress
+Last activity: 2026-03-12 -- Completed 11-01-PLAN.md (hidden photos backend)
 
-Progress: [#############################...] 88% (v1.0+v1.1: 20/20 plans | v2.0: 6/12 plans)
+Progress: [##############################..] 91% (v1.0+v1.1: 20/20 plans | v2.0: 7/12 plans)
 
 ## What We Shipped
 
@@ -34,10 +34,10 @@ Progress: [#############################...] 88% (v1.0+v1.1: 20/20 plans | v2.0:
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 26 (v1.0: 11, v1.1: 9, v2.0: 6)
+- Total plans completed: 27 (v1.0: 11, v1.1: 9, v2.0: 7)
 - v1.0: 7 days (11 plans)
 - v1.1: 2 days (9 plans)
-- v2.0: in progress (6 plans, 31 min)
+- v2.0: in progress (7 plans, 36 min)
 
 ## Accumulated Context
 
@@ -87,6 +87,13 @@ See PROJECT.md for full decision log.
 - Token error detection: error.response?.status === 401, invalid_grant, Token expired/revoked strings
 - refreshInProgress mutex prevents duplicate concurrent refresh calls
 
+**11-01 implementation decisions:**
+- Hidden items stay in memory cache (not removed) -- needed for unhide without DB reload
+- size() returns visible-only count -- hidden photos excluded from reported totals
+- Thumbnail proxy uses =w240-h240-c Google param for square crop (validated working)
+- getHiddenItems queries DB directly (not in-memory filter) for consistency
+- DB+memory dual-write: hideItem/unhideItem update both DB and in-memory flag atomically
+
 ### Blockers/Concerns
 
 - Google Picker API 2000 photo limit remains
@@ -97,13 +104,13 @@ See PROJECT.md for full decision log.
 
 ## Session Continuity
 
-**Last session:** 2026-03-12 -- Phase 10 resilience plan executed
-**Stopped at:** Completed 10-01-PLAN.md (env validation, cache refresh, token error handling)
+**Last session:** 2026-03-12 -- Phase 11 Plan 01 executed (hidden photos backend)
+**Stopped at:** Completed 11-01-PLAN.md (DB migration v2, cache filtering, API endpoints, thumbnail proxy)
 **Resume file:** None
-**Next:** Phase 11 (hide photo) or Phase 12 (README). Consider Phase 13 (security audit) first.
+**Next:** Phase 11 Plan 02 (frontend UI for hide/unhide)
 
 ---
 
-**Project Status:** Phase 10 COMPLETE. Resilience gaps closed: env validation, stale cache refresh, token error 401s. Phase 11 (hide photo) next.
+**Project Status:** Phase 11 IN PROGRESS. Plan 01 complete: hidden photos backend (migration, cache, API). Plan 02 next: frontend UI.
 **Deployment:** https://okno.moonacle.com
 **GitHub:** https://github.com/samshennan/okno
