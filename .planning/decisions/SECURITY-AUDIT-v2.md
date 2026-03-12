@@ -42,7 +42,7 @@
 **Verdict: PASS (pending npm audit)**
 - package-lock.json present, committed
 - All dependencies actively maintained
-- express-rate-limit added in Phase 13
+- express-rate-limit v8.3.1+ (avoids CVE-2026-30827 IPv4-mapped IPv6 bypass)
 - Action: Run `npm audit` on VPS periodically
 
 ### 6. Rate Limiting
