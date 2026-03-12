@@ -20,6 +20,7 @@ const SqliteStore = require('better-sqlite3-session-store')(session);
 const winston = require('winston');
 const path = require('path');
 const fs = require('fs');
+const rateLimit = require('express-rate-limit');
 
 // Configure Winston logger with verbose logging
 const logger = winston.createLogger({
@@ -84,12 +85,31 @@ app.use(session({
   cookie: {
     secure: process.env.NODE_ENV === 'production',  // true in production (HTTPS)
     httpOnly: true,
+    sameSite: 'lax',
     maxAge: 365 * 24 * 60 * 60 * 1000  // 1 year
   }
 }));
 
 // Parse JSON request bodies
 app.use(express.json());
+
+// Rate limiting -- auth endpoints (10 req/15min per IP)
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'too_many_requests', message: 'Too many attempts, please try again later' }
+});
+
+// Rate limiting -- feedback endpoint (5 req/15min per IP)
+const feedbackLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'too_many_requests', message: 'Too many submissions, please try again later' }
+});
 
 // --- Public routes (no auth required) ---
 
@@ -101,6 +121,8 @@ app.get('/login', (req, res) => {
 // Mount auth routes (handles its own auth flow)
 const authRouter = require('./auth');
 const { requireAuth } = require('./auth');
+app.use('/auth/login', authLimiter);
+app.use('/auth/callback', authLimiter);
 app.use('/auth', authRouter);
 
 // Demo routes (fully isolated from auth/cache)
@@ -147,7 +169,7 @@ const healthRouter = require('./health');
 app.use('/api/health', requireAuth, healthRouter);
 
 const feedbackRouter = require('./feedback');
-app.use('/api/feedback', requireAuth, feedbackRouter);
+app.use('/api/feedback', requireAuth, feedbackLimiter, feedbackRouter);
 
 const config = require('./config');
 
