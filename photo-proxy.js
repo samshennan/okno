@@ -75,8 +75,7 @@ router.get('/random', async (req, res) => {
     if (!baseUrl) {
       logger.error('No baseUrl found in cached item', { itemId: item.id });
       return res.status(500).json({
-        error: 'invalid_cache',
-        message: 'Cached item missing baseUrl'
+        error: 'invalid_cache'
       });
     }
 
@@ -157,8 +156,7 @@ router.get('/random', async (req, res) => {
     }
 
     res.status(502).json({
-      error: 'proxy_failed',
-      message: error.message
+      error: 'proxy_failed'
     });
   }
 });
@@ -173,7 +171,7 @@ router.post('/hide/:mediaItemId', (req, res) => {
     res.json({ success: true });
   } catch (error) {
     logger.error('Failed to hide photo:', { error: error.message });
-    res.status(500).json({ error: 'server_error', message: error.message });
+    res.status(500).json({ error: 'server_error' });
   }
 });
 
@@ -187,7 +185,7 @@ router.post('/unhide/:mediaItemId', (req, res) => {
     res.json({ success: true });
   } catch (error) {
     logger.error('Failed to unhide photo:', { error: error.message });
-    res.status(500).json({ error: 'server_error', message: error.message });
+    res.status(500).json({ error: 'server_error' });
   }
 });
 
@@ -198,7 +196,7 @@ router.post('/unhide-all', (req, res) => {
     res.json({ success: true, count });
   } catch (error) {
     logger.error('Failed to unhide all photos:', { error: error.message });
-    res.status(500).json({ error: 'server_error', message: error.message });
+    res.status(500).json({ error: 'server_error' });
   }
 });
 
@@ -209,7 +207,7 @@ router.get('/hidden', (req, res) => {
     res.json({ items, count: items.length });
   } catch (error) {
     logger.error('Failed to get hidden photos:', { error: error.message });
-    res.status(500).json({ error: 'server_error', message: error.message });
+    res.status(500).json({ error: 'server_error' });
   }
 });
 
@@ -225,7 +223,7 @@ router.get('/thumbnail/:mediaItemId', async (req, res) => {
 
     const baseUrl = item.mediaFile?.baseUrl || item.baseUrl;
     if (!baseUrl) {
-      return res.status(500).json({ error: 'invalid_cache', message: 'Item missing baseUrl' });
+      return res.status(500).json({ error: 'invalid_cache' });
     }
 
     const thumbnailUrl = `${baseUrl}=w240-h240-c`;
@@ -252,7 +250,7 @@ router.get('/thumbnail/:mediaItemId', async (req, res) => {
     res.send(Buffer.from(arrayBuffer));
   } catch (error) {
     logger.error('Failed to proxy thumbnail:', { error: error.message });
-    res.status(502).json({ error: 'proxy_failed', message: error.message });
+    res.status(502).json({ error: 'proxy_failed' });
   }
 });
 

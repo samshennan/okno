@@ -44,8 +44,7 @@ router.post('/start', async (req, res) => {
         error: errorData
       });
       return res.status(response.status).json({
-        error: 'session_creation_failed',
-        details: errorData
+        error: 'session_creation_failed'
       });
     }
 
@@ -69,8 +68,7 @@ router.post('/start', async (req, res) => {
   } catch (error) {
     logger.error('Failed to create Picker session:', { error: error.message });
     res.status(500).json({
-      error: 'internal_error',
-      message: error.message
+      error: 'internal_error'
     });
   }
 });
@@ -102,8 +100,7 @@ router.get('/status/:sessionId', async (req, res) => {
         error: errorData
       });
       return res.status(response.status).json({
-        error: 'status_check_failed',
-        details: errorData
+        error: 'status_check_failed'
       });
     }
 
@@ -123,8 +120,7 @@ router.get('/status/:sessionId', async (req, res) => {
   } catch (error) {
     logger.error('Failed to check Picker status:', { error: error.message });
     res.status(500).json({
-      error: 'internal_error',
-      message: error.message
+      error: 'internal_error'
     });
   }
 });
@@ -166,8 +162,7 @@ router.post('/complete/:sessionId', async (req, res) => {
           error: errorData
         });
         return res.status(response.status).json({
-          error: 'listing_failed',
-          details: errorData
+          error: 'listing_failed'
         });
       }
 
@@ -193,8 +188,7 @@ router.post('/complete/:sessionId', async (req, res) => {
   } catch (error) {
     logger.error('Failed to complete Picker flow:', { error: error.message });
     res.status(500).json({
-      error: 'internal_error',
-      message: error.message
+      error: 'internal_error'
     });
   }
 });

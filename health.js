@@ -2,6 +2,22 @@ const express = require('express');
 const router = express.Router();
 const { getOAuth2ClientForUser } = require('./auth');
 const photoCache = require('./photo-cache');
+const winston = require('winston');
+
+// Configure logger
+const logger = winston.createLogger({
+  level: 'info',
+  format: winston.format.combine(
+    winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+    winston.format.printf(({ timestamp, level, message, ...meta }) => {
+      const metaStr = Object.keys(meta).length ? JSON.stringify(meta) : '';
+      return `${timestamp} [${level.toUpperCase()}] ${message} ${metaStr}`;
+    })
+  ),
+  transports: [
+    new winston.transports.Console()
+  ]
+});
 
 // GET /api/health - Detailed diagnostics endpoint
 // Provides operational visibility per requirement INFRA-04
@@ -69,9 +85,9 @@ router.get('/', (req, res) => {
   } catch (error) {
     // Even if health check fails, return 200 with error info
     // (health endpoints should not return 500 unless completely broken)
+    logger.error('Health check failed:', { error: error.message });
     res.json({
       status: 'error',
-      error: error.message,
       timestamp: new Date().toISOString()
     });
   }
@@ -88,9 +104,10 @@ router.post('/refresh', async (req, res) => {
       lastRefresh: photoCache.getLastRefresh(userId)
     });
   } catch (error) {
+    logger.error('Cache refresh failed:', { error: error.message });
     res.status(500).json({
       success: false,
-      error: error.message
+      error: 'Cache refresh failed'
     });
   }
 });

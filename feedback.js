@@ -212,8 +212,7 @@ ${reason}
     }
 
     return res.status(500).json({
-      error: 'Failed to submit feedback',
-      details: error.message
+      error: 'Failed to submit feedback'
     });
   }
 });
@@ -223,15 +222,14 @@ router.use((err, req, res, next) => {
   if (err instanceof multer.MulterError) {
     logger.error(`Multer error: ${err.message}`);
     return res.status(400).json({
-      error: 'File upload error',
-      details: err.message
+      error: 'File upload error'
     });
   }
 
   if (err) {
     logger.error(`Feedback error: ${err.message}`);
     return res.status(err.status || 500).json({
-      error: err.message || 'Internal server error'
+      error: 'Internal server error'
     });
   }
 
