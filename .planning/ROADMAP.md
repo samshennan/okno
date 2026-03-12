@@ -112,35 +112,22 @@ Plans:
 
 ---
 
-### Phase 13: Architecture Review + Security Audit
+### Phase 13: Architecture Review + Security Audit ✓
 
-**Status:** NOT STARTED
+**Status:** COMPLETE (2026-03-13)
 
 **Goal:** Review the full codebase architecture and identify any security vulnerabilities before the app is used by real users. Produce a written findings report and fix all critical/high issues.
 
-**Scope:**
-- **Architecture review:** assess module boundaries (`auth.js`, `photo-cache.js`, `picker.js`, `config.js`, `photo-proxy.js`), identify tight coupling, circular deps, and any structural risks introduced across v1.0–v2.0 phases
-- **Security audit (all 8 checklist sections):**
-  - 1. Environment variables + secret management
-  - 2. Session management (httpOnly cookies, session fixation)
-  - 3. Auth middleware coverage (all routes protected by `requireAuth`?)
-  - 4. Server-side validation (picker input, config updates, proxy params)
-  - 5. Dependency audit (`npm audit`) + lockfile check
-  - 6. Rate limiting on auth + expensive routes
-  - 7. CORS configuration
-  - 8. Error response leaks (stack traces, file paths exposed to client)
-- **Fix all CRITICAL and HIGH findings inline** — don't defer them
-- Produce `.planning/decisions/SECURITY-AUDIT-v2.md` with full checklist verdicts, findings, and remediation status
+**Plans:** 2 plans
 
-**Context:**
-- There is already a `.planning/decisions/SECURITY-ASSESSMENT.md` from an earlier phase — review it first and carry forward any unresolved items.
-- The app is Node/Express — no Supabase, so RLS checks are N/A. Focus is on session security, input validation, auth middleware completeness, and rate limiting.
-- OAuth callback (`/auth/callback`) and the per-user `OAuth2Client` cache added in Phase 9 are the highest-risk new surfaces.
+Plans:
+- [x] 13-01-PLAN.md — Session fixation fix, rate limiting (express-rate-limit v8.3.1+), SameSite cookie
+- [x] 13-02-PLAN.md — Error response sanitization (19 catch blocks), SECURITY-AUDIT-v2.md report
 
 **Success criteria:**
-- No CRITICAL or HIGH findings remain unfixed after the phase
-- All 8 audit sections have an explicit verdict (✅ / ❌ / ⚠️ / ⬚)
-- Architecture findings documented with recommended improvements (can be deferred to future phases if not urgent)
+- No CRITICAL or HIGH findings remain unfixed after the phase ✓
+- All 8 audit sections have an explicit verdict ✓
+- Architecture findings documented with recommended improvements ✓
 
 ---
 
@@ -192,5 +179,5 @@ Plans:
 | 10. Resilience | ✅ Complete | 2026-03-12 |
 | 11. Photo Management | ✅ Complete | 2026-03-12 |
 | 12. Portfolio Polish | ⬜ Not started | -- |
-| 13. Architecture Review + Security Audit | ⬜ Not started | -- |
+| 13. Architecture Review + Security Audit | ✅ Complete | 2026-03-13 |
 | 14. Security Audit Re-run + Skill Refinement | ⬜ Event-driven | -- |

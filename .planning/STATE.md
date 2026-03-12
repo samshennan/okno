@@ -102,7 +102,7 @@ See PROJECT.md for full decision log.
 - fetchHiddenPhotos() called on DOMContentLoaded alongside loadSettings()
 
 **13-01 implementation decisions:**
-- express-rate-limit v7.5+ for rate limiting (latest stable for Express 4)
+- express-rate-limit v8.3.1+ for rate limiting (CVE-2026-30827 mitigated)
 - Auth rate limit: 10 req/15min per IP; feedback: 5 req/15min per IP
 - SameSite=Lax (not Strict) to allow OAuth redirect flow
 - Session regeneration with explicit save() before redirect
