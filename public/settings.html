@@ -399,6 +399,95 @@
       margin-top: 8px;
     }
 
+    /* Hidden Photos Grid */
+    .hidden-photos-description {
+      font-size: 0.875rem;
+      color: rgba(90, 107, 98, 0.6);
+      margin-bottom: 4px;
+    }
+
+    .hidden-photos-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+      gap: 8px;
+      margin: 16px 0;
+    }
+
+    .hidden-photo-item {
+      position: relative;
+      aspect-ratio: 1;
+      border-radius: 8px;
+      overflow: hidden;
+      transition: opacity 0.3s ease;
+    }
+
+    .hidden-photo-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .hidden-photo-item .restore-btn {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: rgba(0, 0, 0, 0.6);
+      border: none;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      opacity: 0.7;
+      transition: opacity 0.2s;
+      padding: 0;
+      box-shadow: none;
+    }
+
+    .hidden-photo-item .restore-btn:hover,
+    .hidden-photo-item .restore-btn:active {
+      opacity: 1;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .unhide-all-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 14px 24px;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.938rem;
+      font-weight: 500;
+      color: #B8867B;
+      background: #F0F0F3;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: -4px -4px 10px rgba(255, 255, 255, 0.8),
+        4px 4px 10px rgba(174, 174, 192, 0.3);
+      letter-spacing: -0.01em;
+    }
+
+    .unhide-all-button:hover {
+      transform: translateY(-1px);
+      color: #A06B60;
+      box-shadow: -6px -6px 14px rgba(255, 255, 255, 0.9),
+        6px 6px 14px rgba(174, 174, 192, 0.4);
+    }
+
+    .unhide-all-button:active {
+      transform: translateY(0);
+      box-shadow: inset -2px -2px 4px rgba(255, 255, 255, 0.7),
+        inset 2px 2px 4px rgba(174, 174, 192, 0.2);
+    }
+
     /* Donate Button */
     .btn-donate {
       display: inline-flex;
@@ -620,6 +709,16 @@
       </div>
     </div>
 
+    <!-- Hidden Photos Section (hidden by default, shown when hidden photos exist) -->
+    <div class="settings-section" id="hiddenPhotosSection" style="display: none;">
+      <div class="section-title">Hidden Photos</div>
+      <p class="hidden-photos-description" id="hiddenPhotosDesc">Loading...</p>
+      <div class="hidden-photos-grid" id="hiddenPhotosGrid"></div>
+      <button class="unhide-all-button" id="unhideAllBtn" onclick="unhideAllPhotos()" style="display: none;">
+        <i data-lucide="eye" style="width: 16px; height: 16px;"></i> Unhide All
+      </button>
+    </div>
+
     <!-- Account Section -->
     <div class="settings-section">
       <div class="section-title">Account</div>
@@ -816,6 +915,108 @@
       }
     }
 
+    // Hidden photos management
+    let hiddenPhotoCount = 0;
+
+    async function fetchHiddenPhotos() {
+      try {
+        const res = await fetch('/api/photo/hidden');
+        if (res.status === 401) return;
+        if (!res.ok) return;
+
+        const data = await res.json();
+        hiddenPhotoCount = data.count || 0;
+
+        if (hiddenPhotoCount > 0) {
+          document.getElementById('hiddenPhotosSection').style.display = '';
+          document.getElementById('hiddenPhotosDesc').textContent =
+            `${hiddenPhotoCount} hidden photo${hiddenPhotoCount === 1 ? '' : 's'}`;
+          document.getElementById('unhideAllBtn').style.display = '';
+
+          const grid = document.getElementById('hiddenPhotosGrid');
+          grid.innerHTML = '';
+
+          data.items.forEach(item => {
+            const el = document.createElement('div');
+            el.className = 'hidden-photo-item';
+            el.dataset.id = item.id;
+
+            const img = document.createElement('img');
+            img.src = `/api/photo/thumbnail/${item.id}`;
+            img.alt = 'Hidden photo';
+            img.loading = 'lazy';
+
+            const btn = document.createElement('button');
+            btn.className = 'restore-btn';
+            btn.title = 'Restore photo';
+            btn.innerHTML = '<i data-lucide="eye" style="width: 14px; height: 14px;"></i>';
+            btn.addEventListener('click', () => restorePhoto(item.id, el));
+
+            el.appendChild(img);
+            el.appendChild(btn);
+            grid.appendChild(el);
+          });
+
+          // Re-render Lucide icons for the new restore buttons
+          lucide.createIcons();
+        } else {
+          document.getElementById('hiddenPhotosSection').style.display = 'none';
+        }
+      } catch (err) {
+        console.error('Failed to fetch hidden photos:', err);
+      }
+    }
+
+    async function restorePhoto(mediaItemId, gridItemElement) {
+      try {
+        const res = await fetch(`/api/photo/unhide/${mediaItemId}`, { method: 'POST' });
+        if (!res.ok) {
+          showToast('Failed to restore photo');
+          return;
+        }
+
+        // Fade out and remove
+        gridItemElement.style.opacity = '0';
+        setTimeout(() => gridItemElement.remove(), 300);
+
+        hiddenPhotoCount--;
+        if (hiddenPhotoCount > 0) {
+          document.getElementById('hiddenPhotosDesc').textContent =
+            `${hiddenPhotoCount} hidden photo${hiddenPhotoCount === 1 ? '' : 's'}`;
+        } else {
+          document.getElementById('hiddenPhotosSection').style.display = 'none';
+        }
+
+        showToast('Photo restored');
+      } catch (err) {
+        console.error('Failed to restore photo:', err);
+        showToast('Error restoring photo');
+      }
+    }
+
+    async function unhideAllPhotos() {
+      if (!confirm(`Unhide all ${hiddenPhotoCount} photo${hiddenPhotoCount === 1 ? '' : 's'}? They'll appear in your slideshow again.`)) {
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/photo/unhide-all', { method: 'POST' });
+        if (!res.ok) {
+          showToast('Failed to unhide photos');
+          return;
+        }
+
+        document.getElementById('hiddenPhotosGrid').innerHTML = '';
+        document.getElementById('hiddenPhotosSection').style.display = 'none';
+        hiddenPhotoCount = 0;
+
+        showToast('All photos restored');
+      } catch (err) {
+        console.error('Failed to unhide all photos:', err);
+        showToast('Error restoring photos');
+      }
+    }
+
     // Logout button handler
     document.getElementById('logout-btn').addEventListener('click', async () => {
       try {
@@ -831,6 +1032,7 @@
     loadSettings();
     fetchOnThisDayCount();
     fetchPortraitCount();
+    fetchHiddenPhotos();
     checkAuthStatus();
     lucide.createIcons();
   </script>
