@@ -142,6 +142,20 @@ router.get('/random', async (req, res) => {
 
   } catch (error) {
     logger.error('Failed to proxy photo:', { error: error.message, stack: error.stack });
+
+    // Detect token errors (revoked/expired refresh token) and return 401
+    // so the frontend shows the reconnect overlay instead of retrying silently.
+    const isTokenError = error.response?.status === 401
+      || error.message?.includes('invalid_grant')
+      || error.message?.includes('Token has been expired or revoked');
+
+    if (isTokenError) {
+      return res.status(401).json({
+        error: 'authentication_required',
+        message: 'Google token expired or revoked. Please re-authenticate.'
+      });
+    }
+
     res.status(502).json({
       error: 'proxy_failed',
       message: error.message
