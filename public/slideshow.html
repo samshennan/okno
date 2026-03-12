@@ -616,6 +616,110 @@
         3px 3px 8px rgba(143, 181, 165, 0.3);
     }
 
+    /* Hide button (right side, appears with controls) */
+    .hide-button {
+      position: fixed;
+      bottom: 7rem;
+      right: 2rem;
+      z-index: 100;
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #F0F0F3;
+      color: #B8867B;
+      border: none;
+      padding: 10px 18px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-size: 0.875rem;
+      font-weight: 500;
+      font-family: 'Inter', sans-serif;
+      letter-spacing: -0.01em;
+      box-shadow: -4px -4px 10px rgba(255, 255, 255, 0.6),
+        4px 4px 10px rgba(0, 0, 0, 0.2);
+    }
+
+    .hide-button.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .hide-button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .hide-button.visible:disabled {
+      opacity: 0.5;
+    }
+
+    .hide-button:not(:disabled):hover {
+      transform: translateY(-2px);
+      box-shadow: -6px -6px 14px rgba(255, 255, 255, 0.7),
+        6px 6px 14px rgba(0, 0, 0, 0.25);
+    }
+
+    .hide-button:not(:disabled):active {
+      transform: translateY(0);
+      box-shadow: inset -3px -3px 6px rgba(0, 0, 0, 0.15),
+        inset 3px 3px 6px rgba(255, 255, 255, 0.7);
+    }
+
+    /* Hide toast (bottom-center) */
+    .hide-toast {
+      position: fixed;
+      bottom: 6rem;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      z-index: 150;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: rgba(0, 0, 0, 0.85);
+      color: #fff;
+      padding: 12px 20px;
+      border-radius: 12px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      font-family: 'Inter', sans-serif;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.3s ease;
+    }
+
+    .hide-toast.visible {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .hide-toast button {
+      background: none;
+      border: none;
+      color: #8FB5A5;
+      font-size: 0.875rem;
+      font-weight: 600;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 6px;
+      box-shadow: none;
+      text-decoration: underline;
+    }
+
+    .hide-toast button:hover {
+      color: #fff;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .hide-toast button:active {
+      box-shadow: none;
+    }
+
     /* Hide keyboard help on mobile/iPad */
     @media (max-width: 768px),
     (pointer: coarse) {
@@ -739,6 +843,17 @@
         Reconnect
       </button>
     </div>
+  </div>
+
+  <!-- Hide photo button (appears with controls) -->
+  <button id="hideBtn" class="hide-button" disabled>
+    <i data-lucide="eye-off" style="width: 16px; height: 16px;"></i> Hide
+  </button>
+
+  <!-- Hide photo toast with undo -->
+  <div id="hideToast" class="hide-toast">
+    <span>Photo hidden</span>
+    <button id="undoHideBtn">Undo</button>
   </div>
 
   <div id="controls">
@@ -1273,12 +1388,14 @@
           hideReconnectOverlay();
         }
 
-        // Store create time for OTD indicator
+        // Store photo ID and create time from response headers
+        const photoId = response.headers.get('X-Photo-Id');
         const createTime = response.headers.get('X-Photo-CreateTime');
         const onThisDayCount = response.headers.get('X-Photo-OnThisDayCount');
 
         const blob = await response.blob();
         img.src = URL.createObjectURL(blob);
+        img.dataset.photoId = photoId || '';
         img.dataset.createTime = createTime || '';
         img.dataset.onThisDayCount = onThisDayCount || '';
 
@@ -1363,6 +1480,10 @@
         const photoImg = useBlur ? displayElement.querySelector('.photo') : displayElement;
         updatePhotoDateOverlay(photoImg.dataset.createTime);
 
+        // Enable hide button if photo has an ID
+        const hideBtn = document.getElementById('hideBtn');
+        hideBtn.disabled = !photoImg.dataset.photoId;
+
         // STEP 3: Start Ken Burns on the photo (inner img if wrapped)
         setTimeout(() => {
           const targetImg = useBlur ? displayElement.querySelector('.photo') : displayElement;
@@ -1419,6 +1540,10 @@
 
         // Update photo date from left portrait
         updatePhotoDateOverlay(img1.dataset.createTime);
+
+        // Enable hide button (uses left portrait's ID)
+        const hideBtn = document.getElementById('hideBtn');
+        hideBtn.disabled = !img1.dataset.photoId;
 
         // STEP 3: Start Ken Burns on EACH portrait independently (different presets)
         setTimeout(() => {
@@ -1601,6 +1726,63 @@
       }
     }
 
+    // Hide photo state
+    let lastHiddenPhotoId = null;
+    let hideToastTimeout = null;
+
+    function hideCurrentPhoto() {
+      // Find the currently active photo element
+      const activeWrapper = slideshowEl.querySelector('.photo-wrapper.active');
+      const activeImg = activeWrapper
+        ? activeWrapper.querySelector('.photo')
+        : slideshowEl.querySelector('.photo.active');
+
+      if (!activeImg) return;
+
+      const photoId = activeImg.dataset.photoId;
+      if (!photoId) return; // Guard against undefined/empty -- do NOT POST to hide/undefined
+
+      // Fire-and-forget hide request
+      fetch(`/api/photo/hide/${photoId}`, { method: 'POST' }).catch(() => {});
+
+      // Show toast with undo
+      showHideToast(photoId);
+
+      // Hide controls immediately
+      hideControls();
+
+      // Advance to next photo after a brief beat
+      setTimeout(() => nextPhoto(), 500);
+    }
+
+    function showHideToast(photoId) {
+      lastHiddenPhotoId = photoId;
+      const toast = document.getElementById('hideToast');
+      toast.classList.add('visible');
+
+      // Clear any previous timeout
+      if (hideToastTimeout) clearTimeout(hideToastTimeout);
+
+      // Auto-hide after 4 seconds
+      hideToastTimeout = setTimeout(() => {
+        toast.classList.remove('visible');
+      }, 4000);
+    }
+
+    function undoHide() {
+      if (!lastHiddenPhotoId) return;
+
+      // Unhide the photo
+      fetch(`/api/photo/unhide/${lastHiddenPhotoId}`, { method: 'POST' }).catch(() => {});
+
+      // Hide toast immediately
+      const toast = document.getElementById('hideToast');
+      toast.classList.remove('visible');
+      if (hideToastTimeout) clearTimeout(hideToastTimeout);
+
+      lastHiddenPhotoId = null;
+    }
+
     // Control visibility
     let controlsVisible = false;
     let hideControlsTimeout = null;
@@ -1613,6 +1795,7 @@
       document.getElementById('info').classList.add('visible');
       document.getElementById('keyboardHelp').classList.add('visible');
       document.getElementById('sleepReminder').classList.add('visible');
+      document.getElementById('hideBtn').classList.add('visible');
 
       // Auto-hide after 4 seconds
       clearTimeout(hideControlsTimeout);
@@ -1627,6 +1810,7 @@
       document.getElementById('info').classList.remove('visible');
       document.getElementById('keyboardHelp').classList.remove('visible');
       document.getElementById('sleepReminder').classList.remove('visible');
+      document.getElementById('hideBtn').classList.remove('visible');
     }
 
     function toggleControls() {
@@ -1673,6 +1857,31 @@
       mouseMoveTimeout = setTimeout(() => {
         // Don't auto-hide on desktop, just when they stop moving
       }, 100);
+    });
+
+    // Hide button and undo button: use touchend + click with stopPropagation
+    // to prevent body touchend handler (which calls preventDefault) from blocking clicks
+    const hideBtnEl = document.getElementById('hideBtn');
+    const undoHideBtnEl = document.getElementById('undoHideBtn');
+
+    hideBtnEl.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (!hideBtnEl.disabled) hideCurrentPhoto();
+    });
+    hideBtnEl.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (!hideBtnEl.disabled) hideCurrentPhoto();
+    });
+
+    undoHideBtnEl.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      undoHide();
+    });
+    undoHideBtnEl.addEventListener('click', (e) => {
+      e.stopPropagation();
+      undoHide();
     });
 
     // Initialize on load
