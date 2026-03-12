@@ -5,17 +5,17 @@
 See: .planning/PROJECT.md (updated 2026-02-27)
 
 **Core value:** Display random photos from Google Photos on an iPad in a beautiful, hands-off way that requires no interaction after initial setup.
-**Current focus:** v2.0 "Multi-User" -- Phase 10: Resilience (next up)
+**Current focus:** v2.0 "Multi-User" -- Phase 10: Resilience (complete)
 
 ## Current Position
 
 **Milestone:** v2.0 "Multi-User"
 Phase: 10 of 12 (Resilience)
-Plan: 00 of 01 (not started)
-Status: Ready to plan
-Last activity: 2026-03-11 -- Phase 9 complete (human checkpoint approved), Phase 10 next
+Plan: 01 of 01 (complete)
+Status: Phase complete
+Last activity: 2026-03-12 -- Completed 10-01-PLAN.md (resilience gaps)
 
-Progress: [############################....] 85% (v1.0+v1.1: 20/20 plans | v2.0: 9/12 plans)
+Progress: [#############################...] 88% (v1.0+v1.1: 20/20 plans | v2.0: 6/12 plans)
 
 ## What We Shipped
 
@@ -34,10 +34,10 @@ Progress: [############################....] 85% (v1.0+v1.1: 20/20 plans | v2.0:
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 25 (v1.0: 11, v1.1: 9, v2.0: 5)
+- Total plans completed: 26 (v1.0: 11, v1.1: 9, v2.0: 6)
 - v1.0: 7 days (11 plans)
 - v1.1: 2 days (9 plans)
-- v2.0: in progress (5 plans, 26 min)
+- v2.0: in progress (6 plans, 31 min)
 
 ## Accumulated Context
 
@@ -80,6 +80,13 @@ See PROJECT.md for full decision log.
 - Health endpoint returns basic status with zeroed auth/cache when no userId in session
 - Per-user cache pattern: Map<userId, Data> with lazy initialiser functions
 
+**10-01 implementation decisions:**
+- Env validation after dotenv.config() but before any require() -- earliest fail point
+- SESSION_SECRET only warns in production (has dev fallback)
+- setImmediate for fire-and-forget background refresh keeps getUserCache synchronous
+- Token error detection: error.response?.status === 401, invalid_grant, Token expired/revoked strings
+- refreshInProgress mutex prevents duplicate concurrent refresh calls
+
 ### Blockers/Concerns
 
 - Google Picker API 2000 photo limit remains
@@ -90,13 +97,13 @@ See PROJECT.md for full decision log.
 
 ## Session Continuity
 
-**Last session:** 2026-03-12 — skills + security audit phase + web design skill
-**Stopped at:** OKNO codebase untouched. Created web-design skill, improved security-audit skill (Variant B for SQLite/Express), added Phases 13 (security audit) and 14 (re-run + skill refinement) to ROADMAP. Phase 10 still ready to execute.
-**Resume file:** .planning/handoffs/2026-03-12-skills-security-audit-web-design.md
-**Next:** Execute Phase 10 — `/gsd:execute-phase 10` (fresh context window). Consider running Phase 13 (security audit) before Phase 10 to surface issues first.
+**Last session:** 2026-03-12 -- Phase 10 resilience plan executed
+**Stopped at:** Completed 10-01-PLAN.md (env validation, cache refresh, token error handling)
+**Resume file:** None
+**Next:** Phase 11 (hide photo) or Phase 12 (README). Consider Phase 13 (security audit) first.
 
 ---
 
-**Project Status:** Phase 9 COMPLETE. Full multi-user auth live: any Google account can sign in, data fully isolated per user. Phase 10 (Resilience) is next.
+**Project Status:** Phase 10 COMPLETE. Resilience gaps closed: env validation, stale cache refresh, token error 401s. Phase 11 (hide photo) next.
 **Deployment:** https://okno.moonacle.com
 **GitHub:** https://github.com/samshennan/okno
