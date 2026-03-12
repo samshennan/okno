@@ -5,17 +5,17 @@
 See: .planning/PROJECT.md (updated 2026-02-27)
 
 **Core value:** Display random photos from Google Photos on an iPad in a beautiful, hands-off way that requires no interaction after initial setup.
-**Current focus:** v2.0 "Multi-User" -- Phase 11: Photo Management (complete)
+**Current focus:** v2.0 "Multi-User" -- Phase 13: Architecture Review + Security Audit (in progress)
 
 ## Current Position
 
 **Milestone:** v2.0 "Multi-User"
-Phase: 11 of 12 (Photo Management)
-Plan: 02 of 02 (complete)
-Status: Phase complete
-Last activity: 2026-03-12 -- Completed 11-02-PLAN.md (frontend hide photo UI)
+Phase: 13 of 13 (Architecture Review + Security Audit)
+Plan: 01 of 02
+Status: In progress
+Last activity: 2026-03-13 -- Completed 13-01-PLAN.md (critical security fixes)
 
-Progress: [###############################.] 94% (v1.0+v1.1: 20/20 plans | v2.0: 8/12 plans)
+Progress: [################################] 96% (v1.0+v1.1: 20/20 plans | v2.0: 9/13 plans)
 
 ## What We Shipped
 
@@ -34,7 +34,7 @@ Progress: [###############################.] 94% (v1.0+v1.1: 20/20 plans | v2.0:
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 27 (v1.0: 11, v1.1: 9, v2.0: 7)
+- Total plans completed: 28 (v1.0: 11, v1.1: 9, v2.0: 8)
 - v1.0: 7 days (11 plans)
 - v1.1: 2 days (9 plans)
 - v2.0: in progress (8 plans, 44 min)
@@ -101,6 +101,12 @@ See PROJECT.md for full decision log.
 - Section hidden by default, only shown when hiddenCount > 0
 - fetchHiddenPhotos() called on DOMContentLoaded alongside loadSettings()
 
+**13-01 implementation decisions:**
+- express-rate-limit v7.5+ for rate limiting (latest stable for Express 4)
+- Auth rate limit: 10 req/15min per IP; feedback: 5 req/15min per IP
+- SameSite=Lax (not Strict) to allow OAuth redirect flow
+- Session regeneration with explicit save() before redirect
+
 ### Blockers/Concerns
 
 - Google Picker API 2000 photo limit remains
@@ -110,13 +116,13 @@ See PROJECT.md for full decision log.
 
 ## Session Continuity
 
-**Last session:** 2026-03-12 -- Phase 11 Plan 02 executed (frontend hide photo UI)
-**Stopped at:** Completed 11-02-PLAN.md (slideshow hide button + settings hidden photos grid)
+**Last session:** 2026-03-13 -- Phase 13 Plan 01 executed (critical security fixes)
+**Stopped at:** Completed 13-01-PLAN.md (session fixation, rate limiting, SameSite)
 **Resume file:** None
-**Next:** Phase 12 (README + Portfolio Polish)
+**Next:** Phase 13 Plan 02 (architecture improvements)
 
 ---
 
-**Project Status:** Phase 11 COMPLETE. Both plans delivered: backend hide/unhide (11-01) + frontend UI (11-02). Phase 12 next.
+**Project Status:** Phase 13 Plan 01 COMPLETE. Critical security fixes shipped: session fixation, rate limiting, SameSite. Plan 02 next.
 **Deployment:** https://okno.moonacle.com
 **GitHub:** https://github.com/samshennan/okno
