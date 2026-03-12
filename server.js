@@ -1,5 +1,16 @@
 require('dotenv').config();
 
+// Fail fast if critical environment variables are missing
+const required = ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET'];
+const missing = required.filter(v => !process.env[v]);
+if (missing.length > 0) {
+  console.error(`FATAL: Missing required environment variables: ${missing.join(', ')}`);
+  process.exit(1);
+}
+if (process.env.NODE_ENV === 'production' && (!process.env.SESSION_SECRET || process.env.SESSION_SECRET === 'dev-secret-change-in-production')) {
+  console.warn('WARNING: SESSION_SECRET is not set or using default value in production');
+}
+
 const express = require('express');
 const helmet = require('helmet');
 const morgan = require('morgan');

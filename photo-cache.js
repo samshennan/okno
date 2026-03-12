@@ -50,7 +50,8 @@ function getUserCache(userId) {
       sessionId: null,
       mediaItems: [],
       lastRefresh: null,
-      lastApiCall: null
+      lastApiCall: null,
+      refreshInProgress: false
     };
 
     try {
@@ -60,6 +61,10 @@ function getUserCache(userId) {
         cacheData.mediaItems = rows.map(row => JSON.parse(row.media_item_data));
         cacheData.sessionId = rows.find(r => r.session_id)?.session_id || null;
         logger.info(`Loaded ${cacheData.mediaItems.length} items from cache`, { userId });
+
+        // Trigger immediate baseUrl refresh (fire-and-forget, keeps getUserCache synchronous)
+        setImmediate(() => refreshBaseUrls(userId));
+        startRefreshInterval();
       }
     } catch (error) {
       logger.error('Failed to load cache:', { userId, error: error.message });
@@ -215,6 +220,12 @@ async function refreshBaseUrls(userId) {
     return;
   }
 
+  if (cache.refreshInProgress) {
+    logger.info('Refresh already in progress, skipping', { userId });
+    return;
+  }
+  cache.refreshInProgress = true;
+
   try {
     logger.info('Starting baseUrl refresh', { userId, sessionId: cache.sessionId });
 
@@ -284,7 +295,9 @@ async function refreshBaseUrls(userId) {
     }
 
     logger.info(`Refreshed ${allItems.length} baseUrls`, { userId });
+    cache.refreshInProgress = false;
   } catch (error) {
+    cache.refreshInProgress = false;
     logger.error('Failed to refresh baseUrls:', { userId, error: error.message });
   }
 }
