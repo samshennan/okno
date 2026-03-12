@@ -61,16 +61,16 @@ See `.planning/milestones/v1.0-ROADMAP.md` for full details.
 
 ---
 
-### Phase 10: Resilience
+### Phase 10: Resilience ✓
 
-**Status:** NOT STARTED
+**Status:** COMPLETE (2026-03-12)
 
 **Goal:** The app handles edge cases gracefully — stale photo cache after restart, missing env vars, and token expiry — without manual intervention.
 
 **Plans:** 1 plan
 
 Plans:
-- [ ] 10-01-PLAN.md — Env validation, stale cache refresh on restart, token error 401 fix
+- [x] 10-01-PLAN.md — Env validation, stale cache refresh on restart, token error 401 fix
 
 **Success criteria:**
 - Server restart → slideshow continues serving photos within 60 seconds (no 502 burst)
@@ -191,7 +191,7 @@ Plans:
 | 7. README + Portfolio Polish | ↪ Deferred to Phase 12 | -- |
 | 8. Database Foundation | ✅ Complete | 2026-02-28 |
 | 9. Per-User Auth + Data Isolation | ✅ Complete | 2026-03-11 |
-| 10. Resilience | ⬜ Not started | -- |
+| 10. Resilience | ✅ Complete | 2026-03-12 |
 | 11. Photo Management | ⬜ Not started | -- |
 | 12. Portfolio Polish | ⬜ Not started | -- |
 | 13. Architecture Review + Security Audit | ⬜ Not started | -- |
