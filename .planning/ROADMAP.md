@@ -82,15 +82,13 @@ Plans:
 
 **Status:** NOT STARTED
 
-**Goal:** Users can remove photos they don't want from their slideshow cache.
+**Goal:** Users can hide unwanted photos from their slideshow and manage hidden photos from settings.
 
-**Scope:** Keep it simple — no full grid required to ship.
-- "Hide this photo" button on the slideshow (subtle, tap to reveal)
-- `POST /api/photo/hide/:mediaItemId` marks photo hidden in DB (`hidden = 1` column on `photo_cache`)
-- Hidden photos excluded from random selection in `photo-cache.js`
-- Settings page: "hidden photos" count + "unhide all" button
+**Plans:** 2 plans
 
-**If time/interest allows:** thumbnail grid on settings page showing hidden photos with restore option.
+Plans:
+- [ ] 11-01-PLAN.md — Backend: DB migration v2 (hidden column), cache filtering, hide/unhide API + thumbnail proxy
+- [ ] 11-02-PLAN.md — Frontend: slideshow hide button with toast+undo, settings thumbnail grid with restore
 
 **Success criteria:**
 - User taps a photo they don't want → it never appears again
