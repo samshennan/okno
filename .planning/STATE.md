@@ -5,7 +5,7 @@
 See: .planning/PROJECT.md (updated 2026-02-27)
 
 **Core value:** Display random photos from Google Photos on an iPad in a beautiful, hands-off way that requires no interaction after initial setup.
-**Current focus:** v2.0 "Multi-User" -- Phase 11: Photo Management (in progress)
+**Current focus:** v2.0 "Multi-User" -- Phase 11: Photo Management (complete)
 
 ## Current Position
 

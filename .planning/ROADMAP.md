@@ -78,17 +78,17 @@ Plans:
 
 ---
 
-### Phase 11: Photo Management
+### Phase 11: Photo Management ✓
 
-**Status:** NOT STARTED
+**Status:** COMPLETE (2026-03-12)
 
 **Goal:** Users can hide unwanted photos from their slideshow and manage hidden photos from settings.
 
 **Plans:** 2 plans
 
 Plans:
-- [ ] 11-01-PLAN.md — Backend: DB migration v2 (hidden column), cache filtering, hide/unhide API + thumbnail proxy
-- [ ] 11-02-PLAN.md — Frontend: slideshow hide button with toast+undo, settings thumbnail grid with restore
+- [x] 11-01-PLAN.md — Backend: DB migration v2 (hidden column), cache filtering, hide/unhide API + thumbnail proxy
+- [x] 11-02-PLAN.md — Frontend: slideshow hide button with toast+undo, settings thumbnail grid with restore
 
 **Success criteria:**
 - User taps a photo they don't want → it never appears again
@@ -190,7 +190,7 @@ Plans:
 | 8. Database Foundation | ✅ Complete | 2026-02-28 |
 | 9. Per-User Auth + Data Isolation | ✅ Complete | 2026-03-11 |
 | 10. Resilience | ✅ Complete | 2026-03-12 |
-| 11. Photo Management | ⬜ Not started | -- |
+| 11. Photo Management | ✅ Complete | 2026-03-12 |
 | 12. Portfolio Polish | ⬜ Not started | -- |
 | 13. Architecture Review + Security Audit | ⬜ Not started | -- |
 | 14. Security Audit Re-run + Skill Refinement | ⬜ Event-driven | -- |
