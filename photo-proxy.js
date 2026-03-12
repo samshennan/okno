@@ -163,5 +163,98 @@ router.get('/random', async (req, res) => {
   }
 });
 
+// POST /api/photo/hide/:mediaItemId - Hide a photo from slideshow
+router.post('/hide/:mediaItemId', (req, res) => {
+  try {
+    const found = photoCache.hideItem(req.session.userId, req.params.mediaItemId);
+    if (!found) {
+      return res.status(404).json({ error: 'not_found' });
+    }
+    res.json({ success: true });
+  } catch (error) {
+    logger.error('Failed to hide photo:', { error: error.message });
+    res.status(500).json({ error: 'server_error', message: error.message });
+  }
+});
+
+// POST /api/photo/unhide/:mediaItemId - Unhide a photo
+router.post('/unhide/:mediaItemId', (req, res) => {
+  try {
+    const found = photoCache.unhideItem(req.session.userId, req.params.mediaItemId);
+    if (!found) {
+      return res.status(404).json({ error: 'not_found' });
+    }
+    res.json({ success: true });
+  } catch (error) {
+    logger.error('Failed to unhide photo:', { error: error.message });
+    res.status(500).json({ error: 'server_error', message: error.message });
+  }
+});
+
+// POST /api/photo/unhide-all - Unhide all hidden photos
+router.post('/unhide-all', (req, res) => {
+  try {
+    const count = photoCache.unhideAll(req.session.userId);
+    res.json({ success: true, count });
+  } catch (error) {
+    logger.error('Failed to unhide all photos:', { error: error.message });
+    res.status(500).json({ error: 'server_error', message: error.message });
+  }
+});
+
+// GET /api/photo/hidden - List all hidden photos
+router.get('/hidden', (req, res) => {
+  try {
+    const items = photoCache.getHiddenItems(req.session.userId);
+    res.json({ items, count: items.length });
+  } catch (error) {
+    logger.error('Failed to get hidden photos:', { error: error.message });
+    res.status(500).json({ error: 'server_error', message: error.message });
+  }
+});
+
+// GET /api/photo/thumbnail/:mediaItemId - Serve a 240x240 thumbnail
+router.get('/thumbnail/:mediaItemId', async (req, res) => {
+  try {
+    const userId = req.session.userId;
+    const item = photoCache.getItem(userId, req.params.mediaItemId);
+
+    if (!item) {
+      return res.status(404).json({ error: 'not_found' });
+    }
+
+    const baseUrl = item.mediaFile?.baseUrl || item.baseUrl;
+    if (!baseUrl) {
+      return res.status(500).json({ error: 'invalid_cache', message: 'Item missing baseUrl' });
+    }
+
+    const thumbnailUrl = `${baseUrl}=w240-h240-c`;
+
+    const client = getOAuth2ClientForUser(userId);
+    const { token } = await client.getAccessToken();
+
+    const imageResponse = await fetch(thumbnailUrl, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+
+    if (!imageResponse.ok) {
+      logger.warn('Thumbnail fetch failed from Google', {
+        mediaItemId: req.params.mediaItemId,
+        status: imageResponse.status
+      });
+      return res.status(502).json({ error: 'proxy_failed', message: `Google returned ${imageResponse.status}` });
+    }
+
+    res.set('Content-Type', imageResponse.headers.get('content-type') || 'image/jpeg');
+    res.set('Cache-Control', 'private, max-age=1800'); // 30 min cache for thumbnails
+
+    const arrayBuffer = await imageResponse.arrayBuffer();
+    res.send(Buffer.from(arrayBuffer));
+  } catch (error) {
+    logger.error('Failed to proxy thumbnail:', { error: error.message });
+    res.status(502).json({ error: 'proxy_failed', message: error.message });
+  }
+});
+
 // Export router
 module.exports = router;
