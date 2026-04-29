@@ -31,6 +31,11 @@ const SCOPES = [
 // Per-user OAuth2Client cache (avoids token refresh race conditions)
 const clientCache = new Map();
 
+function getDonationUrl() {
+  const value = (process.env.DONATION_URL || '').trim();
+  return /^https:\/\/buy\.stripe\.com\//.test(value) ? value : null;
+}
+
 // Prepared statements (lazy-initialized)
 let stmtSelectTokens = null;
 let stmtUpsertTokens = null;
@@ -242,12 +247,14 @@ router.get('/callback', async (req, res) => {
 // GET /auth/status - Check authentication status
 router.get('/status', (req, res) => {
   const userId = req.session?.userId;
+  const donationUrl = getDonationUrl();
   if (!userId) {
     return res.json({
       authenticated: false,
       hasTokens: false,
       hasRefreshToken: false,
-      tokenExpiry: null
+      tokenExpiry: null,
+      donationUrl
     });
   }
 
@@ -259,7 +266,8 @@ router.get('/status', (req, res) => {
     hasRefreshToken: !!credentials.refresh_token,
     tokenExpiry: credentials.expiry_date
       ? new Date(credentials.expiry_date).toISOString()
-      : null
+      : null,
+    donationUrl
   });
 });
 

@@ -50,14 +50,16 @@ const app = express();
 // Trust proxy - enables Express to see X-Forwarded-Proto from nginx
 app.set('trust proxy', true);
 
-// Security headers with CSP configured to allow inline scripts and event handlers
+// Security headers. Inline event handlers remain temporarily allowed while
+// legacy pages are converted to external listeners.
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       ...helmet.contentSecurityPolicy.getDefaultDirectives(),
-      "script-src": ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://unpkg.com"],
-      "script-src-attr": ["'unsafe-inline'"],
-      "style-src": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      "script-src": ["'self'", "https://cdn.jsdelivr.net", "https://unpkg.com"],
+      "script-src-attr": ["'none'"],
+      "style-src": ["'self'", "https://fonts.googleapis.com"],
+      "style-src-attr": ["'none'"],
       "font-src": ["'self'", "https://fonts.gstatic.com"],
       "img-src": ["'self'", "data:", "blob:"],
       "connect-src": ["'self'", "https://cdn.jsdelivr.net", "https://unpkg.com", "https://fonts.googleapis.com", "https://fonts.gstatic.com"],

@@ -20,17 +20,29 @@ const logger = winston.createLogger({
   ]
 });
 
+const FEEDBACK_DIR = './feedback';
+const SCREENSHOT_DIR = path.join(FEEDBACK_DIR, 'screenshots');
+const MAX_DESCRIPTION_LENGTH = 2000;
+const MAX_REASON_LENGTH = 2000;
+const MAX_EMAIL_LENGTH = 254;
+const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/gif']);
+
+function ensureDir(dirPath) {
+  if (!fs.existsSync(dirPath)) {
+    fs.mkdirSync(dirPath, { recursive: true });
+  }
+}
+
+function normalizeText(value, maxLength) {
+  if (typeof value !== 'string') return '';
+  return value.trim().slice(0, maxLength);
+}
+
 // Configure multer for file uploads
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const uploadDir = './feedback/screenshots';
-    if (!fs.existsSync('./feedback')) {
-      fs.mkdirSync('./feedback');
-    }
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir);
-    }
-    cb(null, uploadDir);
+    ensureDir(SCREENSHOT_DIR);
+    cb(null, SCREENSHOT_DIR);
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
@@ -45,7 +57,9 @@ const upload = multer({
   },
   fileFilter: (req, file, cb) => {
     // Accept images only
-    if (!file.originalname.match(/\.(jpg|jpeg|png|gif)$/i)) {
+    const hasAllowedExtension = /\.(jpg|jpeg|png|gif)$/i.test(file.originalname);
+    const hasAllowedMime = ALLOWED_IMAGE_TYPES.has(file.mimetype);
+    if (!hasAllowedExtension || !hasAllowedMime) {
       return cb(new Error('Only image files are allowed'), false);
     }
     cb(null, true);
@@ -55,7 +69,10 @@ const upload = multer({
 // POST /api/feedback - Submit feedback
 router.post('/', upload.single('screenshot'), async (req, res) => {
   try {
-    const { type, description, reason, email } = req.body;
+    const type = normalizeText(req.body?.type, 20);
+    const description = normalizeText(req.body?.description, MAX_DESCRIPTION_LENGTH);
+    const reason = normalizeText(req.body?.reason, MAX_REASON_LENGTH);
+    const email = normalizeText(req.body?.email, MAX_EMAIL_LENGTH);
 
     if (!type || !['bug', 'feature'].includes(type)) {
       return res.status(400).json({ error: 'Invalid feedback type' });
@@ -65,20 +82,22 @@ router.post('/', upload.single('screenshot'), async (req, res) => {
       return res.status(400).json({ error: 'Description is required' });
     }
 
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ error: 'Invalid email address' });
+    }
+
     const timestamp = new Date().toISOString();
     const dateStr = new Date().toISOString().split('T')[0];
+    const bugId = `bug-${Date.now()}`;
 
     // Create feedback directory structure
-    const feedbackDir = './feedback';
-    if (!fs.existsSync(feedbackDir)) {
-      fs.mkdirSync(feedbackDir);
-    }
+    ensureDir(FEEDBACK_DIR);
 
     // Determine filename and content based on type
     let filename, content;
 
     if (type === 'bug') {
-      filename = path.join(feedbackDir, 'bugs.md');
+      filename = path.join(FEEDBACK_DIR, 'bugs.md');
 
       content = `
 ## Bug Report - ${dateStr}
@@ -100,7 +119,7 @@ ${req.file ? `### Screenshot
       logger.info(`Bug report received: ${description.substring(0, 50)}...`);
 
       // ALSO save to bugs.json for GSD integration
-      const bugsJsonFile = path.join(feedbackDir, 'bugs.json');
+      const bugsJsonFile = path.join(FEEDBACK_DIR, 'bugs.json');
       let bugsData = [];
 
       if (fs.existsSync(bugsJsonFile)) {
@@ -113,7 +132,7 @@ ${req.file ? `### Screenshot
       }
 
       bugsData.push({
-        id: `bug-${Date.now()}`,
+        id: bugId,
         timestamp,
         email: email || null,
         description,
@@ -123,10 +142,10 @@ ${req.file ? `### Screenshot
       });
 
       fs.writeFileSync(bugsJsonFile, JSON.stringify(bugsData, null, 2));
-      logger.info(`Bug saved to JSON (ID: bug-${Date.now()})`);
+      logger.info(`Bug saved to JSON (ID: ${bugId})`);
 
     } else if (type === 'feature') {
-      filename = path.join(feedbackDir, 'feature-requests.md');
+      filename = path.join(FEEDBACK_DIR, 'feature-requests.md');
 
       content = `
 ## Feature Request - ${dateStr}
@@ -148,7 +167,7 @@ ${reason}
       logger.info(`Feature request received: ${description.substring(0, 50)}...`);
 
       // ALSO save to features.csv for spreadsheet review
-      const csvFile = path.join(feedbackDir, 'features.csv');
+      const csvFile = path.join(FEEDBACK_DIR, 'features.csv');
 
       // Create CSV header if file doesn't exist
       if (!fs.existsSync(csvFile)) {
@@ -175,7 +194,7 @@ ${reason}
 
     // If email provided, also append to email list
     if (email) {
-      const emailListFile = path.join(feedbackDir, 'email-list.txt');
+      const emailListFile = path.join(FEEDBACK_DIR, 'email-list.txt');
       const emailEntry = `${email} - ${timestamp} - ${type}\n`;
 
       // Check if email already exists to avoid duplicates

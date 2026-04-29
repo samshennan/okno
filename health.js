@@ -19,33 +19,39 @@ const logger = winston.createLogger({
   ]
 });
 
-// GET /api/health - Detailed diagnostics endpoint
-// Provides operational visibility per requirement INFRA-04
+const includeDiagnostics =
+  process.env.NODE_ENV !== 'production' || process.env.OKNO_DEBUG_HEALTH === 'true';
+
+// GET /api/health - User-safe health endpoint
+// Returns compact operational data by default and full diagnostics only in debug mode.
 router.get('/', (req, res) => {
   try {
     const userId = req.session?.userId;
+    const basePayload = {
+      status: 'ok',
+      uptime: process.uptime(),
+      timestamp: new Date().toISOString()
+    };
 
     // If no userId (e.g. startup health check), return basic status
     if (!userId) {
-      return res.json({
-        status: 'ok',
-        uptime: process.uptime(),
-        timestamp: new Date().toISOString(),
+      const payload = {
+        ...basePayload,
         auth: {
           hasTokens: false,
-          tokenExpiry: null,
-          hasRefreshToken: false,
-          expiresIn: null
+          hasRefreshToken: false
         },
         cache: {
           totalItems: 0,
-          portraitCount: 0,
-          sessionId: null,
-          lastRefresh: null
-        },
-        lastApiCall: null,
-        memory: process.memoryUsage()
-      });
+          portraitCount: 0
+        }
+      };
+
+      if (includeDiagnostics) {
+        payload.memory = process.memoryUsage();
+      }
+
+      return res.json(payload);
     }
 
     // Get current OAuth credentials for this user
@@ -60,28 +66,30 @@ router.get('/', (req, res) => {
       if (expiresIn < 0) expiresIn = 0;
     }
 
-    // Return comprehensive diagnostics
-    res.json({
-      status: 'ok',
-      uptime: process.uptime(),
-      timestamp: new Date().toISOString(),
+    const payload = {
+      ...basePayload,
       auth: {
         hasTokens: !!tokens.access_token,
-        tokenExpiry: tokens.expiry_date
-          ? new Date(tokens.expiry_date).toISOString()
-          : null,
-        hasRefreshToken: !!tokens.refresh_token,
-        expiresIn: expiresIn  // Seconds until token expires
+        hasRefreshToken: !!tokens.refresh_token
       },
       cache: {
         totalItems: photoCache.size(userId),
-        portraitCount: photoCache.getPortraitCount(userId),
-        sessionId: photoCache.getSessionId(userId) || null,
-        lastRefresh: photoCache.getLastRefresh(userId) || null
-      },
-      lastApiCall: photoCache.getLastApiCall(userId) || null,
-      memory: process.memoryUsage()
-    });
+        portraitCount: photoCache.getPortraitCount(userId)
+      }
+    };
+
+    if (includeDiagnostics) {
+      payload.auth.tokenExpiry = tokens.expiry_date
+        ? new Date(tokens.expiry_date).toISOString()
+        : null;
+      payload.auth.expiresIn = expiresIn;
+      payload.cache.sessionId = photoCache.getSessionId(userId) || null;
+      payload.cache.lastRefresh = photoCache.getLastRefresh(userId) || null;
+      payload.lastApiCall = photoCache.getLastApiCall(userId) || null;
+      payload.memory = process.memoryUsage();
+    }
+
+    res.json(payload);
   } catch (error) {
     // Even if health check fails, return 200 with error info
     // (health endpoints should not return 500 unless completely broken)

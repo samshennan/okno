@@ -1,10 +1,12 @@
-const CACHE_VERSION = 'okno-v1.4';
-const PHOTO_CACHE = 'okno-photos-v1.4';
+const CACHE_VERSION = 'okno-v1.7';
+const PHOTO_CACHE = 'okno-photos-v1.7';
 
 // Only precache public assets -- auth-gated pages (slideshow.html, index.html, settings.html)
 // must NOT be precached: they redirect to /login when unauthenticated, breaking SW install
 const STATIC_ASSETS = [
   '/demo.html',
+  '/css/demo.css',
+  '/js/demo.js',
   '/manifest.json',
   '/icons/icon-192.png',
   '/icons/icon-512.png',

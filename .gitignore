@@ -3,6 +3,7 @@ tokens.json
 sessions/
 logs/
 .env
+.env.production
 cache.json
 config.json
 .op-service-token
