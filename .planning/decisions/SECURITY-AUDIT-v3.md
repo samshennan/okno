@@ -259,9 +259,11 @@ Targeted regression check on each surface Phase 14 touched. Each surface gets a 
 
 **None.** Phase 14 introduced no CRITICAL or HIGH regressions.
 
+**Disposition:** No NEW CRITICAL/HIGH findings — Plan 02 is a no-op. Proceeding to Plan 03.
+
 ## NEW Findings (MEDIUM/LOW)
 
-### F-N1 — `donationUrl` reflected via `innerHTML` template literal
+### Finding F-N1 — `donationUrl` reflected via `innerHTML` template literal
 
 - **Severity:** LOW (defence-in-depth)
 - **Category:** Output Encoding (CWE-79)
