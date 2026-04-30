@@ -5,6 +5,7 @@
 - **v1.0 MVP** -- Phases 1-3 (shipped 2026-02-15)
 - **v1.1 Make It Shine** -- Phases 4-7 (Phases 4-6 shipped 2026-02-16, Phase 7 deferred)
 - **v2.0 Multi-User** -- Phases 8-12 (in progress)
+- **v2.1 Friend Testing** -- Phases 13-15 (Phases 13-14 shipped 2026-04-30, Phase 15 event-driven)
 
 ## Phases
 
@@ -133,18 +134,39 @@ Plans:
 
 ---
 
-### Phase 14: Security Audit Re-run + Skill Refinement
+### Phase 14: Friend Testing Hardening ✓
 
-**Status:** NOT STARTED
+**Status:** COMPLETE (2026-04-30, backfilled — authored by Codex outside standard GSD flow)
+
+**Goal:** Tighten production posture before exposing the app to friend testers — strict CSP, hardened input validation, reduced diagnostic leakage, dependency bumps.
+
+**Plans:** Single backfilled SUMMARY (no DISCUSS/RESEARCH/PLAN artefacts — direct implementation by Codex)
+
+- [x] 14-SUMMARY.md — Inline-script extraction → strict CSP, health endpoint gating, feedback input caps + MIME check, DONATION_URL config, dep bumps (express, google-auth-library, multer), env hygiene
+
+**Success criteria:**
+- CSP no longer requires `'unsafe-inline'` for scripts or styles ✓
+- `/api/health` thin payload in production unless `OKNO_DEBUG_HEALTH=true` ✓
+- `/api/feedback` rejects oversized payloads and disguised non-image uploads ✓
+- `okno.env` (1Password references) removed; `.env.example` is canonical ✓
+
+**Triggers Phase 15:** Bumped `express` and `google-auth-library` (security-adjacent), changed CSP/header surface area.
+
+---
+
+### Phase 15: Security Audit Re-run + Skill Refinement
+
+**Status:** TRIGGERED — NOT STARTED (Phase 14 dependency bumps and CSP changes fired the trigger criteria)
 
 **Trigger:** Run this phase after any major infrastructure upgrade (new auth surface, new API routes, new DB tables, dependency bumps). Not time-based — event-driven.
 
 **Goal:** Keep the `security-audit` skill sharp by using OKNO as a real-world test bed. Run the skill on the current codebase, evaluate the quality of the output, then feed findings back to improve the skill itself.
 
 **Scope:**
-- Re-run the `security-audit` skill on OKNO's current codebase
+- Re-run the `security-audit` skill on OKNO's current codebase (post-Phase-14 commit 4b7e711)
 - Compare findings against Phase 13's baseline (`SECURITY-AUDIT-v2.md`) — what's new, what's been fixed, what was missed last time
 - Fix any new CRITICAL or HIGH findings
+- Validate Phase 14's CSP, donation URL reflection, multer 2.1, and google-auth-library v10 specifically
 - Identify gaps in the skill's output: checks that produced false N/A verdicts, Supabase items that wasted space, Express/SQLite items that missed real issues
 - Update `~/.claude/skills/security-audit/SKILL.md` with any improvements discovered
 - Update the baseline document with the new audit results
@@ -180,4 +202,5 @@ Plans:
 | 11. Photo Management | ✅ Complete | 2026-03-12 |
 | 12. Portfolio Polish | ⬜ Not started | -- |
 | 13. Architecture Review + Security Audit | ✅ Complete | 2026-03-13 |
-| 14. Security Audit Re-run + Skill Refinement | ⬜ Event-driven | -- |
+| 14. Friend Testing Hardening | ✅ Complete (backfilled) | 2026-04-30 |
+| 15. Security Audit Re-run + Skill Refinement | ⏳ Triggered | -- |

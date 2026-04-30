@@ -5,17 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-27)
 
 **Core value:** Display random photos from Google Photos on an iPad in a beautiful, hands-off way that requires no interaction after initial setup.
-**Current focus:** v2.0 "Multi-User" -- Phase 13: Architecture Review + Security Audit (complete)
+**Current focus:** v2.1 "Friend Testing" -- Phase 14: Friend Testing Hardening complete; Phase 15 (security audit re-run) triggered.
 
 ## Current Position
 
-**Milestone:** v2.0 "Multi-User"
-Phase: 13 of 13 (Architecture Review + Security Audit)
-Plan: 02 of 02 (complete)
-Status: Phase complete
-Last activity: 2026-03-13 -- Completed 13-02-PLAN.md (error sanitization + security audit)
+**Milestone:** v2.1 "Friend Testing"
+Phase: 14 of 15 (Friend Testing Hardening — backfilled)
+Status: Phase 14 complete; Phase 15 triggered, not started
+Last activity: 2026-04-30 -- Codex shipped commit 4b7e711 ("Harden app for friend testing"); backfilled into GSD trail
 
-Progress: [################################] 97% (v1.0+v1.1: 20/20 plans | v2.0: 10/13 plans)
+Progress: [################################] 93% (v1.0+v1.1: 20/20 plans | v2.0: 10/13 plans | v2.1: 2/3 phases)
 
 ## What We Shipped
 
@@ -112,22 +111,32 @@ See PROJECT.md for full decision log.
 - Added winston logger to health.js (was the only module without one)
 - SECURITY-AUDIT-v2.md supersedes obsolete SECURITY-ASSESSMENT.md
 
+**14 implementation decisions (Codex, backfilled 2026-04-30):**
+- Inline `<script>`/`<style>` extracted from every HTML page into public/js/* and public/css/* — enables strict CSP without `'unsafe-inline'`
+- CSP `script-src-attr` and `style-src-attr` set to `'none'` (no inline event handlers anywhere)
+- `/api/health` returns thin payload in production unless `OKNO_DEBUG_HEALTH=true` — token expiry, session ID, last API call, memory stats are debug-only
+- `/api/feedback` enforces 2000-char description/reason cap, 254-char email cap, RFC-ish email regex, multer fileFilter requires extension AND mimetype
+- `DONATION_URL` env var validated against `^https://buy.stripe.com/`, exposed via `/auth/status` (replaces hard-coded placeholder Stripe links)
+- Deleted okno.env (1Password reference workflow not in use); .env.example is canonical; .env.production is gitignored
+- Bumped express 4.18→4.22.1, google-auth-library 9→10.6.2, multer 2.0→2.1.1; SW v1.4→v1.7
+
 ### Blockers/Concerns
 
 - Google Picker API 2000 photo limit remains
-- Stripe Payment Link URLs are PLACEHOLDER
-- Google 100-user unverified app cap -- invite-only is the design response
+- Stripe Payment Link is now `DONATION_URL` env-driven (Phase 14) -- still requires a real Stripe link in production env
+- Google 100-user unverified app cap -- open registration is the design response (decided 2026-03-09)
 - Session store: better-sqlite3-session-store v0.1.0 is stale but functional -- deployed and verified on VPS
+- Phase 14 was backfilled (no DISCUSS/RESEARCH/PLAN artefacts) -- if Codex authoring outside GSD recurs, consider a dedicated retro-phase template
 
 ## Session Continuity
 
-**Last session:** 2026-03-13 -- Phase 13 executed (architecture review + security audit)
-**Stopped at:** Phase 13 complete. All security findings resolved. 24 commits pushed.
-**Resume file:** .planning/handoffs/2026-03-13-phase-13-security-audit.md
-**Next:** Deploy Phase 13 to VPS, then Phase 12 (README + Portfolio Polish)
+**Last session:** 2026-04-30 -- Codex shipped commit 4b7e711 (Phase 14: Friend Testing Hardening); Claude backfilled GSD trail
+**Stopped at:** Phase 14 complete + planning docs realigned. Phase 15 (security audit re-run) triggered by dep bumps + CSP changes.
+**Resume file:** .planning/handoffs/2026-04-30-phase-14-friend-testing-hardening-backfill.md
+**Next:** Phase 15 (security audit re-run against commit 4b7e711) — then Phase 12 (README polish)
 
 ---
 
-**Project Status:** Phase 13 COMPLETE. All security findings resolved: session fixation, rate limiting, SameSite, error leaks. Full audit documented in SECURITY-AUDIT-v2.md.
+**Project Status:** Phase 14 COMPLETE (backfilled). Strict CSP shipped. Phase 15 triggered.
 **Deployment:** https://okno.moonacle.com
 **GitHub:** https://github.com/samshennan/okno
