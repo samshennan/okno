@@ -156,7 +156,7 @@ Plans:
 
 ### Phase 15: Security Audit Re-run + Skill Refinement
 
-**Status:** IN PROGRESS — Plan 01 complete (1/3); Plan 02 + Plan 03 pending
+**Status:** IN PROGRESS — Plans 01 + 02 complete (2/3); Plan 03 pending
 
 **Trigger:** Run this phase after any major infrastructure upgrade (new auth surface, new API routes, new DB tables, dependency bumps). Not time-based — event-driven.
 
@@ -166,7 +166,7 @@ Plans:
 
 Plans:
 - [x] 15-01-PLAN.md — Run audit at commit 143e3aa (Phase 14 reachable), diff vs v2, validate Phase 14 surfaces, draft SECURITY-AUDIT-v3.md → **COMPLETE 2026-04-30 (commit 1049fd0; 8 PASS / 0 FAIL / 0 N/A; 0 NEW CRITICAL/HIGH; 1 NEW LOW (F-N1); 4 skill notes)**
-- [ ] 15-02-PLAN.md — Fix any NEW CRITICAL/HIGH findings (**no-op for must-fix; F-N1 LOW triage decision only**); update v3 NEW Findings Status lines
+- [x] 15-02-PLAN.md — Triage NEW CRITICAL/HIGH findings → **COMPLETE 2026-04-30 (commit ce1c4be; documented no-op — zero NEW CRITICAL/HIGH findings; F-N1 LOW remains tracked in v3 MEDIUM/LOW section, intentionally untouched per plan scope)**
 - [ ] 15-03-PLAN.md — Apply concrete improvement(s) to ~/.claude/skills/security-audit/SKILL.md (human checkpoint), finalize SECURITY-AUDIT-v3.md
 
 **Scope:**

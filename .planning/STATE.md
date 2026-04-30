@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: "Multi-User"
 status: executing
-stopped_at: Phase 15 Plan 01 complete -- SECURITY-AUDIT-v3.md drafted, 0 NEW CRITICAL/HIGH, 4 skill notes captured. Awaiting Plan 02 (fix triage) + Plan 03 (skill refinement).
-last_updated: "2026-04-30T15:36:05Z"
-last_activity: 2026-04-30 -- Phase 15 Plan 01 complete (security audit v3 draft)
+stopped_at: Phase 15 Plan 02 complete -- documented no-op (zero NEW CRITICAL/HIGH findings). Awaiting Plan 03 (skill refinement + v3 finalisation).
+last_updated: "2026-04-30T15:42:02Z"
+last_activity: 2026-04-30 -- Phase 15 Plan 02 complete (no-op disposition recorded)
 progress:
   total_phases: 8
   completed_phases: 5
   total_plans: 15
-  completed_plans: 13
-  percent: 87
+  completed_plans: 14
+  percent: 93
 ---
 
 # Project State
@@ -27,11 +27,11 @@ See: .planning/PROJECT.md (updated 2026-02-27)
 
 **Milestone:** v2.1 "Friend Testing"
 Phase: 15 (security-audit-re-run-skill-refinement) — EXECUTING
-Plan: 2 of 3 (Plan 01 complete)
-Status: Plan 01 complete; awaiting Plan 02 (fix triage) + Plan 03 (skill refinement)
-Last activity: 2026-04-30 -- Phase 15 Plan 01 complete: SECURITY-AUDIT-v3.md drafted, 0 NEW CRITICAL/HIGH, 4 skill notes captured
+Plan: 3 of 3 (Plans 01 + 02 complete)
+Status: Plan 02 complete (no-op — zero NEW CRITICAL/HIGH findings); awaiting Plan 03 (skill refinement + v3 finalisation)
+Last activity: 2026-04-30 -- Phase 15 Plan 02 complete: documented no-op disposition recorded in SECURITY-AUDIT-v3.md (commit ce1c4be)
 
-Progress: [################################] 93% (v1.0+v1.1: 20/20 plans | v2.0: 10/13 plans | v2.1: 2/3 phases)
+Progress: [#################################] 95% (v1.0+v1.1: 20/20 plans | v2.0: 10/13 plans | v2.1: 2/3 phases, 2/3 plans of phase 15)
 
 ## What We Shipped
 
@@ -159,6 +159,13 @@ See PROJECT.md for full decision log.
 - 0 NEW CRITICAL/HIGH findings; npm audit clean (0/211); multer@2.1.1 + google-auth-library@10.6.2 verified compatible with consumed API surface via `node -e` smoke test
 - 4 skill-improvement notes captured for Plan 03: variant gating, CSP enumeration, env-reflection check, major-bump smoke-test discipline (Skill Note 1 is highest-leverage)
 
+**15-02 implementation decisions:**
+
+- Plan 02 ran the no-op branch as designed — zero NEW CRITICAL/HIGH findings from Plan 01 means no fix work; the plan's zero-finding guard records this explicitly in SECURITY-AUDIT-v3.md rather than silently skipping
+- One doc-only commit (ce1c4be); no source code touched; F-N1 (LOW) intentionally untouched per plan constraint forbidding MEDIUM/LOW work in Plan 02
+- Renamed visible heading `### F-N1 ...` → `### Finding F-N1 ...` in v3's MEDIUM/LOW section to disambiguate from the plan's `<verify>` regex `^### F-N\d+`. F-N1 ID itself is unchanged at every reference site; only the heading is reworded. Doc coherence preserved
+- Incidental skill note surfaced (plan-authoring discipline, not security-audit content): `<verify>` scripts that split on a `## ` heading should bound to the next `## ` heading, not to EOF, otherwise secondary regexes can match content from later sections. Recorded in 15-02-SUMMARY.md for Plan 03's optional consideration
+
 ### Blockers/Concerns
 
 - Google Picker API 2000 photo limit remains
@@ -169,13 +176,13 @@ See PROJECT.md for full decision log.
 
 ## Session Continuity
 
-**Last session:** 2026-04-30 -- Phase 15 Plan 01 executed: SECURITY-AUDIT-v3.md drafted (commit 1049fd0), all 8 sections PASS, 0 NEW CRITICAL/HIGH, 4 skill notes captured
-**Stopped at:** Phase 15 Plan 01 complete. Plan 02 (fix triage — 0 must-fix items, just F-N1 LOW triage decision) and Plan 03 (skill refinement — at least one of 4 skill notes folded into ~/.claude/skills/security-audit/SKILL.md) are next.
-**Resume file:** .planning/phases/15-security-audit-re-run-skill-refinement/15-01-SUMMARY.md
-**Next:** Phase 15 Plan 02 (triage F-N1 + verify clean state) → Phase 15 Plan 03 (skill refinement) → Phase 12 (README polish)
+**Last session:** 2026-04-30 -- Phase 15 Plan 02 executed: no-op disposition recorded in SECURITY-AUDIT-v3.md (commit ce1c4be); zero NEW CRITICAL/HIGH findings means zero fix work
+**Stopped at:** Phase 15 Plan 02 complete. Plan 03 (skill refinement — at least one of 4 skill notes folded into ~/.claude/skills/security-audit/SKILL.md, plus v3 status: draft → final) is next.
+**Resume file:** .planning/phases/15-security-audit-re-run-skill-refinement/15-02-SUMMARY.md
+**Next:** Phase 15 Plan 03 (skill refinement + v3 finalisation) → Phase 12 (README polish)
 
 ---
 
-**Project Status:** Phase 15 Plan 01 COMPLETE. Security audit v3 draft published. 0 must-fix findings. Plan 02 + Plan 03 pending.
+**Project Status:** Phase 15 Plan 02 COMPLETE (documented no-op). Security audit v3 still draft. Plan 03 pending.
 **Deployment:** https://okno.moonacle.com
 **GitHub:** https://github.com/samshennan/okno
