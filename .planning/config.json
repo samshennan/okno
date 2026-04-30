@@ -1,6 +1,5 @@
 {
   "mode": "yolo",
-  "depth": "quick",
   "parallelization": true,
   "commit_docs": true,
   "model_profile": "quality",
@@ -11,5 +10,6 @@
   },
   "security": {
     "note": "API keys in .env (never committed), .gitignore for secrets, private repo until ready to share"
-  }
+  },
+  "granularity": "coarse"
 }
