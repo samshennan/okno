@@ -162,6 +162,13 @@ Plans:
 
 **Goal:** Keep the `security-audit` skill sharp by using OKNO as a real-world test bed. Run the skill on the current codebase, evaluate the quality of the output, then feed findings back to improve the skill itself.
 
+**Plans:** 3 plans
+
+Plans:
+- [ ] 15-01-PLAN.md — Run audit at commit 145638f, diff vs v2, validate Phase 14 surfaces, draft SECURITY-AUDIT-v3.md
+- [ ] 15-02-PLAN.md — Fix any NEW CRITICAL/HIGH findings (no-op if zero); update v3 NEW Findings Status lines
+- [ ] 15-03-PLAN.md — Apply concrete improvement(s) to ~/.claude/skills/security-audit/SKILL.md (human checkpoint), finalize SECURITY-AUDIT-v3.md
+
 **Scope:**
 - Re-run the `security-audit` skill on OKNO's current codebase (post-Phase-14 commit 4b7e711)
 - Compare findings against Phase 13's baseline (`SECURITY-AUDIT-v2.md`) — what's new, what's been fixed, what was missed last time
