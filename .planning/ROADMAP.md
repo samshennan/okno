@@ -156,17 +156,17 @@ Plans:
 
 ### Phase 15: Security Audit Re-run + Skill Refinement
 
-**Status:** TRIGGERED — NOT STARTED (Phase 14 dependency bumps and CSP changes fired the trigger criteria)
+**Status:** IN PROGRESS — Plan 01 complete (1/3); Plan 02 + Plan 03 pending
 
 **Trigger:** Run this phase after any major infrastructure upgrade (new auth surface, new API routes, new DB tables, dependency bumps). Not time-based — event-driven.
 
 **Goal:** Keep the `security-audit` skill sharp by using OKNO as a real-world test bed. Run the skill on the current codebase, evaluate the quality of the output, then feed findings back to improve the skill itself.
 
-**Plans:** 3 plans
+**Plans:** 3 plans (1 complete)
 
 Plans:
-- [ ] 15-01-PLAN.md — Run audit at commit 145638f, diff vs v2, validate Phase 14 surfaces, draft SECURITY-AUDIT-v3.md
-- [ ] 15-02-PLAN.md — Fix any NEW CRITICAL/HIGH findings (no-op if zero); update v3 NEW Findings Status lines
+- [x] 15-01-PLAN.md — Run audit at commit 143e3aa (Phase 14 reachable), diff vs v2, validate Phase 14 surfaces, draft SECURITY-AUDIT-v3.md → **COMPLETE 2026-04-30 (commit 1049fd0; 8 PASS / 0 FAIL / 0 N/A; 0 NEW CRITICAL/HIGH; 1 NEW LOW (F-N1); 4 skill notes)**
+- [ ] 15-02-PLAN.md — Fix any NEW CRITICAL/HIGH findings (**no-op for must-fix; F-N1 LOW triage decision only**); update v3 NEW Findings Status lines
 - [ ] 15-03-PLAN.md — Apply concrete improvement(s) to ~/.claude/skills/security-audit/SKILL.md (human checkpoint), finalize SECURITY-AUDIT-v3.md
 
 **Scope:**
