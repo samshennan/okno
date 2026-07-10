@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Okno - Settings</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Okno">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="/vendor/inter.css">
+  <script src="/vendor/lucide.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #F0F0F3;
+      color: #4A5A52;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-image: radial-gradient(circle at 20% 50%, rgba(143, 181, 165, 0.02) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(122, 148, 135, 0.03) 0%, transparent 50%);
+      pointer-events: none;
+    }
+
+    .container {
+      max-width: 480px;
+      width: 100%;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Header */
+    .header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    .header h1 {
+      font-size: 1.75rem;
+      font-weight: 400;
+      letter-spacing: -0.01em;
+      background: linear-gradient(135deg, #4A5A52 0%, #5A6B62 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 4px;
+    }
+
+    .header p {
+      font-size: 0.875rem;
+      color: #6E7F76;
+    }
+
+    /* Settings Sections */
+    .settings-section {
+      background: #F0F0F3;
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 16px;
+      box-shadow: -6px -6px 16px rgba(255, 255, 255, 0.6),
+        6px 6px 16px rgba(174, 174, 192, 0.3);
+    }
+
+    .section-title {
+      font-size: 0.813rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: rgba(90, 107, 98, 0.75);
+      margin-bottom: 16px;
+    }
+
+    .setting-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 0;
+    }
+
+    .setting-row + .setting-row {
+      border-top: 1px solid rgba(143, 181, 165, 0.1);
+    }
+
+    .setting-label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .setting-label .icon {
+      width: 36px;
+      height: 36px;
+      background: rgba(143, 181, 165, 0.08);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #8FB5A5;
+      flex-shrink: 0;
+    }
+
+    .setting-label .text {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .setting-label .name {
+      font-size: 0.938rem;
+      font-weight: 500;
+      color: #4A5A52;
+    }
+
+    .setting-label .description {
+      font-size: 0.75rem;
+      color: rgba(90, 107, 98, 0.75);
+      margin-top: 2px;
+    }
+
+    /* Button Group for interval and display mode */
+    .btn-group {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .btn-group button {
+      background: #F0F0F3;
+      color: #4A5A52;
+      border: none;
+      padding: 8px 14px;
+      font-size: 0.813rem;
+      font-weight: 500;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: -3px -3px 8px rgba(255, 255, 255, 0.8),
+        3px 3px 8px rgba(174, 174, 192, 0.3);
+      letter-spacing: -0.01em;
+    }
+
+    .btn-group button:hover {
+      transform: translateY(-1px);
+      box-shadow: -4px -4px 10px rgba(255, 255, 255, 0.9),
+        4px 4px 10px rgba(174, 174, 192, 0.35);
+    }
+
+    .btn-group button:active {
+      transform: translateY(0);
+      box-shadow: inset -2px -2px 4px rgba(174, 174, 192, 0.15),
+        inset 2px 2px 4px rgba(255, 255, 255, 0.7);
+    }
+
+    .btn-group button.active {
+      background: #8FB5A5;
+      color: #FFFFFF;
+      box-shadow: inset -2px -2px 4px rgba(125, 165, 148, 0.4),
+        inset 2px 2px 4px rgba(255, 255, 255, 0.2),
+        -2px -2px 4px rgba(255, 255, 255, 0.3),
+        2px 2px 4px rgba(143, 181, 165, 0.4);
+    }
+
+    /* Toggle Switch */
+    .toggle {
+      position: relative;
+      width: 48px;
+      height: 28px;
+      flex-shrink: 0;
+    }
+
+    .toggle input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: #E0E0E5;
+      border-radius: 28px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: inset -2px -2px 4px rgba(255, 255, 255, 0.7),
+        inset 2px 2px 4px rgba(174, 174, 192, 0.25);
+    }
+
+    .toggle-slider::before {
+      content: '';
+      position: absolute;
+      height: 22px;
+      width: 22px;
+      left: 3px;
+      bottom: 3px;
+      background: #F0F0F3;
+      border-radius: 50%;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: -2px -2px 4px rgba(255, 255, 255, 0.8),
+        2px 2px 4px rgba(174, 174, 192, 0.3);
+    }
+
+    .toggle input:checked + .toggle-slider {
+      background: #8FB5A5;
+      box-shadow: inset -2px -2px 4px rgba(125, 165, 148, 0.3),
+        inset 2px 2px 4px rgba(255, 255, 255, 0.15);
+    }
+
+    .toggle input:checked + .toggle-slider::before {
+      transform: translateX(20px);
+      background: #FFFFFF;
+    }
+
+    .toggle input:disabled + .toggle-slider {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Coming Soon Badge */
+    .badge-coming-soon {
+      display: inline-block;
+      font-size: 0.625rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      background: rgba(143, 181, 165, 0.12);
+      color: #8FB5A5;
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-left: 8px;
+    }
+
+    /* Action Buttons */
+    .actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    .actions button {
+      flex: 1;
+      padding: 14px 24px;
+      font-size: 0.938rem;
+      font-weight: 500;
+      border-radius: 12px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      letter-spacing: -0.01em;
+    }
+
+    .btn-save {
+      background: linear-gradient(145deg, #9AC0AF, #8FB5A5);
+      color: #FFFFFF;
+      box-shadow: -4px -4px 10px rgba(255, 255, 255, 0.6),
+        4px 4px 10px rgba(143, 181, 165, 0.4);
+    }
+
+    .btn-save:hover {
+      transform: translateY(-2px);
+      background: linear-gradient(145deg, #8FB5A5, #7DA594);
+      box-shadow: -6px -6px 14px rgba(255, 255, 255, 0.7),
+        6px 6px 14px rgba(143, 181, 165, 0.5);
+    }
+
+    .btn-save:active {
+      transform: translateY(0);
+      box-shadow: -3px -3px 8px rgba(255, 255, 255, 0.5),
+        3px 3px 8px rgba(143, 181, 165, 0.3);
+    }
+
+    .btn-back {
+      background: #F0F0F3;
+      color: #5A6B62;
+      box-shadow: -4px -4px 10px rgba(255, 255, 255, 0.8),
+        4px 4px 10px rgba(174, 174, 192, 0.3);
+    }
+
+    .btn-back:hover {
+      transform: translateY(-2px);
+      box-shadow: -6px -6px 14px rgba(255, 255, 255, 0.9),
+        6px 6px 14px rgba(174, 174, 192, 0.4);
+    }
+
+    .btn-back:active {
+      transform: translateY(0);
+      box-shadow: -3px -3px 8px rgba(255, 255, 255, 0.7),
+        3px 3px 8px rgba(174, 174, 192, 0.25);
+    }
+
+    /* Toast notification */
+    .toast {
+      position: fixed;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: #4A5A52;
+      color: #FFFFFF;
+      padding: 12px 24px;
+      border-radius: 10px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 100;
+      pointer-events: none;
+    }
+
+    .toast.visible {
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* Focus visible outline for keyboard nav */
+    a:focus-visible,
+    button:focus-visible {
+      outline: 2px solid #8FB5A5;
+      outline-offset: 2px;
+    }
+
+    /* Interval row: stack on small screens */
+    .setting-row.interval-row {
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    @media (max-width: 420px) {
+      .interval-row .btn-group {
+        width: 100%;
+        justify-content: flex-start;
+      }
+    }
+
+    /* Logout Section */
+    .logout-section {
+      margin-top: 8px;
+      padding-top: 0;
+    }
+
+    .settings-divider {
+      border: none;
+      border-top: 1px solid rgba(143, 181, 165, 0.15);
+      margin: 0 0 20px 0;
+    }
+
+    /* Shared class for muted terracotta action buttons (logout, unhide-all) */
+    .muted-action-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 14px 24px;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.938rem;
+      font-weight: 500;
+      color: #B8867B;
+      background: #F0F0F3;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: -4px -4px 10px rgba(255, 255, 255, 0.8),
+        4px 4px 10px rgba(174, 174, 192, 0.3);
+      letter-spacing: -0.01em;
+    }
+
+    .muted-action-button:hover {
+      transform: translateY(-1px);
+      color: #A06B60;
+      box-shadow: -6px -6px 14px rgba(255, 255, 255, 0.9),
+        6px 6px 14px rgba(174, 174, 192, 0.4);
+    }
+
+    .muted-action-button:active {
+      transform: translateY(0);
+      box-shadow: inset -2px -2px 4px rgba(255, 255, 255, 0.7),
+        inset 2px 2px 4px rgba(174, 174, 192, 0.2);
+    }
+
+    .muted-action-button:focus-visible {
+      outline: 2px solid #8FB5A5;
+      outline-offset: 2px;
+    }
+
+    .logout-hint {
+      font-size: 0.75rem;
+      color: rgba(90, 107, 98, 0.75);
+      text-align: center;
+      margin-top: 8px;
+    }
+
+    /* Hidden Photos Grid */
+    .hidden-photos-description {
+      font-size: 0.875rem;
+      color: #6E7F76;
+      margin-bottom: 4px;
+    }
+
+    .hidden-photos-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+      gap: 8px;
+      margin: 16px 0;
+    }
+
+    .hidden-photo-item {
+      position: relative;
+      aspect-ratio: 1;
+      border-radius: 8px;
+      overflow: hidden;
+      transition: opacity 0.3s ease;
+    }
+
+    .hidden-photo-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .hidden-photo-item .restore-btn {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: rgba(0, 0, 0, 0.6);
+      border: none;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      opacity: 0.7;
+      transition: opacity 0.2s;
+      padding: 0;
+      box-shadow: none;
+    }
+
+    .hidden-photo-item .restore-btn:hover,
+    .hidden-photo-item .restore-btn:active {
+      opacity: 1;
+      transform: none;
+      box-shadow: none;
+    }
+
+    /* logout-button and unhide-all-button are aliases for the shared class */
+    .logout-button { /* legacy alias -- kept for JS getElementById compatibility */ }
+    .unhide-all-button { /* legacy alias -- kept for JS getElementById compatibility */ }
+
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="header">
+      <h1><i data-lucide="settings" style="width: 24px; height: 24px; vertical-align: middle; margin-right: 6px;"></i>Settings</h1>
+      <p>Configure your Okno slideshow</p>
+    </div>
+
+    <!-- Slideshow Section -->
+    <div class="settings-section">
+      <div class="section-title">Slideshow</div>
+
+      <!-- Interval -->
+      <div class="setting-row interval-row">
+        <div class="setting-label">
+          <div class="icon"><i data-lucide="timer"></i></div>
+          <div class="text">
+            <span class="name">Interval</span>
+            <span class="description">Time between photos</span>
+          </div>
+        </div>
+        <div class="btn-group" id="intervalGroup">
+          <button data-value="10" onclick="setInterval_(10)">10s</button>
+          <button data-value="30" onclick="setInterval_(30)">30s</button>
+          <button data-value="60" onclick="setInterval_(60)">1m</button>
+          <button data-value="120" onclick="setInterval_(120)">2m</button>
+          <button data-value="300" onclick="setInterval_(300)">5m</button>
+        </div>
+      </div>
+
+      <!-- Display Mode -->
+      <div class="setting-row interval-row">
+        <div class="setting-label">
+          <div class="icon"><i data-lucide="monitor"></i></div>
+          <div class="text">
+            <span class="name">Display Mode</span>
+            <span class="description">How photos fill the screen</span>
+          </div>
+        </div>
+        <div class="btn-group" id="displayModeGroup">
+          <button data-value="cover" onclick="setDisplayMode_('cover')">Fill Screen</button>
+          <button data-value="contain" onclick="setDisplayMode_('contain')">Whole Photo</button>
+          <button data-value="dual" onclick="setDisplayMode_('dual')">Portrait Pairs</button>
+        </div>
+      </div>
+
+      <!-- Transition Time -->
+      <div class="setting-row interval-row">
+        <div class="setting-label">
+          <div class="icon"><i data-lucide="blend"></i></div>
+          <div class="text">
+            <span class="name">Transition Time</span>
+            <span class="description">Crossfade duration between photos</span>
+          </div>
+        </div>
+        <div class="btn-group" id="transitionTimeGroup">
+          <button data-value="0.5" onclick="setTransitionTime_(0.5)">0.5s</button>
+          <button data-value="1" onclick="setTransitionTime_(1)">1s</button>
+          <button data-value="2" onclick="setTransitionTime_(2)">2s</button>
+          <button data-value="3" onclick="setTransitionTime_(3)">3s</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Visual Effects Section -->
+    <div class="settings-section">
+      <div class="section-title">Visual Effects</div>
+
+      <!-- Ken Burns -->
+      <div class="setting-row">
+        <div class="setting-label">
+          <div class="icon"><i data-lucide="move"></i></div>
+          <div class="text">
+            <span class="name">Ken Burns</span>
+            <span class="description">Gentle zoom and pan on each photo</span>
+          </div>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="kenBurns" onchange="settings.kenBurns = this.checked">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <!-- Blurred Background -->
+      <div class="setting-row">
+        <div class="setting-label">
+          <div class="icon"><i data-lucide="square-dashed-bottom"></i></div>
+          <div class="text">
+            <span class="name">Blurred Background</span>
+            <span class="description">Fill black bars with a blurred version of the photo</span>
+          </div>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="blurredBackground" onchange="settings.blurredBackground = this.checked">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Overlays Section -->
+    <div class="settings-section">
+      <div class="section-title">Overlays</div>
+
+      <!-- Photo Date -->
+      <div class="setting-row">
+        <div class="setting-label">
+          <div class="icon"><i data-lucide="calendar"></i></div>
+          <div class="text">
+            <span class="name">Photo Date</span>
+            <span class="description">Show when the photo was taken</span>
+          </div>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="showPhotoDate" onchange="settings.showPhotoDate = this.checked">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <!-- Clock -->
+      <div class="setting-row">
+        <div class="setting-label">
+          <div class="icon"><i data-lucide="clock"></i></div>
+          <div class="text">
+            <span class="name">Clock</span>
+            <span class="description">Show current time on the slideshow</span>
+          </div>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="showClock" onchange="settings.showClock = this.checked">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Features Section -->
+    <div class="settings-section">
+      <div class="section-title">Features</div>
+
+      <!-- On This Day -->
+      <div class="setting-row">
+        <div class="setting-label">
+          <div class="icon"><i data-lucide="calendar-heart"></i></div>
+          <div class="text">
+            <span class="name">On This Day</span>
+            <span class="description" id="onThisDayDesc">Show photos taken on today's date in past years</span>
+          </div>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="onThisDay" onchange="settings.onThisDay = this.checked">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <!-- Portrait Pairs -->
+      <div class="setting-row">
+        <div class="setting-label">
+          <div class="icon"><i data-lucide="columns-2"></i></div>
+          <div class="text">
+            <span class="name">Portrait Pairs</span>
+            <span class="description" id="portraitPairsDesc">Automatically pair portrait photos side-by-side</span>
+          </div>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="portraitPairs" onchange="settings.portraitPairs = this.checked">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Hidden Photos Section (hidden by default, shown when hidden photos exist) -->
+    <div class="settings-section" id="hiddenPhotosSection" style="display: none;">
+      <div class="section-title">Hidden Photos</div>
+      <p class="hidden-photos-description" id="hiddenPhotosDesc">Loading...</p>
+      <div class="hidden-photos-grid" id="hiddenPhotosGrid"></div>
+      <button class="unhide-all-button muted-action-button" id="unhideAllBtn" onclick="unhideAllPhotos()" style="display: none;">
+        <i data-lucide="eye" style="width: 16px; height: 16px;"></i> Unhide All
+      </button>
+    </div>
+
+    <!-- Account Section -->
+    <div class="settings-section">
+      <div class="section-title">Account</div>
+      <div class="logout-section">
+        <button id="logout-btn" class="logout-button muted-action-button">
+          <i data-lucide="log-out" style="width: 18px; height: 18px;"></i>
+          Sign Out
+        </button>
+        <p class="logout-hint">Signs you out and returns to the login page.</p>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="actions">
+      <button class="btn-back" onclick="window.location.href='/'">
+        <i data-lucide="arrow-left" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 4px;"></i>Back
+      </button>
+      <button class="btn-save" onclick="saveSettings()">
+        <i data-lucide="save" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 4px;"></i>Save Settings
+      </button>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // Current settings state
+    let settings = {
+      interval: 30,
+      displayMode: 'cover',
+      onThisDay: false,
+      portraitPairs: false,
+      transitionTime: 1,
+      kenBurns: true,
+      blurredBackground: true,
+      showPhotoDate: true,
+      showClock: false,
+    };
+
+    // Load current config from server
+    async function loadSettings() {
+      try {
+        const res = await fetch('/api/config');
+        if (res.status === 401) {
+          window.location.href = '/login';
+          return;
+        }
+        if (res.ok) {
+          const config = await res.json();
+          settings = { ...settings, ...config };
+          applySettingsToUI();
+        }
+      } catch (err) {
+        console.error('Failed to load settings:', err);
+      }
+    }
+
+    // Apply settings state to UI controls
+    function applySettingsToUI() {
+      // Interval buttons
+      document.querySelectorAll('#intervalGroup button').forEach(btn => {
+        btn.classList.toggle('active', parseInt(btn.dataset.value) === settings.interval);
+      });
+
+      // Display mode buttons
+      document.querySelectorAll('#displayModeGroup button').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.value === settings.displayMode);
+      });
+
+      // Transition time buttons
+      document.querySelectorAll('#transitionTimeGroup button').forEach(btn => {
+        btn.classList.toggle('active', parseFloat(btn.dataset.value) === settings.transitionTime);
+      });
+
+      // Toggles
+      document.getElementById('onThisDay').checked = settings.onThisDay;
+      document.getElementById('portraitPairs').checked = settings.portraitPairs;
+      document.getElementById('kenBurns').checked = settings.kenBurns;
+      document.getElementById('blurredBackground').checked = settings.blurredBackground;
+      document.getElementById('showPhotoDate').checked = settings.showPhotoDate;
+      document.getElementById('showClock').checked = settings.showClock;
+    }
+
+    // UI handlers
+    function setInterval_(seconds) {
+      settings.interval = seconds;
+      document.querySelectorAll('#intervalGroup button').forEach(btn => {
+        btn.classList.toggle('active', parseInt(btn.dataset.value) === seconds);
+      });
+    }
+
+    function setDisplayMode_(mode) {
+      settings.displayMode = mode;
+      document.querySelectorAll('#displayModeGroup button').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.value === mode);
+      });
+    }
+
+    function setTransitionTime_(seconds) {
+      settings.transitionTime = seconds;
+      document.querySelectorAll('#transitionTimeGroup button').forEach(btn => {
+        btn.classList.toggle('active', parseFloat(btn.dataset.value) === seconds);
+      });
+    }
+
+    // Save to server
+    async function saveSettings() {
+      try {
+        const res = await fetch('/api/config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(settings),
+        });
+
+        if (res.status === 401) {
+          window.location.href = '/login';
+          return;
+        }
+
+        if (res.ok) {
+          const updated = await res.json();
+          settings = { ...settings, ...updated };
+          showToast('Settings saved');
+        } else {
+          const err = await res.json();
+          showToast('Error: ' + (err.error || 'Failed to save'));
+        }
+      } catch (err) {
+        console.error('Failed to save settings:', err);
+        showToast('Error: Could not reach server');
+      }
+    }
+
+    // Toast notification
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.classList.add('visible');
+      setTimeout(() => toast.classList.remove('visible'), 2500);
+    }
+
+    // Fetch On This Day photo count for today
+    async function fetchOnThisDayCount() {
+      try {
+        const res = await fetch('/api/photo/random?onThisDay=true');
+        if (res.ok) {
+          const count = res.headers.get('X-Photo-OnThisDayCount');
+          if (count) {
+            document.getElementById('onThisDayDesc').textContent =
+              `${count} photo${count === '1' ? '' : 's'} from today across all years`;
+          }
+        } else if (res.status === 404) {
+          document.getElementById('onThisDayDesc').textContent =
+            'No photos from today in your library';
+        }
+      } catch {
+        // Silently fail - description stays at default
+      }
+    }
+
+    // Fetch portrait photo count from health endpoint
+    async function fetchPortraitCount() {
+      try {
+        const res = await fetch('/api/health');
+        if (res.ok) {
+          const health = await res.json();
+          const count = health.cache?.portraitCount;
+          if (count !== undefined && count !== null) {
+            document.getElementById('portraitPairsDesc').textContent =
+              `${count} portrait photo${count === 1 ? '' : 's'} available for pairing`;
+          }
+        }
+      } catch {
+        // Silently fail - description stays at default
+      }
+    }
+
+    // Hidden photos management
+    let hiddenPhotoCount = 0;
+
+    async function fetchHiddenPhotos() {
+      try {
+        const res = await fetch('/api/photo/hidden');
+        if (res.status === 401) return;
+        if (!res.ok) return;
+
+        const data = await res.json();
+        hiddenPhotoCount = data.count || 0;
+
+        if (hiddenPhotoCount > 0) {
+          document.getElementById('hiddenPhotosSection').style.display = '';
+          document.getElementById('hiddenPhotosDesc').textContent =
+            `${hiddenPhotoCount} hidden photo${hiddenPhotoCount === 1 ? '' : 's'}`;
+          document.getElementById('unhideAllBtn').style.display = '';
+
+          const grid = document.getElementById('hiddenPhotosGrid');
+          grid.innerHTML = '';
+
+          data.items.forEach(item => {
+            const el = document.createElement('div');
+            el.className = 'hidden-photo-item';
+            el.dataset.id = item.id;
+
+            const img = document.createElement('img');
+            img.src = `/api/photo/thumbnail/${item.id}`;
+            img.alt = 'Hidden photo';
+            img.loading = 'lazy';
+
+            const btn = document.createElement('button');
+            btn.className = 'restore-btn';
+            btn.title = 'Restore photo';
+            btn.innerHTML = '<i data-lucide="eye" style="width: 14px; height: 14px;"></i>';
+            btn.addEventListener('click', () => restorePhoto(item.id, el));
+
+            el.appendChild(img);
+            el.appendChild(btn);
+            grid.appendChild(el);
+          });
+
+          // Re-render Lucide icons for the new restore buttons
+          lucide.createIcons();
+        } else {
+          document.getElementById('hiddenPhotosSection').style.display = 'none';
+        }
+      } catch (err) {
+        console.error('Failed to fetch hidden photos:', err);
+      }
+    }
+
+    async function restorePhoto(mediaItemId, gridItemElement) {
+      try {
+        const res = await fetch(`/api/photo/unhide/${mediaItemId}`, { method: 'POST' });
+        if (!res.ok) {
+          showToast('Failed to restore photo');
+          return;
+        }
+
+        // Fade out and remove
+        gridItemElement.style.opacity = '0';
+        setTimeout(() => gridItemElement.remove(), 300);
+
+        hiddenPhotoCount--;
+        if (hiddenPhotoCount > 0) {
+          document.getElementById('hiddenPhotosDesc').textContent =
+            `${hiddenPhotoCount} hidden photo${hiddenPhotoCount === 1 ? '' : 's'}`;
+        } else {
+          document.getElementById('hiddenPhotosSection').style.display = 'none';
+        }
+
+        showToast('Photo restored');
+      } catch (err) {
+        console.error('Failed to restore photo:', err);
+        showToast('Error restoring photo');
+      }
+    }
+
+    async function unhideAllPhotos() {
+      if (!confirm(`Unhide all ${hiddenPhotoCount} photo${hiddenPhotoCount === 1 ? '' : 's'}? They'll appear in your slideshow again.`)) {
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/photo/unhide-all', { method: 'POST' });
+        if (!res.ok) {
+          showToast('Failed to unhide photos');
+          return;
+        }
+
+        document.getElementById('hiddenPhotosGrid').innerHTML = '';
+        document.getElementById('hiddenPhotosSection').style.display = 'none';
+        hiddenPhotoCount = 0;
+
+        showToast('All photos restored');
+      } catch (err) {
+        console.error('Failed to unhide all photos:', err);
+        showToast('Error restoring photos');
+      }
+    }
+
+    // Logout button handler
+    document.getElementById('logout-btn').addEventListener('click', async () => {
+      try {
+        await fetch('/auth/logout', { method: 'POST' });
+        window.location.href = '/login';
+      } catch (error) {
+        // Even on network error, try to redirect
+        window.location.href = '/login';
+      }
+    });
+
+    // Initialize
+    loadSettings();
+    fetchOnThisDayCount();
+    fetchPortraitCount();
+    fetchHiddenPhotos();
+    lucide.createIcons();
+  </script>
+</body>
+
+</html>

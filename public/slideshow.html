@@ -1,0 +1,1940 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Okno Slideshow</title>
+
+  <!-- PWA Configuration -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Okno">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="stylesheet" href="/vendor/inter.css">
+  <script src="/vendor/lucide.min.js"></script>
+
+  <!-- NoSleep.js required for iOS PWAs - Wake Lock API broken until iOS 18.4 (WebKit bug #254545) -->
+  <script src="/vendor/nosleep.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #000;
+      color: #fff;
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    #slideshow {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .photo {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      /* Default: fill screen, crop if needed */
+      opacity: 0;
+      transition: opacity var(--transition-time, 1s) ease-in-out;
+      /* Prevent iOS long-press image stretch / save-image gesture */
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      user-select: none;
+      pointer-events: none;
+    }
+
+    .photo.contain-mode {
+      object-fit: contain;
+      /* Show full photo with black bars */
+    }
+
+    .photo.active {
+      opacity: 1;
+      z-index: 1;
+    }
+
+    .photo.preload {
+      z-index: 0;
+    }
+
+    /* Dual portrait mode: 2 photos side-by-side */
+    .photo.dual-left {
+      width: 50%;
+      left: 0;
+    }
+
+    .photo.dual-right {
+      width: 50%;
+      left: 50%;
+    }
+
+    #loading {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      z-index: 10;
+    }
+
+    #loading.hidden {
+      display: none;
+    }
+
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 4px solid rgba(255, 255, 255, 0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 1rem;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* Ken Burns presets -- cycled, never randomized chaotically */
+    @keyframes kb-zoom-in-center {
+      from { transform: scale(1.0); }
+      to   { transform: scale(1.08); }
+    }
+
+    @keyframes kb-zoom-in-tl {
+      from { transform: scale(1.0) translate(0, 0); }
+      to   { transform: scale(1.08) translate(-1%, -0.5%); }
+    }
+
+    @keyframes kb-zoom-in-br {
+      from { transform: scale(1.0) translate(0, 0); }
+      to   { transform: scale(1.08) translate(1%, 0.5%); }
+    }
+
+    @keyframes kb-zoom-out-center {
+      from { transform: scale(1.08); }
+      to   { transform: scale(1.0); }
+    }
+
+    @keyframes kb-drift-right {
+      from { transform: scale(1.0) translate(0, 0); }
+      to   { transform: scale(1.04) translate(1.5%, 0); }
+    }
+
+    @keyframes kb-drift-left {
+      from { transform: scale(1.0) translate(0, 0); }
+      to   { transform: scale(1.04) translate(-1.5%, 0); }
+    }
+
+    .photo.kenburns {
+      will-change: transform;
+      animation-timing-function: ease-in-out;
+      animation-fill-mode: forwards;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .photo.kenburns {
+        animation: none !important;
+        transform: none !important;
+        will-change: auto;
+      }
+    }
+
+    #error {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      max-width: 500px;
+      padding: 2rem;
+      background: rgba(231, 76, 60, 0.1);
+      border: 1px solid rgba(231, 76, 60, 0.3);
+      border-radius: 8px;
+      display: none;
+      z-index: 10;
+    }
+
+    #error.visible {
+      display: block;
+    }
+
+    /* Neumorphic Control Panel */
+    #controls {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      display: flex;
+      gap: 8px;
+      z-index: 100;
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+      background: #F0F0F3;
+      backdrop-filter: blur(20px);
+      padding: 10px;
+      border-radius: 16px;
+      box-shadow: -6px -6px 16px rgba(255, 255, 255, 0.6),
+        6px 6px 16px rgba(0, 0, 0, 0.15);
+    }
+
+    #controls.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* Neumorphic Buttons */
+    button {
+      background: #F0F0F3;
+      color: #4A5A52;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      min-height: 44px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 0.938rem;
+      font-weight: 500;
+      letter-spacing: -0.01em;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: -4px -4px 10px rgba(255, 255, 255, 0.8),
+        4px 4px 10px rgba(0, 0, 0, 0.2);
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: -6px -6px 14px rgba(255, 255, 255, 0.9),
+        6px 6px 14px rgba(0, 0, 0, 0.25);
+    }
+
+    button:active {
+      transform: translateY(0);
+      box-shadow: inset -3px -3px 6px rgba(0, 0, 0, 0.15),
+        inset 3px 3px 6px rgba(255, 255, 255, 0.7);
+    }
+
+    button.small {
+      padding: 10px 16px;
+      font-size: 0.813rem;
+      min-height: 44px;
+    }
+
+    /* Secondary Action Buttons (Fullscreen, Exit) - Darker */
+    button.secondary-action {
+      background: #E0E0E5;
+      color: #3A4A42;
+      box-shadow: -4px -4px 10px rgba(255, 255, 255, 0.6),
+        4px 4px 10px rgba(0, 0, 0, 0.25);
+    }
+
+    button.secondary-action:hover {
+      background: #D5D5DA;
+      transform: translateY(-2px);
+      box-shadow: -6px -6px 14px rgba(255, 255, 255, 0.7),
+        6px 6px 14px rgba(0, 0, 0, 0.3);
+    }
+
+    button.secondary-action:active {
+      background: #E0E0E5;
+      transform: translateY(0);
+      box-shadow: inset -3px -3px 6px rgba(0, 0, 0, 0.2),
+        inset 3px 3px 6px rgba(255, 255, 255, 0.5);
+    }
+
+    /* Active Button State - Sunken with Color */
+    button.active {
+      background: #8FB5A5;
+      color: #FFFFFF;
+      box-shadow: inset -3px -3px 6px rgba(125, 165, 148, 0.4),
+        inset 3px 3px 6px rgba(255, 255, 255, 0.2),
+        -2px -2px 6px rgba(255, 255, 255, 0.3),
+        2px 2px 6px rgba(143, 181, 165, 0.4);
+    }
+
+    button.active:hover {
+      background: #7DA594;
+      transform: translateY(-1px);
+    }
+
+    /* Progress Bar */
+    #progressBarContainer {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.1);
+      z-index: 50;
+    }
+
+    #progressBar {
+      height: 100%;
+      background: linear-gradient(90deg, #8FB5A5 0%, #7DA594 100%);
+      width: 0%;
+      transition: width 100ms linear;
+    }
+
+    /* Neumorphic Interval Controls */
+    #intervalControls {
+      position: fixed;
+      top: 2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 6px;
+      z-index: 100;
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+      background: #F0F0F3;
+      backdrop-filter: blur(20px);
+      padding: 10px;
+      border-radius: 16px;
+      box-shadow: -6px -6px 16px rgba(255, 255, 255, 0.6),
+        6px 6px 16px rgba(0, 0, 0, 0.15);
+    }
+
+    #intervalControls.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* Neumorphic Display Mode Controls */
+    #displayModeControls {
+      position: fixed;
+      top: 2rem;
+      right: 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      z-index: 100;
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+      background: #F0F0F3;
+      backdrop-filter: blur(20px);
+      padding: 10px;
+      border-radius: 16px;
+      box-shadow: -6px -6px 16px rgba(255, 255, 255, 0.6),
+        6px 6px 16px rgba(0, 0, 0, 0.15);
+    }
+
+    #displayModeControls.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* Neumorphic Info Panel */
+    #info {
+      position: fixed;
+      bottom: 2rem;
+      left: 2rem;
+      font-size: 0.813rem;
+      font-weight: 500;
+      color: #4A5A52;
+      opacity: 0;
+      transition: opacity 0.3s;
+      z-index: 100;
+      background: #F0F0F3;
+      backdrop-filter: blur(12px);
+      padding: 12px 18px;
+      border-radius: 12px;
+      pointer-events: none;
+      box-shadow: -4px -4px 10px rgba(255, 255, 255, 0.7),
+        4px 4px 10px rgba(0, 0, 0, 0.15);
+    }
+
+    #info.visible {
+      opacity: 1;
+    }
+
+    #keyboardHelp {
+      position: fixed;
+      top: 2rem;
+      left: 2rem;
+      font-size: 0.85rem;
+      opacity: 0;
+      transition: opacity 0.3s;
+      z-index: 100;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 0.75rem 1rem;
+      border-radius: 4px;
+      pointer-events: none;
+      line-height: 1.6;
+    }
+
+    #keyboardHelp.visible {
+      opacity: 1;
+    }
+
+    #keyboardHelp kbd {
+      background: rgba(255, 255, 255, 0.2);
+      padding: 0.1rem 0.4rem;
+      border-radius: 3px;
+      font-family: monospace;
+      font-size: 0.9em;
+    }
+
+    /* On This Day indicator */
+    #onThisDayIndicator {
+      position: fixed;
+      top: 1rem;
+      left: 1rem;
+      display: none;
+      align-items: center;
+      gap: 8px;
+      z-index: 50;
+      background: rgba(0, 0, 0, 0.55);
+      backdrop-filter: blur(12px);
+      padding: 8px 14px;
+      border-radius: 10px;
+      font-size: 0.813rem;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.9);
+      pointer-events: none;
+      transition: opacity 0.5s;
+    }
+
+    #onThisDayIndicator.visible {
+      display: flex;
+    }
+
+    #onThisDayIndicator .otd-icon {
+      font-size: 1rem;
+      line-height: 1;
+    }
+
+    /* On This Day fallback message overlay */
+    #onThisDayMessage {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      z-index: 20;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(12px);
+      padding: 2rem 3rem;
+      border-radius: 16px;
+      display: none;
+      max-width: 400px;
+    }
+
+    #onThisDayMessage.visible {
+      display: block;
+    }
+
+    #onThisDayMessage h3 {
+      font-size: 1.25rem;
+      font-weight: 500;
+      margin-bottom: 0.5rem;
+    }
+
+    #onThisDayMessage p {
+      font-size: 0.875rem;
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    /* Blur background wrapper -- contains blur-bg + foreground photo */
+    .photo-wrapper {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      transition: opacity var(--transition-time, 1s) ease-in-out;
+    }
+
+    .photo-wrapper.active {
+      opacity: 1;
+      z-index: 1;
+    }
+
+    .photo-wrapper.preload {
+      z-index: 0;
+    }
+
+    .photo-wrapper .photo {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      opacity: 1;
+      transition: none;
+      z-index: 1;
+    }
+
+    .photo-bg {
+      position: absolute;
+      top: -5%;
+      left: -5%;
+      width: 110%;
+      height: 110%;
+      background-size: cover;
+      background-position: center;
+      filter: blur(20px) brightness(0.7);
+      transform: translate3d(0, 0, 0); /* REQUIRED: forces Safari GPU acceleration */
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    /* Slideshow overlays -- always visible when enabled, unobtrusive */
+    .slideshow-overlay {
+      position: fixed;
+      z-index: 30;
+      color: rgba(255, 255, 255, 0.85);
+      text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+      pointer-events: none;
+      transition: opacity 0.5s;
+      opacity: 0;
+    }
+
+    .slideshow-overlay.visible {
+      opacity: 1;
+    }
+
+    #photoDateOverlay {
+      bottom: max(2rem, env(safe-area-inset-bottom, 0px));
+      left: max(2rem, env(safe-area-inset-left, 0px));
+      font-size: 0.875rem;
+      font-weight: 400;
+    }
+
+    #clockOverlay {
+      bottom: max(2rem, env(safe-area-inset-bottom, 0px));
+      right: max(2rem, env(safe-area-inset-right, 0px));
+      font-size: 1.25rem;
+      font-weight: 300;
+    }
+
+    /* Reconnect overlay -- shown on 401 (session expired) */
+    #reconnect-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.85);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .reconnect-card {
+      background: #F0F0F3;
+      border-radius: 20px;
+      padding: 48px 40px;
+      max-width: 400px;
+      width: 90%;
+      text-align: center;
+      box-shadow: -8px -8px 20px rgba(255, 255, 255, 0.6),
+        8px 8px 20px rgba(174, 174, 192, 0.4);
+    }
+
+    .reconnect-icon {
+      width: 64px;
+      height: 64px;
+      margin: 0 auto 24px;
+      background: rgba(143, 181, 165, 0.08);
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #8FB5A5;
+    }
+
+    .reconnect-card h2 {
+      font-family: 'Inter', sans-serif;
+      font-size: 1.5rem;
+      font-weight: 400;
+      color: #4A5A52;
+      margin-bottom: 8px;
+      letter-spacing: -0.01em;
+    }
+
+    .reconnect-card p {
+      font-family: 'Inter', sans-serif;
+      font-size: 0.938rem;
+      color: rgba(90, 107, 98, 0.6);
+      margin-bottom: 32px;
+      line-height: 1.5;
+    }
+
+    .reconnect-button {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 32px;
+      font-family: 'Inter', sans-serif;
+      font-size: 1rem;
+      font-weight: 500;
+      color: #FFFFFF;
+      background: linear-gradient(145deg, #9AC0AF, #8FB5A5);
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: -4px -4px 10px rgba(255, 255, 255, 0.6),
+        4px 4px 10px rgba(143, 181, 165, 0.4);
+      letter-spacing: -0.01em;
+    }
+
+    .reconnect-button:hover {
+      transform: translateY(-2px);
+      background: linear-gradient(145deg, #8FB5A5, #7DA594);
+      box-shadow: -6px -6px 14px rgba(255, 255, 255, 0.7),
+        6px 6px 14px rgba(143, 181, 165, 0.5);
+    }
+
+    .reconnect-button:active {
+      transform: translateY(0);
+      box-shadow: -3px -3px 8px rgba(255, 255, 255, 0.5),
+        3px 3px 8px rgba(143, 181, 165, 0.3);
+    }
+
+    /* Hide button (right side, appears with controls) */
+    .hide-button {
+      position: fixed;
+      bottom: 7rem;
+      right: 2rem;
+      z-index: 100;
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #F0F0F3;
+      color: #B8867B;
+      border: none;
+      padding: 10px 18px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-size: 0.875rem;
+      font-weight: 500;
+      font-family: 'Inter', sans-serif;
+      letter-spacing: -0.01em;
+      box-shadow: -4px -4px 10px rgba(255, 255, 255, 0.6),
+        4px 4px 10px rgba(0, 0, 0, 0.2);
+    }
+
+    .hide-button.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .hide-button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .hide-button.visible:disabled {
+      opacity: 0.5;
+    }
+
+    .hide-button:not(:disabled):hover {
+      transform: translateY(-2px);
+      box-shadow: -6px -6px 14px rgba(255, 255, 255, 0.7),
+        6px 6px 14px rgba(0, 0, 0, 0.25);
+    }
+
+    .hide-button:not(:disabled):active {
+      transform: translateY(0);
+      box-shadow: inset -3px -3px 6px rgba(0, 0, 0, 0.15),
+        inset 3px 3px 6px rgba(255, 255, 255, 0.7);
+    }
+
+    /* Hide toast (bottom-center) */
+    .hide-toast {
+      position: fixed;
+      bottom: 6rem;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      z-index: 150;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: rgba(0, 0, 0, 0.85);
+      color: #fff;
+      padding: 12px 20px;
+      border-radius: 12px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      font-family: 'Inter', sans-serif;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.3s ease;
+    }
+
+    .hide-toast.visible {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .hide-toast button {
+      background: none;
+      border: none;
+      color: #8FB5A5;
+      font-size: 0.875rem;
+      font-weight: 600;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 6px;
+      box-shadow: none;
+      text-decoration: underline;
+    }
+
+    .hide-toast button:hover {
+      color: #fff;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .hide-toast button:active {
+      box-shadow: none;
+    }
+
+    /* Hide keyboard help on mobile/iPad */
+    @media (max-width: 768px),
+    (pointer: coarse) {
+      #keyboardHelp {
+        display: none !important;
+      }
+    }
+
+    /* Sleep reminder - mobile only */
+    #sleepReminder {
+      display: none;
+      position: fixed;
+      bottom: 6rem;
+      left: 1rem;
+      font-size: 0.75rem;
+      opacity: 0;
+      transition: opacity 0.3s;
+      z-index: 99;
+      background: rgba(0, 0, 0, 0.85);
+      padding: 0.5rem 0.75rem;
+      border-radius: 6px;
+      pointer-events: none;
+      text-align: left;
+      max-width: calc(100% - 2rem);
+      line-height: 1.3;
+    }
+
+    #sleepReminder.visible {
+      opacity: 1;
+    }
+
+    /* Show sleep reminder only on mobile/iPad */
+    @media (max-width: 768px),
+    (pointer: coarse) {
+      #sleepReminder {
+        display: block;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="loading">
+    <div class="spinner"></div>
+    <p>Loading photos...</p>
+  </div>
+
+  <div id="error">
+    <h2>Error</h2>
+    <p id="errorMessage"></p>
+    <button onclick="window.location.href='/'">Back to Home</button>
+  </div>
+
+  <div id="slideshow"></div>
+
+  <!-- On This Day indicator (top-left, always visible when active) -->
+  <div id="onThisDayIndicator">
+    <span class="otd-icon"><i data-lucide="calendar-heart" style="width:16px;height:16px;"></i></span>
+    <span id="onThisDayDate"></span>
+  </div>
+
+  <!-- On This Day fallback message -->
+  <div id="onThisDayMessage">
+    <h3 id="onThisDayMsgText">No photos from today in history</h3>
+    <p>Switching to all photos...</p>
+  </div>
+
+  <!-- Photo date overlay (bottom-left, always visible when enabled) -->
+  <div id="photoDateOverlay" class="slideshow-overlay"></div>
+
+  <!-- Clock overlay (bottom-right, always visible when enabled) -->
+  <div id="clockOverlay" class="slideshow-overlay"></div>
+
+  <!-- Progress Bar -->
+  <div id="progressBarContainer">
+    <div id="progressBar"></div>
+  </div>
+
+  <div id="sleepReminder">
+    Screen wake enabled - photo frame will run indefinitely
+  </div>
+
+  <div id="intervalControls">
+    <button class="small" onclick="changeInterval(10)" data-interval="10">10s</button>
+    <button class="small" onclick="changeInterval(30)" data-interval="30">30s</button>
+    <button class="small" onclick="changeInterval(60)" data-interval="60">1m</button>
+    <button class="small" onclick="changeInterval(120)" data-interval="120">2m</button>
+    <button class="small" onclick="changeInterval(300)" data-interval="300">5m</button>
+  </div>
+
+  <div id="displayModeControls">
+    <button class="small" onclick="setDisplayMode('contain')" data-mode="contain" title="Full photo, black bars">Whole Photo</button>
+    <button class="small" onclick="setDisplayMode('cover')" data-mode="cover" title="Zoom to fill, may crop edges">Fill Screen</button>
+    <button class="small" onclick="setDisplayMode('dual')" data-mode="dual" title="2 portraits together">Portrait Pairs</button>
+  </div>
+
+  <div id="info">
+    Photo <span id="currentIndex">1</span> of <span id="totalPhotos">?</span>
+  </div>
+
+  <div id="keyboardHelp">
+    <kbd>Space</kbd> / <kbd>P</kbd> Play/Pause &nbsp;
+    <kbd>S</kbd> / <kbd>→</kbd> Next &nbsp;
+    <kbd>←</kbd> Prev &nbsp;
+    <kbd>Esc</kbd> Exit
+  </div>
+
+  <!-- Reconnect overlay (shown on 401 / session expired) -->
+  <div id="reconnect-overlay">
+    <div class="reconnect-card">
+      <div class="reconnect-icon">
+        <i data-lucide="lock" style="width: 32px; height: 32px;"></i>
+      </div>
+      <h2>Session Expired</h2>
+      <p>Your Google connection needs to be refreshed.</p>
+      <button id="reconnect-btn" class="reconnect-button">
+        <i data-lucide="refresh-cw" style="width: 18px; height: 18px;"></i>
+        Reconnect
+      </button>
+    </div>
+  </div>
+
+  <!-- Hide photo button (appears with controls) -->
+  <button id="hideBtn" class="hide-button" disabled>
+    <i data-lucide="eye-off" style="width: 16px; height: 16px;"></i> Hide
+  </button>
+
+  <!-- Hide photo toast with undo -->
+  <div id="hideToast" class="hide-toast">
+    <span>Photo hidden</span>
+    <button id="undoHideBtn">Undo</button>
+  </div>
+
+  <div id="controls">
+    <button onclick="previousPhoto()"><i data-lucide="chevron-left"></i> Previous</button>
+    <button onclick="togglePlayPause()" id="playPauseBtn"><i data-lucide="pause"></i> Pause</button>
+    <button onclick="nextPhoto()">Next <i data-lucide="chevron-right"></i></button>
+    <button class="secondary-action" onclick="toggleFullscreen()" id="fullscreenBtn"><i data-lucide="maximize"></i>
+      Fullscreen</button>
+    <button class="secondary-action" onclick="window.location.href='/settings.html'"><i data-lucide="settings"></i> Settings</button>
+    <button class="secondary-action" onclick="exitSlideshow()"><i data-lucide="log-out"></i> Exit</button>
+  </div>
+
+  <script>
+    const slideshowEl = document.getElementById('slideshow');
+    const loadingEl = document.getElementById('loading');
+    const errorEl = document.getElementById('error');
+    const errorMessageEl = document.getElementById('errorMessage');
+    const currentIndexEl = document.getElementById('currentIndex');
+    const totalPhotosEl = document.getElementById('totalPhotos');
+    const playPauseBtn = document.getElementById('playPauseBtn');
+
+    let currentIndex = 0;
+    let photoCount = 0;
+    let isPlaying = true;
+    let intervalHandle = null;
+    let currentIntervalSeconds = 30; // Default 30 seconds (matches config.js default)
+    let displayMode = 'cover'; // 'cover', 'contain', or 'dual'
+    let pendingPortrait = null; // For dual mode: holds first portrait photo
+    let portraitPairsEnabled = false; // Portrait pairs mode from config
+    let onThisDayEnabled = false; // On This Day mode
+    let onThisDayFallback = false; // True when OTD had no photos and we fell back to random
+
+    // Ken Burns state
+    let kenBurnsEnabled = true; // from config, updated in loadAppConfig
+    const KB_PRESETS = ['kb-zoom-in-center', 'kb-zoom-in-tl', 'kb-zoom-in-br',
+                        'kb-zoom-out-center', 'kb-drift-right', 'kb-drift-left'];
+    let lastPresetIndex = -1;
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+    // Visual effects and overlay state
+    let blurredBackgroundEnabled = true; // from config
+    let showPhotoDateEnabled = true;     // from config
+    let showClockEnabled = false;        // from config
+    let clockIntervalId = null;
+
+    // App config loaded from server (available to future features via window.appConfig)
+    window.appConfig = null;
+
+    // Screen wake lock using NoSleep.js (Wake Lock API broken in iOS PWAs)
+    let noSleep = null;
+    try {
+      if (typeof NoSleep !== 'undefined') {
+        noSleep = new NoSleep();
+        console.log('NoSleep.js initialized');
+      } else {
+        console.warn('NoSleep.js not loaded - wake lock will be unavailable');
+      }
+    } catch (e) {
+      console.error('Failed to initialize NoSleep:', e);
+    }
+
+    let wakeLockEnabled = false;
+
+    function enableWakeLock() {
+      if (!wakeLockEnabled && noSleep) {
+        try {
+          noSleep.enable();
+          wakeLockEnabled = true;
+          console.log('Screen wake lock enabled via NoSleep.js');
+        } catch (e) {
+          console.error('Failed to enable wake lock:', e);
+        }
+      }
+    }
+
+    // Ken Burns helpers
+    function shouldApplyKenBurns() {
+      return kenBurnsEnabled && !prefersReducedMotion.matches;
+    }
+
+    function nextKenBurnsPreset() {
+      let index;
+      do {
+        index = Math.floor(Math.random() * KB_PRESETS.length);
+      } while (index === lastPresetIndex);
+      lastPresetIndex = index;
+      return KB_PRESETS[index];
+    }
+
+    function applyKenBurns(photoEl) {
+      if (!shouldApplyKenBurns()) return;
+      const preset = nextKenBurnsPreset();
+      photoEl.classList.add('kenburns');
+      // Duration matches slideshow interval so animation completes just as next photo loads
+      photoEl.style.animationName = preset;
+      photoEl.style.animationDuration = currentIntervalSeconds + 's';
+    }
+
+    function stopKenBurns(photoEl) {
+      photoEl.style.animation = 'none';
+      photoEl.style.transform = 'none';
+      photoEl.classList.remove('kenburns');
+    }
+
+    // GPU teardown: stop animations, de-promote layers, revoke blob URLs, remove from DOM
+    function teardownAndRemove(element) {
+      // Step 1: Stop animations
+      element.style.animation = 'none';
+      // Step 2: Reset transform (hints compositor to release layer)
+      element.style.transform = 'none';
+      // Step 3: De-promote from compositor
+      element.style.willChange = 'auto';
+      // Step 4: Revoke blob URLs
+      const img = element.tagName === 'IMG' ? element : element.querySelector('.photo');
+      if (img && img.src && img.src.startsWith('blob:')) {
+        URL.revokeObjectURL(img.src);
+      }
+      // Step 5: Remove from DOM
+      element.remove();
+    }
+
+    // Blur background helpers
+    function createTinyBlurDataUri(imgElement) {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = 32;
+        canvas.height = 24;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(imgElement, 0, 0, 32, 24);
+        return canvas.toDataURL('image/jpeg', 0.4);
+      } catch (e) {
+        console.warn('Failed to create blur thumbnail:', e);
+        return null;
+      }
+    }
+
+    function wrapWithBlurBackground(img) {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'photo-wrapper preload';
+
+      // Create blur background
+      const bg = document.createElement('div');
+      bg.className = 'photo-bg';
+
+      // Generate tiny blur data URI from the loaded image
+      const dataUri = createTinyBlurDataUri(img);
+      if (dataUri) {
+        bg.style.backgroundImage = `url(${dataUri})`;
+      }
+
+      // Reset img classes -- wrapper handles opacity transition now
+      img.className = 'photo';
+      // img already has dataset.createTime and dataset.onThisDayCount from createPhotoElement
+
+      wrapper.appendChild(bg);
+      wrapper.appendChild(img);
+
+      return wrapper;
+    }
+
+    // Photo date overlay
+    function formatPhotoDate(createTimeISO) {
+      if (!createTimeISO) return null;
+      try {
+        const d = new Date(createTimeISO);
+        if (isNaN(d.getTime())) return null;
+        return d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+      } catch {
+        return null;
+      }
+    }
+
+    function updatePhotoDateOverlay(createTimeISO) {
+      const el = document.getElementById('photoDateOverlay');
+      if (!showPhotoDateEnabled) {
+        el.classList.remove('visible');
+        return;
+      }
+      const formatted = formatPhotoDate(createTimeISO);
+      if (formatted) {
+        el.textContent = formatted;
+        el.classList.add('visible');
+      } else {
+        el.classList.remove('visible');
+      }
+    }
+
+    // Clock overlay
+    function updateClock() {
+      const el = document.getElementById('clockOverlay');
+      if (!showClockEnabled) {
+        el.classList.remove('visible');
+        return;
+      }
+      const now = new Date();
+      el.textContent = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+      el.classList.add('visible');
+    }
+
+    function startClock() {
+      if (clockIntervalId) clearInterval(clockIntervalId);
+      updateClock(); // Show immediately
+      clockIntervalId = setInterval(updateClock, 60000); // Update every minute
+    }
+
+    function stopClock() {
+      if (clockIntervalId) {
+        clearInterval(clockIntervalId);
+        clockIntervalId = null;
+      }
+    }
+
+    // Respond to OS-level reduced motion preference changes at runtime
+    prefersReducedMotion.addEventListener('change', (e) => {
+      if (e.matches) {
+        // Immediately stop any running Ken Burns animations
+        document.querySelectorAll('.photo.kenburns').forEach(el => {
+          stopKenBurns(el);
+        });
+      }
+    });
+
+    function exitSlideshow() {
+      stopClock();
+      if (wakeLockEnabled && noSleep) {
+        try {
+          noSleep.disable();
+          wakeLockEnabled = false;
+        } catch (e) {
+          console.error('Failed to disable wake lock:', e);
+        }
+      }
+      window.location.href = '/';
+    }
+
+    // URL params (applied after config load; URL params take precedence over saved config)
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlInterval = parseInt(urlParams.get('interval'));
+    const urlMode = urlParams.get('mode');
+
+    // Load config from server, then apply URL param overrides
+    async function loadAppConfig() {
+      try {
+        const res = await fetch('/api/config');
+        if (res.status === 401) {
+          showReconnectOverlay();
+          return;
+        }
+        if (res.ok) {
+          window.appConfig = await res.json();
+
+          // Apply config values as base
+          if (window.appConfig.interval) {
+            currentIntervalSeconds = window.appConfig.interval;
+          }
+          if (window.appConfig.displayMode && ['cover', 'contain', 'dual'].includes(window.appConfig.displayMode)) {
+            displayMode = window.appConfig.displayMode;
+          }
+          if (window.appConfig.onThisDay === true) {
+            onThisDayEnabled = true;
+          }
+          if (window.appConfig.portraitPairs === true) {
+            portraitPairsEnabled = true;
+          }
+          if (window.appConfig.transitionTime) {
+            document.documentElement.style.setProperty('--transition-time', window.appConfig.transitionTime + 's');
+          }
+          if (window.appConfig.kenBurns === false) {
+            kenBurnsEnabled = false;
+          }
+          if (window.appConfig.blurredBackground === false) {
+            blurredBackgroundEnabled = false;
+          }
+          if (window.appConfig.showPhotoDate === false) {
+            showPhotoDateEnabled = false;
+          }
+          if (window.appConfig.showClock === true) {
+            showClockEnabled = true;
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to load config, using defaults:', err);
+        window.appConfig = {};
+      }
+
+      // URL params override saved config (for testing/manual override)
+      if (urlInterval && urlInterval > 0) {
+        currentIntervalSeconds = urlInterval;
+      }
+      if (urlMode && ['cover', 'contain', 'dual'].includes(urlMode)) {
+        displayMode = urlMode;
+      }
+    }
+
+    // Exponential backoff retry for network resilience
+    async function fetchWithRetry(url, maxRetries = 7) {
+      for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+          const response = await fetch(url);
+
+          // 4xx errors are intentional (e.g. 404 = no OTD photos, 401 = session expired), not transient -- return immediately
+          if (response.status >= 400 && response.status < 500) {
+            return response;
+          }
+
+          // 502 with authentication_required: token refresh failed server-side -- return immediately (not transient)
+          if (response.status === 502) {
+            try {
+              const bodyText = await response.clone().text();
+              if (bodyText.includes('authentication_required')) {
+                return response;
+              }
+            } catch (e) {
+              // Ignore clone/parse errors, fall through to normal retry
+            }
+          }
+
+          // 502: trigger proactive baseUrl refresh on first occurrence, then retry normally
+          if (response.status === 502 && attempt === 0) {
+            console.warn('502 from backend, triggering proactive baseUrl refresh');
+            fetch('/api/health/refresh', { method: 'POST' }).catch(() => {});
+          }
+
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          return response;
+        } catch (error) {
+          if (attempt === maxRetries) {
+            console.error(`Fetch failed after ${maxRetries} retries:`, error);
+            throw error; // Final attempt failed
+          }
+
+          // Exponential backoff: 10ms, 20ms, 40ms, 80ms, 160ms, 320ms, 640ms
+          const baseDelay = Math.pow(2, attempt) * 10;
+          const jitter = Math.random() * baseDelay * 0.1; // +/- 10% jitter to prevent thundering herd
+          const delay = baseDelay + jitter;
+
+          console.log(`Retry ${attempt + 1}/${maxRetries} after ${delay.toFixed(0)}ms`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+    }
+
+    // Reconnect overlay helpers
+    function showReconnectOverlay() {
+      document.getElementById('reconnect-overlay').style.display = 'flex';
+      // Stop the slideshow so we don't keep fetching and hitting 401
+      stopSlideshow();
+    }
+
+    function hideReconnectOverlay() {
+      document.getElementById('reconnect-overlay').style.display = 'none';
+    }
+
+    // Wire reconnect button -- sends user through Google OAuth flow
+    document.getElementById('reconnect-btn').addEventListener('click', () => {
+      window.location.href = '/auth/login?next=/slideshow.html';
+    });
+
+    async function init() {
+      try {
+        // Load saved config before anything else
+        await loadAppConfig();
+
+        // Show On This Day indicator immediately (before any photo loads)
+        if (onThisDayEnabled) {
+          const today = new Date();
+          const formatted = today.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+          document.getElementById('onThisDayDate').textContent = formatted;
+          document.getElementById('onThisDayIndicator').classList.add('visible');
+        }
+
+        // Get photo count from health endpoint
+        const healthRes = await fetch('/api/health');
+
+        if (healthRes.status === 401) {
+          showReconnectOverlay();
+          return;
+        }
+
+        const health = await healthRes.json();
+
+        if (!health.cache || health.cache.totalItems === 0) {
+          // No photos available - redirect to home page
+          window.location.href = '/';
+          return;
+        }
+
+        photoCount = health.cache.totalItems;
+        totalPhotosEl.textContent = photoCount;
+
+        // Hide loading
+        loadingEl.classList.add('hidden');
+
+        // Enable screen wake lock after first successful load
+        enableWakeLock();
+
+        // Update button states
+        updateIntervalButtons();
+        updateDisplayModeButtons();
+
+        // Load first photo
+        await loadPhoto(0);
+
+        // Start slideshow
+        startSlideshow();
+
+        // Start clock overlay if enabled
+        startClock();
+
+      } catch (error) {
+        console.error('Initialization failed:', error);
+        showError(error.message);
+      }
+    }
+
+    async function loadPhoto(index) {
+      try {
+        // Load new random photo
+        const img = await createPhotoElement();
+
+        // If fetch failed after all retries, skip this photo
+        if (!img) {
+          console.warn('Skipping photo due to load failure - keeping previous photo visible');
+          return;
+        }
+
+        // Check if portrait (taller than wide)
+        const isPortrait = img.naturalHeight > img.naturalWidth;
+
+        // Portrait pairs: when enabled and photo is portrait, fetch a guaranteed portrait companion
+        if (portraitPairsEnabled && isPortrait) {
+          const companion = await createPhotoElement({ portrait: true });
+          if (companion) {
+            await showDualPortraits(img, companion);
+            return;
+          }
+          // If companion fetch failed, show single photo
+        }
+
+        // Handle legacy dual display mode (manual "2 Portraits" button)
+        if (displayMode === 'dual' && isPortrait) {
+          if (!pendingPortrait) {
+            // First portrait - save it and load another
+            pendingPortrait = img;
+            await loadPhoto(index); // Recursive call to get second photo
+            return;
+          } else {
+            // Second portrait - show both side-by-side
+            await showDualPortraits(pendingPortrait, img);
+            pendingPortrait = null;
+            return;
+          }
+        } else if (displayMode === 'dual' && !isPortrait) {
+          // Landscape in dual mode: show as full-width single
+          // Flush any pending portrait first (don't discard it)
+          if (pendingPortrait) {
+            await showSinglePhoto(pendingPortrait);
+            pendingPortrait = null;
+          }
+          await showSinglePhoto(img);
+        } else {
+          // Not dual mode -- show as single
+          pendingPortrait = null;
+          await showSinglePhoto(img);
+        }
+
+      } catch (error) {
+        console.error('Failed to load photo:', error);
+      }
+    }
+
+    async function createPhotoElement(options = {}) {
+      const img = document.createElement('img');
+      img.alt = '';
+      img.className = 'photo preload';
+
+      try {
+        // Build URL with query params
+        let url = `/api/photo/random?t=${Date.now()}`;
+        if (onThisDayEnabled && !onThisDayFallback) {
+          url += '&onThisDay=true';
+        }
+        if (options.portrait) {
+          url += '&portrait=true';
+        }
+
+        // Use retry wrapper instead of direct fetch
+        // fetchWithRetry returns 4xx responses immediately (no retry), retries 5xx/network errors
+        let response;
+        try {
+          response = await fetchWithRetry(url);
+        } catch (err) {
+          // All retries exhausted (5xx or network error)
+          throw err;
+        }
+
+        // Handle 401 (session expired) -- show reconnect overlay
+        if (response.status === 401) {
+          console.warn('Session expired (401), showing reconnect overlay');
+          showReconnectOverlay();
+          return null;
+        }
+
+        // Handle 502 with authentication_required in body (token refresh failed server-side)
+        if (response.status === 502) {
+          try {
+            const body = await response.clone().text();
+            if (body.includes('authentication_required')) {
+              console.warn('Token refresh failed (502 authentication_required), showing reconnect overlay');
+              showReconnectOverlay();
+              return null;
+            }
+          } catch (e) {
+            // Ignore clone/parse errors, fall through to normal handling
+          }
+        }
+
+        // Handle other 4xx responses (returned immediately by fetchWithRetry, no retries wasted)
+        if (response.status >= 400 && response.status < 500) {
+          if (onThisDayEnabled && !onThisDayFallback) {
+            console.log('On This Day: no photos for today, falling back to random');
+            showOnThisDayMessage('No photos from today in history');
+            onThisDayFallback = true;
+            // Load a random photo immediately (OTD message stays visible until photo appears)
+            loadPhoto(currentIndex);
+            return null;
+          }
+          console.error(`Client error: HTTP ${response.status}`);
+          return null;
+        }
+
+        // Successful fetch -- hide reconnect overlay if it was visible
+        if (document.getElementById('reconnect-overlay').style.display !== 'none') {
+          hideReconnectOverlay();
+        }
+
+        // Store photo ID and create time from response headers
+        const photoId = response.headers.get('X-Photo-Id');
+        const createTime = response.headers.get('X-Photo-CreateTime');
+        const onThisDayCount = response.headers.get('X-Photo-OnThisDayCount');
+
+        const blob = await response.blob();
+        img.src = URL.createObjectURL(blob);
+        img.dataset.photoId = photoId || '';
+        img.dataset.createTime = createTime || '';
+        img.dataset.onThisDayCount = onThisDayCount || '';
+
+        // Apply display mode class
+        if (displayMode === 'contain') {
+          img.classList.add('contain-mode');
+        }
+
+        // Wait for image to load
+        await new Promise((resolve, reject) => {
+          img.onload = resolve;
+          img.onerror = reject;
+        });
+
+        // Update On This Day indicator
+        if (onThisDayEnabled && !onThisDayFallback && createTime) {
+          updateOnThisDayIndicator(createTime, onThisDayCount);
+        } else {
+          hideOnThisDayIndicator();
+        }
+
+        return img;
+      } catch (error) {
+        console.error('Failed to load photo after retries:', error);
+        // Return null to keep showing previous photo
+        return null;
+      }
+    }
+
+
+    async function showSinglePhoto(img) {
+      // Hide On This Day fallback message if visible
+      const otdMsg = document.getElementById('onThisDayMessage');
+      if (otdMsg) otdMsg.classList.remove('visible');
+
+      // STEP 1: Stop Ken Burns on ALL current photos BEFORE crossfade
+      slideshowEl.querySelectorAll('.photo.kenburns').forEach(el => {
+        stopKenBurns(el);
+      });
+
+      // Determine if we should use blur wrapper
+      const useBlur = blurredBackgroundEnabled && displayMode !== 'cover';
+
+      // The element we append to slideshow (either wrapper or bare img)
+      let displayElement;
+
+      if (useBlur) {
+        displayElement = wrapWithBlurBackground(img);
+      } else {
+        displayElement = img;
+        // Ensure img has preload class for transition
+        if (!img.classList.contains('preload')) {
+          img.classList.add('preload');
+        }
+      }
+
+      // Remove old elements that aren't active (cleanup from >1 cycle ago)
+      const oldElements = slideshowEl.querySelectorAll('.photo-wrapper, .photo');
+      oldElements.forEach(el => {
+        // Skip if inside an active wrapper (don't remove children of active wrappers)
+        if (el.closest('.photo-wrapper.active')) return;
+        if (el.classList.contains('active') || el.classList.contains('preload')) return;
+        teardownAndRemove(el);
+      });
+
+      slideshowEl.appendChild(displayElement);
+
+      // STEP 2: Trigger crossfade
+      setTimeout(() => {
+        // Remove active from all current elements
+        slideshowEl.querySelectorAll('.photo-wrapper.active, .photo.active').forEach(el => {
+          el.classList.remove('active');
+        });
+
+        displayElement.classList.add('active');
+        displayElement.classList.remove('preload');
+
+        currentIndex = (currentIndex + 1) % photoCount;
+        currentIndexEl.textContent = currentIndex + 1;
+
+        // Update overlays
+        const photoImg = useBlur ? displayElement.querySelector('.photo') : displayElement;
+        updatePhotoDateOverlay(photoImg.dataset.createTime);
+
+        // Enable hide button if photo has an ID
+        const hideBtn = document.getElementById('hideBtn');
+        hideBtn.disabled = !photoImg.dataset.photoId;
+
+        // STEP 3: Start Ken Burns on the photo (inner img if wrapped)
+        setTimeout(() => {
+          const targetImg = useBlur ? displayElement.querySelector('.photo') : displayElement;
+          applyKenBurns(targetImg);
+        }, 100);
+
+        // STEP 4: Clean up old elements after transition completes
+        setTimeout(() => {
+          const oldWrappers = slideshowEl.querySelectorAll('.photo-wrapper:not(.active)');
+          oldWrappers.forEach(w => teardownAndRemove(w));
+          const oldPhotos = slideshowEl.querySelectorAll('.photo:not(.active)');
+          oldPhotos.forEach(p => {
+            // Skip photos inside active wrappers
+            if (p.closest('.photo-wrapper.active')) return;
+            teardownAndRemove(p);
+          });
+        }, 1500);
+      }, 50);
+    }
+
+    async function showDualPortraits(img1, img2) {
+      // STEP 1: Stop Ken Burns on ALL current photos BEFORE crossfade
+      slideshowEl.querySelectorAll('.photo.kenburns').forEach(el => {
+        stopKenBurns(el);
+      });
+
+      // Remove old photos that aren't active (cleanup from >1 cycle ago)
+      const oldPhotos = slideshowEl.querySelectorAll('.photo');
+      oldPhotos.forEach(photo => {
+        if (!photo.classList.contains('active') && !photo.classList.contains('preload')) {
+          teardownAndRemove(photo);
+        }
+      });
+
+      // Position photos side-by-side
+      img1.classList.add('dual-left');
+      img2.classList.add('dual-right');
+
+      slideshowEl.appendChild(img1);
+      slideshowEl.appendChild(img2);
+
+      // STEP 2: Trigger crossfade
+      setTimeout(() => {
+        const allPhotos = slideshowEl.querySelectorAll('.photo');
+        allPhotos.forEach(photo => photo.classList.remove('active'));
+
+        img1.classList.add('active');
+        img2.classList.add('active');
+        img1.classList.remove('preload');
+        img2.classList.remove('preload');
+
+        currentIndex = (currentIndex + 2) % photoCount;
+        currentIndexEl.textContent = currentIndex + 1;
+
+        // Update photo date from left portrait
+        updatePhotoDateOverlay(img1.dataset.createTime);
+
+        // Enable hide button (uses left portrait's ID)
+        const hideBtn = document.getElementById('hideBtn');
+        hideBtn.disabled = !img1.dataset.photoId;
+
+        // STEP 3: Start Ken Burns on EACH portrait independently (different presets)
+        setTimeout(() => {
+          applyKenBurns(img1);
+          applyKenBurns(img2); // Gets next preset automatically (different from img1)
+        }, 100);
+
+        // STEP 4: Clean up old photos after transition completes
+        setTimeout(() => {
+          const oldPhotos = slideshowEl.querySelectorAll('.photo:not(.active)');
+          oldPhotos.forEach(photo => {
+            teardownAndRemove(photo);
+          });
+        }, 1500);
+      }, 50);
+    }
+
+    // On This Day helpers
+    function updateOnThisDayIndicator(createTimeISO, count) {
+      const indicator = document.getElementById('onThisDayIndicator');
+      const dateEl = document.getElementById('onThisDayDate');
+
+      try {
+        const d = new Date(createTimeISO);
+        const formatted = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        dateEl.textContent = formatted + (count ? ` (${count} photos)` : '');
+      } catch {
+        dateEl.textContent = 'On This Day';
+      }
+
+      indicator.classList.add('visible');
+    }
+
+    function hideOnThisDayIndicator() {
+      document.getElementById('onThisDayIndicator').classList.remove('visible');
+    }
+
+    function showOnThisDayMessage(text) {
+      const msg = document.getElementById('onThisDayMessage');
+      document.getElementById('onThisDayMsgText').textContent = text;
+      msg.classList.add('visible');
+      // No auto-hide -- message stays visible until first fallback photo loads (hidden in showSinglePhoto)
+    }
+
+    // Progress bar state
+    let progressAnimationHandle = null;
+    const progressBarEl = document.getElementById('progressBar');
+
+    function startProgressBar() {
+      stopProgressBar();
+      progressBarEl.style.transition = 'none';
+      progressBarEl.style.width = '0%';
+      // Force reflow so the reset takes effect before starting animation
+      progressBarEl.offsetWidth;
+      progressBarEl.style.transition = `width ${currentIntervalSeconds}s linear`;
+      progressBarEl.style.width = '100%';
+    }
+
+    function stopProgressBar() {
+      // Freeze at current position
+      const computed = getComputedStyle(progressBarEl);
+      progressBarEl.style.transition = 'none';
+      progressBarEl.style.width = computed.width;
+    }
+
+    function resetProgressBar() {
+      progressBarEl.style.transition = 'none';
+      progressBarEl.style.width = '0%';
+    }
+
+    function startSlideshow() {
+      if (intervalHandle) {
+        clearInterval(intervalHandle);
+      }
+      const intervalMs = currentIntervalSeconds * 1000;
+      intervalHandle = setInterval(() => {
+        if (isPlaying) {
+          loadPhoto(currentIndex);
+          startProgressBar();
+        }
+      }, intervalMs);
+      isPlaying = true;
+      playPauseBtn.textContent = 'Pause';
+      startProgressBar();
+    }
+
+    function stopSlideshow() {
+      if (intervalHandle) {
+        clearInterval(intervalHandle);
+        intervalHandle = null;
+      }
+      isPlaying = false;
+      playPauseBtn.textContent = 'Play';
+      stopProgressBar();
+    }
+
+    function togglePlayPause() {
+      if (isPlaying) {
+        stopSlideshow();
+      } else {
+        startSlideshow();
+      }
+    }
+
+    function nextPhoto() {
+      loadPhoto(currentIndex);
+      if (isPlaying) {
+        // Restart interval timer and progress bar from scratch
+        startSlideshow();
+      }
+    }
+
+    function previousPhoto() {
+      // Just load a new random photo (we don't track history)
+      loadPhoto(currentIndex);
+      if (isPlaying) {
+        startSlideshow();
+      }
+    }
+
+    function showError(message) {
+      loadingEl.classList.add('hidden');
+      errorMessageEl.textContent = message;
+      errorEl.classList.add('visible');
+    }
+
+    // Change slideshow interval
+    function changeInterval(seconds) {
+      currentIntervalSeconds = seconds;
+      updateIntervalButtons();
+      if (isPlaying) {
+        startSlideshow(); // Restart with new interval
+      }
+    }
+
+    // Update active state of interval buttons
+    function updateIntervalButtons() {
+      const buttons = document.querySelectorAll('#intervalControls button');
+      buttons.forEach(btn => {
+        const btnInterval = parseInt(btn.dataset.interval);
+        if (btnInterval === currentIntervalSeconds) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+    }
+
+    // Set display mode
+    function setDisplayMode(mode) {
+      displayMode = mode;
+      pendingPortrait = null; // Clear pending portrait when changing modes
+      updateDisplayModeButtons();
+
+      // Reload current photo with new mode
+      loadPhoto(currentIndex);
+    }
+
+    // Update active state of display mode buttons
+    function updateDisplayModeButtons() {
+      const buttons = document.querySelectorAll('#displayModeControls button');
+      buttons.forEach(btn => {
+        const btnMode = btn.dataset.mode;
+        if (btnMode === displayMode) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+    }
+
+    // Toggle fullscreen
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(err => {
+          console.error('Fullscreen request failed:', err);
+        });
+      } else {
+        document.exitFullscreen();
+      }
+    }
+
+    // Hide photo state
+    let lastHiddenPhotoId = null;
+    let hideToastTimeout = null;
+
+    function hideCurrentPhoto() {
+      // Find the currently active photo element
+      const activeWrapper = slideshowEl.querySelector('.photo-wrapper.active');
+      const activeImg = activeWrapper
+        ? activeWrapper.querySelector('.photo')
+        : slideshowEl.querySelector('.photo.active');
+
+      if (!activeImg) return;
+
+      const photoId = activeImg.dataset.photoId;
+      if (!photoId) return; // Guard against undefined/empty -- do NOT POST to hide/undefined
+
+      // Fire-and-forget hide request
+      fetch(`/api/photo/hide/${photoId}`, { method: 'POST' }).catch(() => {});
+
+      // Show toast with undo
+      showHideToast(photoId);
+
+      // Hide controls immediately
+      hideControls();
+
+      // Advance to next photo after a brief beat
+      setTimeout(() => nextPhoto(), 500);
+    }
+
+    function showHideToast(photoId) {
+      lastHiddenPhotoId = photoId;
+      const toast = document.getElementById('hideToast');
+      toast.classList.add('visible');
+
+      // Clear any previous timeout
+      if (hideToastTimeout) clearTimeout(hideToastTimeout);
+
+      // Auto-hide after 4 seconds
+      hideToastTimeout = setTimeout(() => {
+        toast.classList.remove('visible');
+      }, 4000);
+    }
+
+    function undoHide() {
+      if (!lastHiddenPhotoId) return;
+
+      // Unhide the photo
+      fetch(`/api/photo/unhide/${lastHiddenPhotoId}`, { method: 'POST' }).catch(() => {});
+
+      // Hide toast immediately
+      const toast = document.getElementById('hideToast');
+      toast.classList.remove('visible');
+      if (hideToastTimeout) clearTimeout(hideToastTimeout);
+
+      lastHiddenPhotoId = null;
+    }
+
+    // Control visibility
+    let controlsVisible = false;
+    let hideControlsTimeout = null;
+
+    function showControls() {
+      controlsVisible = true;
+      document.getElementById('controls').classList.add('visible');
+      document.getElementById('intervalControls').classList.add('visible');
+      document.getElementById('displayModeControls').classList.add('visible');
+      document.getElementById('info').classList.add('visible');
+      document.getElementById('keyboardHelp').classList.add('visible');
+      document.getElementById('sleepReminder').classList.add('visible');
+      document.getElementById('hideBtn').classList.add('visible');
+
+      // Auto-hide after 4 seconds
+      clearTimeout(hideControlsTimeout);
+      hideControlsTimeout = setTimeout(hideControls, 4000);
+    }
+
+    function hideControls() {
+      controlsVisible = false;
+      document.getElementById('controls').classList.remove('visible');
+      document.getElementById('intervalControls').classList.remove('visible');
+      document.getElementById('displayModeControls').classList.remove('visible');
+      document.getElementById('info').classList.remove('visible');
+      document.getElementById('keyboardHelp').classList.remove('visible');
+      document.getElementById('sleepReminder').classList.remove('visible');
+      document.getElementById('hideBtn').classList.remove('visible');
+    }
+
+    function toggleControls() {
+      if (controlsVisible) {
+        hideControls();
+      } else {
+        showControls();
+      }
+    }
+
+    // Tap/click anywhere to toggle controls
+    // Use touchend on touch devices to avoid the double-fire issue on iOS:
+    // touchend fires when finger lifts; calling preventDefault() stops the
+    // subsequent synthetic click from also firing (which would show then
+    // immediately hide the controls on the same gesture).
+    function handleControlToggle(e) {
+      if (e.target.tagName === 'BUTTON' && controlsVisible) {
+        clearTimeout(hideControlsTimeout);
+        hideControlsTimeout = setTimeout(hideControls, 4000);
+        return;
+      }
+      toggleControls();
+    }
+
+    document.body.addEventListener('touchend', (e) => {
+      // Only handle single-finger taps (not pinch/swipe)
+      if (e.changedTouches.length === 1) {
+        e.preventDefault(); // Stops the synthetic click from firing
+        handleControlToggle(e);
+      }
+    });
+
+    // Desktop fallback (mouse click, no touch events)
+    document.body.addEventListener('click', (e) => {
+      if (e.pointerType === 'touch') return; // Already handled by touchend
+      handleControlToggle(e);
+    });
+
+    // Show controls on any mouse movement (desktop)
+    let mouseMoveTimeout;
+    document.addEventListener('mousemove', () => {
+      showControls();
+      clearTimeout(mouseMoveTimeout);
+      mouseMoveTimeout = setTimeout(() => {
+        // Don't auto-hide on desktop, just when they stop moving
+      }, 100);
+    });
+
+    // Hide button and undo button: use touchend + click with stopPropagation
+    // to prevent body touchend handler (which calls preventDefault) from blocking clicks
+    const hideBtnEl = document.getElementById('hideBtn');
+    const undoHideBtnEl = document.getElementById('undoHideBtn');
+
+    hideBtnEl.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (!hideBtnEl.disabled) hideCurrentPhoto();
+    });
+    hideBtnEl.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (!hideBtnEl.disabled) hideCurrentPhoto();
+    });
+
+    undoHideBtnEl.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      undoHide();
+    });
+    undoHideBtnEl.addEventListener('click', (e) => {
+      e.stopPropagation();
+      undoHide();
+    });
+
+    // Initialize on load
+    init();
+
+    // Show controls briefly on load so user knows they exist
+    setTimeout(() => {
+      showControls();
+    }, 500);
+
+    // Keyboard controls
+    document.addEventListener('keydown', (e) => {
+      if (e.key === ' ' || e.key === 'Spacebar') {
+        e.preventDefault();
+        togglePlayPause();
+      } else if (e.key === 'p' || e.key === 'P') {
+        togglePlayPause();
+      } else if (e.key === 's' || e.key === 'S') {
+        nextPhoto();
+      } else if (e.key === 'ArrowRight') {
+        nextPhoto();
+      } else if (e.key === 'ArrowLeft') {
+        previousPhoto();
+      } else if (e.key === 'Escape') {
+        exitSlideshow();
+      }
+    });
+
+    window.addEventListener('beforeunload', () => {
+      stopClock();
+    });
+
+    // Register Service Worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js')
+        .then((registration) => {
+          console.log('Service Worker registered:', registration.scope);
+        })
+        .catch((error) => {
+          console.error('Service Worker registration failed:', error);
+        });
+    }
+
+    // Initialize Lucide icons
+    lucide.createIcons();
+
+    // Re-initialize icons when play/pause state changes
+    const originalTogglePlayPause = togglePlayPause;
+    window.togglePlayPause = function () {
+      originalTogglePlayPause();
+      const icon = isPlaying ? 'pause' : 'play';
+      const text = isPlaying ? ' Pause' : ' Play';
+      playPauseBtn.innerHTML = `<i data-lucide="${icon}"></i>${text}`;
+      lucide.createIcons();
+    };
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Okno Demo</title>
+
+  <!-- PWA Configuration -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Okno">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="stylesheet" href="/vendor/inter.css">
+
+  <!-- NoSleep.js required for iOS PWAs - Wake Lock API broken until iOS 18.4 (WebKit bug #254545) -->
+  <script src="/vendor/nosleep.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #000;
+      color: #fff;
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    #slideshow {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .photo {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: 0;
+      transition: opacity var(--transition-time, 1s) ease-in-out;
+    }
+
+    .photo.contain-mode {
+      object-fit: contain;
+    }
+
+    .photo.active {
+      opacity: 1;
+      z-index: 1;
+    }
+
+    .photo.preload {
+      z-index: 0;
+    }
+
+    /* Dual portrait mode: 2 photos side-by-side */
+    .photo.dual-left {
+      width: 50%;
+      left: 0;
+    }
+
+    .photo.dual-right {
+      width: 50%;
+      left: 50%;
+    }
+
+    #loading {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      z-index: 10;
+    }
+
+    #loading.hidden {
+      display: none;
+    }
+
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 4px solid rgba(255, 255, 255, 0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 1rem;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* Ken Burns presets -- cycled, never randomized chaotically */
+    @keyframes kb-zoom-in-center {
+      from { transform: scale(1.0); }
+      to   { transform: scale(1.08); }
+    }
+
+    @keyframes kb-zoom-in-tl {
+      from { transform: scale(1.0) translate(0, 0); }
+      to   { transform: scale(1.08) translate(-1%, -0.5%); }
+    }
+
+    @keyframes kb-zoom-in-br {
+      from { transform: scale(1.0) translate(0, 0); }
+      to   { transform: scale(1.08) translate(1%, 0.5%); }
+    }
+
+    @keyframes kb-zoom-out-center {
+      from { transform: scale(1.08); }
+      to   { transform: scale(1.0); }
+    }
+
+    @keyframes kb-drift-right {
+      from { transform: scale(1.0) translate(0, 0); }
+      to   { transform: scale(1.04) translate(1.5%, 0); }
+    }
+
+    @keyframes kb-drift-left {
+      from { transform: scale(1.0) translate(0, 0); }
+      to   { transform: scale(1.04) translate(-1.5%, 0); }
+    }
+
+    .photo.kenburns {
+      will-change: transform;
+      animation-timing-function: ease-in-out;
+      animation-fill-mode: forwards;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .photo.kenburns {
+        animation: none !important;
+        transform: none !important;
+        will-change: auto;
+      }
+    }
+
+    #error {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      max-width: 500px;
+      padding: 2rem;
+      background: rgba(231, 76, 60, 0.1);
+      border: 1px solid rgba(231, 76, 60, 0.3);
+      border-radius: 8px;
+      display: none;
+      z-index: 10;
+    }
+
+    #error.visible {
+      display: block;
+    }
+
+    /* Progress Bar */
+    #progressBarContainer {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.1);
+      z-index: 50;
+    }
+
+    #progressBar {
+      height: 100%;
+      background: linear-gradient(90deg, #8FB5A5 0%, #7DA594 100%);
+      width: 0%;
+      transition: width 100ms linear;
+    }
+
+    /* Blur background wrapper -- contains blur-bg + foreground photo */
+    .photo-wrapper {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      transition: opacity var(--transition-time, 1s) ease-in-out;
+    }
+
+    .photo-wrapper.active {
+      opacity: 1;
+      z-index: 1;
+    }
+
+    .photo-wrapper.preload {
+      z-index: 0;
+    }
+
+    .photo-wrapper .photo {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      opacity: 1;
+      transition: none;
+      z-index: 1;
+    }
+
+    .photo-bg {
+      position: absolute;
+      top: -5%;
+      left: -5%;
+      width: 110%;
+      height: 110%;
+      background-size: cover;
+      background-position: center;
+      filter: blur(20px) brightness(0.7);
+      transform: translate3d(0, 0, 0); /* REQUIRED: forces Safari GPU acceleration */
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    /* Slideshow overlays -- always visible when enabled, unobtrusive */
+    .slideshow-overlay {
+      position: fixed;
+      z-index: 30;
+      color: rgba(255, 255, 255, 0.85);
+      text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+      pointer-events: none;
+      transition: opacity 0.5s;
+      opacity: 0;
+    }
+
+    .slideshow-overlay.visible {
+      opacity: 1;
+    }
+
+    #photoDateOverlay {
+      bottom: max(2rem, env(safe-area-inset-bottom, 0px));
+      left: max(2rem, env(safe-area-inset-left, 0px));
+      font-size: 0.875rem;
+      font-weight: 400;
+    }
+
+    #clockOverlay {
+      bottom: max(2rem, env(safe-area-inset-bottom, 0px));
+      right: max(2rem, env(safe-area-inset-right, 0px));
+      font-size: 1.25rem;
+      font-weight: 300;
+    }
+
+    /* End-of-demo CTA overlay */
+    #endOfDemoCTA {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 100;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(20px);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      animation: ctaFadeIn 0.6s ease-out;
+    }
+
+    @keyframes ctaFadeIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+
+    .cta-title {
+      font-size: 1.8rem;
+      font-weight: 300;
+      color: #fff;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.5rem;
+    }
+
+    .cta-subtitle {
+      font-size: 1rem;
+      color: rgba(255, 255, 255, 0.6);
+      margin-bottom: 2rem;
+    }
+
+    .cta-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .cta-btn {
+      border: none;
+      border-radius: 12px;
+      padding: 14px 32px;
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: transform 0.2s, opacity 0.2s;
+      min-width: 220px;
+      text-align: center;
+      font-family: inherit;
+    }
+
+    .cta-btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .cta-btn:active {
+      transform: translateY(0);
+    }
+
+    .cta-btn-primary {
+      background: linear-gradient(135deg, #9AC0AF, #8FB5A5);
+      color: #fff;
+      box-shadow: 0 4px 16px rgba(154, 192, 175, 0.3);
+    }
+
+    .cta-btn-secondary {
+      background: transparent;
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .cta-btn-secondary:hover {
+      border-color: rgba(255, 255, 255, 0.5);
+    }
+  </style>
+</head>
+
+<body>
+  <div id="loading">
+    <div class="spinner"></div>
+    <p>Loading demo photos...</p>
+  </div>
+
+  <div id="error">
+    <h2>Error</h2>
+    <p id="errorMessage"></p>
+    <button onclick="window.location.href='/'">Back to Home</button>
+  </div>
+
+  <div id="slideshow"></div>
+
+  <!-- DEMO badge + exit link (top-right, always visible) -->
+  <div style="
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  ">
+    <div style="
+      background: rgba(0, 0, 0, 0.55);
+      backdrop-filter: blur(12px);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.85);
+      letter-spacing: 0.05em;
+      pointer-events: none;
+    ">DEMO</div>
+    <a href="/login" style="
+      background: rgba(0, 0, 0, 0.55);
+      backdrop-filter: blur(12px);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.85);
+      letter-spacing: 0.02em;
+      text-decoration: none;
+      transition: background 0.2s;
+    " onmouseover="this.style.background='rgba(0,0,0,0.75)'" onmouseout="this.style.background='rgba(0,0,0,0.55)'">Try it →</a>
+  </div>
+
+  <!-- Photo date overlay (bottom-left, always visible when enabled) -->
+  <div id="photoDateOverlay" class="slideshow-overlay"></div>
+
+  <!-- Clock overlay (bottom-right, always visible when enabled) -->
+  <div id="clockOverlay" class="slideshow-overlay"></div>
+
+  <!-- Progress Bar -->
+  <div id="progressBarContainer">
+    <div id="progressBar"></div>
+  </div>
+
+  <!-- End-of-demo CTA overlay -->
+  <div id="endOfDemoCTA">
+    <div class="cta-title">That's a taste of Okno</div>
+    <div class="cta-subtitle">Your own photos would look even better.</div>
+    <div class="cta-buttons">
+      <button class="cta-btn cta-btn-primary" onclick="window.location.href='/'">Use your own photos</button>
+      <button class="cta-btn cta-btn-secondary" onclick="restartDemo()">Watch again</button>
+    </div>
+  </div>
+
+  <script>
+    const slideshowEl = document.getElementById('slideshow');
+    const loadingEl = document.getElementById('loading');
+    const errorEl = document.getElementById('error');
+    const errorMessageEl = document.getElementById('errorMessage');
+
+    // Demo mode defaults (per context decision: Ken Burns ON, blur ON, photo date ON, clock OFF)
+    let currentIntervalSeconds = 8;
+    let displayMode = 'contain'; // Show full photos to demo the blur background effect
+    let onThisDayEnabled = false;
+    let portraitPairsEnabled = true; // Showcase portrait pairs feature
+    let kenBurnsEnabled = true;
+    let blurredBackgroundEnabled = true;
+    let showPhotoDateEnabled = true;
+    let showClockEnabled = false;
+
+    let currentIndex = 0;
+    let isPlaying = true;
+    let intervalHandle = null;
+    let pendingPortrait = null; // For dual portrait pairing
+
+    // Demo one-cycle tracking
+    let demoPhotosDisplayed = 0; // Count total displays (not unique -- random endpoint may repeat)
+    let totalDemoPhotos = 0; // Set from /api/demo/health response
+
+    // Ken Burns state
+    const KB_PRESETS = ['kb-zoom-in-center', 'kb-zoom-in-tl', 'kb-zoom-in-br',
+                        'kb-zoom-out-center', 'kb-drift-right', 'kb-drift-left'];
+    let lastPresetIndex = -1;
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+    // Visual effects and overlay state
+    let clockIntervalId = null;
+
+    // Screen wake lock using NoSleep.js (Wake Lock API broken in iOS PWAs)
+    let noSleep = null;
+    try {
+      if (typeof NoSleep !== 'undefined') {
+        noSleep = new NoSleep();
+        console.log('NoSleep.js initialized');
+      } else {
+        console.warn('NoSleep.js not loaded - wake lock will be unavailable');
+      }
+    } catch (e) {
+      console.error('Failed to initialize NoSleep:', e);
+    }
+
+    let wakeLockEnabled = false;
+
+    function enableWakeLock() {
+      if (!wakeLockEnabled && noSleep) {
+        try {
+          noSleep.enable();
+          wakeLockEnabled = true;
+          console.log('Screen wake lock enabled via NoSleep.js');
+        } catch (e) {
+          console.error('Failed to enable wake lock:', e);
+        }
+      }
+    }
+
+    // Ken Burns helpers
+    function shouldApplyKenBurns() {
+      return kenBurnsEnabled && !prefersReducedMotion.matches;
+    }
+
+    function nextKenBurnsPreset() {
+      let index;
+      do {
+        index = Math.floor(Math.random() * KB_PRESETS.length);
+      } while (index === lastPresetIndex);
+      lastPresetIndex = index;
+      return KB_PRESETS[index];
+    }
+
+    function applyKenBurns(photoEl) {
+      if (!shouldApplyKenBurns()) return;
+      const preset = nextKenBurnsPreset();
+      photoEl.classList.add('kenburns');
+      photoEl.style.animationName = preset;
+      photoEl.style.animationDuration = currentIntervalSeconds + 's';
+    }
+
+    function stopKenBurns(photoEl) {
+      photoEl.style.animation = 'none';
+      photoEl.style.transform = 'none';
+      photoEl.classList.remove('kenburns');
+    }
+
+    // GPU teardown: stop animations, de-promote layers, revoke blob URLs, remove from DOM
+    function teardownAndRemove(element) {
+      element.style.animation = 'none';
+      element.style.transform = 'none';
+      element.style.willChange = 'auto';
+      const img = element.tagName === 'IMG' ? element : element.querySelector('.photo');
+      if (img && img.src && img.src.startsWith('blob:')) {
+        URL.revokeObjectURL(img.src);
+      }
+      element.remove();
+    }
+
+    // Blur background helpers
+    function createTinyBlurDataUri(imgElement) {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = 32;
+        canvas.height = 24;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(imgElement, 0, 0, 32, 24);
+        return canvas.toDataURL('image/jpeg', 0.4);
+      } catch (e) {
+        console.warn('Failed to create blur thumbnail:', e);
+        return null;
+      }
+    }
+
+    function wrapWithBlurBackground(img) {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'photo-wrapper preload';
+
+      const bg = document.createElement('div');
+      bg.className = 'photo-bg';
+
+      const dataUri = createTinyBlurDataUri(img);
+      if (dataUri) {
+        bg.style.backgroundImage = `url(${dataUri})`;
+      }
+
+      img.className = 'photo';
+
+      wrapper.appendChild(bg);
+      wrapper.appendChild(img);
+
+      return wrapper;
+    }
+
+    // Photo date overlay
+    function formatPhotoDate(createTimeISO) {
+      if (!createTimeISO) return null;
+      try {
+        const d = new Date(createTimeISO);
+        if (isNaN(d.getTime())) return null;
+        return d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+      } catch {
+        return null;
+      }
+    }
+
+    function updatePhotoDateOverlay(createTimeISO) {
+      const el = document.getElementById('photoDateOverlay');
+      if (!showPhotoDateEnabled) {
+        el.classList.remove('visible');
+        return;
+      }
+      const formatted = formatPhotoDate(createTimeISO);
+      if (formatted) {
+        el.textContent = formatted;
+        el.classList.add('visible');
+      } else {
+        el.classList.remove('visible');
+      }
+    }
+
+    // Clock overlay
+    function updateClock() {
+      const el = document.getElementById('clockOverlay');
+      if (!showClockEnabled) {
+        el.classList.remove('visible');
+        return;
+      }
+      const now = new Date();
+      el.textContent = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+      el.classList.add('visible');
+    }
+
+    function startClock() {
+      if (clockIntervalId) clearInterval(clockIntervalId);
+      updateClock();
+      clockIntervalId = setInterval(updateClock, 60000);
+    }
+
+    function stopClock() {
+      if (clockIntervalId) {
+        clearInterval(clockIntervalId);
+        clockIntervalId = null;
+      }
+    }
+
+    // Respond to OS-level reduced motion preference changes at runtime
+    prefersReducedMotion.addEventListener('change', (e) => {
+      if (e.matches) {
+        document.querySelectorAll('.photo.kenburns').forEach(el => {
+          stopKenBurns(el);
+        });
+      }
+    });
+
+    // Demo one-cycle tracking
+    function onDemoPhotoDisplayed() {
+      demoPhotosDisplayed++;
+      if (totalDemoPhotos > 0 && demoPhotosDisplayed >= totalDemoPhotos) {
+        // Wait for current photo's display time, then show CTA
+        setTimeout(showEndOfDemoCTA, currentIntervalSeconds * 1000);
+      }
+    }
+
+    function showEndOfDemoCTA() {
+      // Stop the slideshow interval
+      if (intervalHandle) {
+        clearInterval(intervalHandle);
+        intervalHandle = null;
+      }
+      isPlaying = false;
+      stopClock();
+      stopProgressBar();
+
+      // Show the CTA overlay with fade-in
+      const cta = document.getElementById('endOfDemoCTA');
+      cta.style.display = 'flex';
+    }
+
+    function restartDemo() {
+      const cta = document.getElementById('endOfDemoCTA');
+      cta.style.display = 'none';
+      demoPhotosDisplayed = 0;
+      isPlaying = true;
+      startSlideshow();
+    }
+
+    // Exponential backoff retry for network resilience
+    async function fetchWithRetry(url, maxRetries = 7) {
+      for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+          const response = await fetch(url);
+
+          // 4xx errors are intentional, not transient -- return immediately
+          if (response.status >= 400 && response.status < 500) {
+            return response;
+          }
+
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          return response;
+        } catch (error) {
+          if (attempt === maxRetries) {
+            console.error(`Fetch failed after ${maxRetries} retries:`, error);
+            throw error;
+          }
+
+          // Exponential backoff: 10ms, 20ms, 40ms, 80ms, 160ms, 320ms, 640ms
+          const baseDelay = Math.pow(2, attempt) * 10;
+          const jitter = Math.random() * baseDelay * 0.1;
+          const delay = baseDelay + jitter;
+
+          console.log(`Retry ${attempt + 1}/${maxRetries} after ${delay.toFixed(0)}ms`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+    }
+
+    async function init() {
+      try {
+        // Get demo photo count
+        const healthRes = await fetch('/api/demo/health');
+        const health = await healthRes.json();
+
+        if (!health.cache || health.cache.totalItems === 0) {
+          showError('No demo photos available');
+          return;
+        }
+
+        totalDemoPhotos = health.cache.totalItems;
+
+        // Hide loading
+        loadingEl.classList.add('hidden');
+
+        // Enable screen wake lock
+        enableWakeLock();
+
+        // Load first photo
+        await loadPhoto(0);
+
+        // Start slideshow
+        startSlideshow();
+
+        // Start clock if enabled (it's not by default in demo)
+        startClock();
+
+      } catch (error) {
+        console.error('Demo initialization failed:', error);
+        showError(error.message);
+      }
+    }
+
+    async function loadPhoto(index) {
+      try {
+        const img = await createPhotoElement();
+
+        if (!img) {
+          console.warn('Skipping photo due to load failure - keeping previous photo visible');
+          return;
+        }
+
+        // Check if portrait (taller than wide)
+        const isPortrait = img.naturalHeight > img.naturalWidth;
+
+        // Portrait pairs: when enabled and photo is portrait, fetch a guaranteed portrait companion
+        if (portraitPairsEnabled && isPortrait) {
+          const companion = await createPhotoElement();
+          if (companion && companion.naturalHeight > companion.naturalWidth) {
+            await showDualPortraits(img, companion);
+            return;
+          } else if (companion) {
+            // Companion is landscape -- show both as singles sequentially
+            await showSinglePhoto(img);
+            // Queue companion as next
+            setTimeout(() => showSinglePhoto(companion), 100);
+            return;
+          }
+          // If companion fetch failed, show single photo
+        }
+
+        pendingPortrait = null;
+        await showSinglePhoto(img);
+
+      } catch (error) {
+        console.error('Failed to load photo:', error);
+      }
+    }
+
+    async function createPhotoElement() {
+      const img = document.createElement('img');
+      img.alt = '';
+      img.className = 'photo preload';
+
+      try {
+        const url = `/api/demo/random?t=${Date.now()}`;
+
+        let response;
+        try {
+          response = await fetchWithRetry(url);
+        } catch (err) {
+          throw err;
+        }
+
+        if (response.status >= 400 && response.status < 500) {
+          console.error(`Client error: HTTP ${response.status}`);
+          return null;
+        }
+
+        // Extract photo metadata from headers
+        const photoId = response.headers.get('X-Photo-Id');
+        const createTime = response.headers.get('X-Photo-CreateTime');
+
+        const blob = await response.blob();
+        img.src = URL.createObjectURL(blob);
+        img.dataset.createTime = createTime || '';
+        img.dataset.photoId = photoId || '';
+
+        // Apply display mode class
+        if (displayMode === 'contain') {
+          img.classList.add('contain-mode');
+        }
+
+        // Wait for image to load
+        await new Promise((resolve, reject) => {
+          img.onload = resolve;
+          img.onerror = reject;
+        });
+
+        // Track demo photo for one-cycle completion
+        onDemoPhotoDisplayed();
+
+        return img;
+      } catch (error) {
+        console.error('Failed to load photo after retries:', error);
+        return null;
+      }
+    }
+
+    async function showSinglePhoto(img) {
+      // STEP 1: Stop Ken Burns on ALL current photos BEFORE crossfade
+      slideshowEl.querySelectorAll('.photo.kenburns').forEach(el => {
+        stopKenBurns(el);
+      });
+
+      // Determine if we should use blur wrapper
+      const useBlur = blurredBackgroundEnabled && displayMode !== 'cover';
+
+      let displayElement;
+
+      if (useBlur) {
+        displayElement = wrapWithBlurBackground(img);
+      } else {
+        displayElement = img;
+        if (!img.classList.contains('preload')) {
+          img.classList.add('preload');
+        }
+      }
+
+      // Remove old elements that aren't active (cleanup from >1 cycle ago)
+      const oldElements = slideshowEl.querySelectorAll('.photo-wrapper, .photo');
+      oldElements.forEach(el => {
+        if (el.closest('.photo-wrapper.active')) return;
+        if (el.classList.contains('active') || el.classList.contains('preload')) return;
+        teardownAndRemove(el);
+      });
+
+      slideshowEl.appendChild(displayElement);
+
+      // STEP 2: Trigger crossfade
+      setTimeout(() => {
+        slideshowEl.querySelectorAll('.photo-wrapper.active, .photo.active').forEach(el => {
+          el.classList.remove('active');
+        });
+
+        displayElement.classList.add('active');
+        displayElement.classList.remove('preload');
+
+        currentIndex++;
+
+        // Update overlays
+        const photoImg = useBlur ? displayElement.querySelector('.photo') : displayElement;
+        updatePhotoDateOverlay(photoImg.dataset.createTime);
+
+        // STEP 3: Start Ken Burns on the photo (inner img if wrapped)
+        setTimeout(() => {
+          const targetImg = useBlur ? displayElement.querySelector('.photo') : displayElement;
+          applyKenBurns(targetImg);
+        }, 100);
+
+        // STEP 4: Clean up old elements after transition completes
+        setTimeout(() => {
+          const oldWrappers = slideshowEl.querySelectorAll('.photo-wrapper:not(.active)');
+          oldWrappers.forEach(w => teardownAndRemove(w));
+          const oldPhotos = slideshowEl.querySelectorAll('.photo:not(.active)');
+          oldPhotos.forEach(p => {
+            if (p.closest('.photo-wrapper.active')) return;
+            teardownAndRemove(p);
+          });
+        }, 1500);
+      }, 50);
+    }
+
+    async function showDualPortraits(img1, img2) {
+      // STEP 1: Stop Ken Burns on ALL current photos BEFORE crossfade
+      slideshowEl.querySelectorAll('.photo.kenburns').forEach(el => {
+        stopKenBurns(el);
+      });
+
+      // Remove old photos that aren't active (cleanup from >1 cycle ago)
+      const oldPhotos = slideshowEl.querySelectorAll('.photo');
+      oldPhotos.forEach(photo => {
+        if (!photo.classList.contains('active') && !photo.classList.contains('preload')) {
+          teardownAndRemove(photo);
+        }
+      });
+
+      // Position photos side-by-side
+      img1.classList.add('dual-left');
+      img2.classList.add('dual-right');
+
+      slideshowEl.appendChild(img1);
+      slideshowEl.appendChild(img2);
+
+      // STEP 2: Trigger crossfade
+      setTimeout(() => {
+        const allPhotos = slideshowEl.querySelectorAll('.photo');
+        allPhotos.forEach(photo => photo.classList.remove('active'));
+
+        img1.classList.add('active');
+        img2.classList.add('active');
+        img1.classList.remove('preload');
+        img2.classList.remove('preload');
+
+        currentIndex += 2;
+
+        // Update photo date from left portrait
+        updatePhotoDateOverlay(img1.dataset.createTime);
+
+        // STEP 3: Start Ken Burns on EACH portrait independently (different presets)
+        setTimeout(() => {
+          applyKenBurns(img1);
+          applyKenBurns(img2);
+        }, 100);
+
+        // STEP 4: Clean up old photos after transition completes
+        setTimeout(() => {
+          const oldPhotos = slideshowEl.querySelectorAll('.photo:not(.active)');
+          oldPhotos.forEach(photo => {
+            teardownAndRemove(photo);
+          });
+        }, 1500);
+      }, 50);
+    }
+
+    // Progress bar state
+    const progressBarEl = document.getElementById('progressBar');
+
+    function startProgressBar() {
+      stopProgressBar();
+      progressBarEl.style.transition = 'none';
+      progressBarEl.style.width = '0%';
+      progressBarEl.offsetWidth; // Force reflow
+      progressBarEl.style.transition = `width ${currentIntervalSeconds}s linear`;
+      progressBarEl.style.width = '100%';
+    }
+
+    function stopProgressBar() {
+      const computed = getComputedStyle(progressBarEl);
+      progressBarEl.style.transition = 'none';
+      progressBarEl.style.width = computed.width;
+    }
+
+    function startSlideshow() {
+      if (intervalHandle) {
+        clearInterval(intervalHandle);
+      }
+      const intervalMs = currentIntervalSeconds * 1000;
+      intervalHandle = setInterval(() => {
+        if (isPlaying) {
+          loadPhoto(currentIndex);
+          startProgressBar();
+        }
+      }, intervalMs);
+      isPlaying = true;
+      startProgressBar();
+    }
+
+    function showError(message) {
+      loadingEl.classList.add('hidden');
+      errorMessageEl.textContent = message;
+      errorEl.classList.add('visible');
+    }
+
+    // Initialize on load
+    init();
+
+    window.addEventListener('beforeunload', () => {
+      stopClock();
+    });
+
+    // Register Service Worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js')
+        .then((registration) => {
+          console.log('Service Worker registered:', registration.scope);
+        })
+        .catch((error) => {
+          console.error('Service Worker registration failed:', error);
+        });
+    }
+  </script>
+</body>
+
+</html>

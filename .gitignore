@@ -1,0 +1,14 @@
+node_modules/
+tokens.json
+sessions/
+logs/
+.env
+cache.json
+config.json
+.op-service-token
+okno.env
+feedback/
+demo-originals/
+data/
+*.migrated
+.gstack/

@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Okno - A Window in Time</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Okno">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="/vendor/inter.css">
+  <script src="/vendor/lucide.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #F0F0F3;
+      color: #4A5A52;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* Subtle background pattern - neumorphic style */
+    body::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-image: radial-gradient(circle at 20% 50%, rgba(143, 181, 165, 0.02) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(122, 148, 135, 0.03) 0%, transparent 50%);
+      pointer-events: none;
+    }
+
+    .container {
+      max-width: 480px;
+      text-align: center;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Window Icon - Neumorphic */
+    .window-icon {
+      width: 64px;
+      height: 64px;
+      margin: 0 auto 24px;
+      background: #F0F0F3;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      box-shadow: -8px -8px 20px #FFFFFF,
+        8px 8px 20px rgba(174, 174, 192, 0.4);
+      animation: float 6s ease-in-out infinite;
+      overflow: hidden;
+    }
+
+    .window-icon img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      padding: 12px;
+    }
+
+    @keyframes float {
+
+      0%,
+      100% {
+        transform: translateY(0px);
+      }
+
+      50% {
+        transform: translateY(-10px);
+      }
+    }
+
+    h1 {
+      font-size: 3.5rem;
+      margin-bottom: 8px;
+      font-weight: 300;
+      letter-spacing: 0.15em;
+      background: linear-gradient(135deg, #4A5A52 0%, #5A6B62 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .tagline {
+      font-size: 1.125rem;
+      font-weight: 400;
+      font-style: italic;
+      color: #7A9487;
+      margin-bottom: 40px;
+      letter-spacing: 0.03em;
+    }
+
+    .hero-copy {
+      font-size: 1rem;
+      line-height: 1.7;
+      color: #6E7F76;
+      margin-bottom: 32px;
+      max-width: 400px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .trust-signals {
+      display: flex;
+      justify-content: center;
+      gap: 24px;
+      margin: 32px 0;
+      font-size: 0.813rem;
+      color: #6E7F76;
+      flex-wrap: wrap;
+    }
+
+    .trust-signals span {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      background: rgba(143, 181, 165, 0.06);
+      border-radius: 20px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .trust-signals span:hover {
+      background: rgba(143, 181, 165, 0.12);
+      transform: translateY(-2px);
+    }
+
+    /* Neumorphic Status Cards */
+    .status {
+      margin: 32px 0;
+      padding: 20px 24px;
+      background: #F0F0F3;
+      border-radius: 16px;
+      font-size: 1rem;
+      font-weight: 500;
+      color: #5A6B62;
+      box-shadow: inset -4px -4px 8px rgba(174, 174, 192, 0.15),
+        inset 4px 4px 8px #FFFFFF,
+        -2px -2px 6px #FFFFFF,
+        2px 2px 6px rgba(174, 174, 192, 0.2);
+    }
+
+    .status.authenticated {
+      color: #4A5A52;
+      box-shadow: inset -5px -5px 10px rgba(143, 181, 165, 0.15),
+        inset 5px 5px 10px rgba(255, 255, 255, 0.8),
+        -2px -2px 6px #FFFFFF,
+        2px 2px 6px rgba(143, 181, 165, 0.25);
+    }
+
+    .status.error {
+      color: #8B6F66;
+      box-shadow: inset -5px -5px 10px rgba(184, 134, 123, 0.15),
+        inset 5px 5px 10px rgba(255, 255, 255, 0.8),
+        -2px -2px 6px #FFFFFF,
+        2px 2px 6px rgba(184, 134, 123, 0.2);
+    }
+
+    /* Neumorphic Buttons */
+    button {
+      background: #F0F0F3;
+      color: #4A5A52;
+      border: none;
+      padding: 14px 28px;
+      font-size: 0.938rem;
+      font-weight: 500;
+      border-radius: 12px;
+      cursor: pointer;
+      margin: 6px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      letter-spacing: -0.01em;
+      box-shadow: -6px -6px 16px #FFFFFF,
+        6px 6px 16px rgba(174, 174, 192, 0.4);
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: -8px -8px 20px #FFFFFF,
+        8px 8px 20px rgba(174, 174, 192, 0.5);
+    }
+
+    button:active {
+      transform: translateY(0);
+      box-shadow: inset -4px -4px 8px rgba(174, 174, 192, 0.2),
+        inset 4px 4px 8px #FFFFFF;
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* Primary Button - Refined Raised Style */
+    button.primary {
+      padding: 18px 40px;
+      font-size: 1.063rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      background: linear-gradient(145deg, #9AC0AF, #8FB5A5);
+      color: #FFFFFF;
+      border: none;
+      border-radius: 14px;
+      box-shadow: -6px -6px 16px rgba(255, 255, 255, 0.6),
+        6px 6px 16px rgba(143, 181, 165, 0.4);
+      margin: 24px 6px 12px;
+    }
+
+    button.primary:hover {
+      transform: translateY(-2px);
+      background: linear-gradient(145deg, #8FB5A5, #7DA594);
+      box-shadow: -8px -8px 20px rgba(255, 255, 255, 0.7),
+        8px 8px 20px rgba(143, 181, 165, 0.5);
+    }
+
+    button.primary:active {
+      transform: translateY(0);
+      box-shadow: -4px -4px 12px rgba(255, 255, 255, 0.5),
+        4px 4px 12px rgba(143, 181, 165, 0.3);
+    }
+
+    button.secondary {
+      background: #F0F0F3;
+      color: #5A6B62;
+      border: none;
+      font-size: 0.938rem;
+      padding: 12px 24px;
+      box-shadow: -4px -4px 10px rgba(255, 255, 255, 0.8),
+        4px 4px 10px rgba(174, 174, 192, 0.3);
+    }
+
+    button.secondary:hover {
+      transform: translateY(-2px);
+      box-shadow: -6px -6px 14px rgba(255, 255, 255, 0.9),
+        6px 6px 14px rgba(174, 174, 192, 0.4);
+    }
+
+    button.secondary:active {
+      transform: translateY(0);
+      box-shadow: -3px -3px 8px rgba(255, 255, 255, 0.7),
+        3px 3px 8px rgba(174, 174, 192, 0.25);
+    }
+
+    .picker-status {
+      margin-top: 24px;
+      padding: 20px 24px;
+      background: rgba(255, 255, 255, 0.6);
+      backdrop-filter: blur(12px);
+      border-radius: 14px;
+      display: none;
+      color: #5A6B62;
+      border: 1px solid rgba(143, 181, 165, 0.15);
+      box-shadow: inset 0 2px 4px rgba(143, 181, 165, 0.08),
+        0 4px 16px rgba(143, 181, 165, 0.08);
+    }
+
+    .picker-status.visible {
+      display: block;
+      animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .loading {
+      display: inline-block;
+      width: 18px;
+      height: 18px;
+      border: 2.5px solid rgba(143, 181, 165, 0.2);
+      border-top-color: #8FB5A5;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .links {
+      margin-top: 48px;
+      padding-top: 32px;
+      border-top: 1px solid rgba(143, 181, 165, 0.12);
+    }
+
+    .links a {
+      color: #6E7F76;
+      text-decoration: none;
+      margin: 0 16px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      letter-spacing: -0.01em;
+    }
+
+    .links a:hover {
+      color: #8FB5A5;
+      transform: translateY(-1px);
+    }
+
+    /* Empty state onboarding card */
+    .onboarding-card {
+      background: #F0F0F3;
+      border-radius: 16px;
+      padding: 28px 24px;
+      margin: 8px 0 24px;
+      text-align: left;
+      box-shadow: -6px -6px 16px rgba(255, 255, 255, 0.6),
+        6px 6px 16px rgba(174, 174, 192, 0.3);
+    }
+
+    .onboarding-card .card-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #4A5A52;
+      margin-bottom: 10px;
+    }
+
+    .onboarding-card .card-body {
+      font-size: 0.875rem;
+      line-height: 1.65;
+      color: #6E7F76;
+    }
+
+    /* iPad setup collapsible section */
+    .ipad-section {
+      background: #F0F0F3;
+      border-radius: 16px;
+      margin: 8px 0;
+      box-shadow: -4px -4px 10px rgba(255, 255, 255, 0.6),
+        4px 4px 10px rgba(174, 174, 192, 0.25);
+      overflow: hidden;
+    }
+
+    .ipad-section summary {
+      padding: 16px 20px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: #5A6B62;
+      cursor: pointer;
+      list-style: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      user-select: none;
+    }
+
+    .ipad-section summary::-webkit-details-marker { display: none; }
+
+    .ipad-section summary::after {
+      content: '+';
+      font-size: 1.1rem;
+      color: #8FB5A5;
+      font-weight: 400;
+      transition: transform 0.2s;
+    }
+
+    .ipad-section[open] summary::after {
+      content: '\2212';
+    }
+
+    .ipad-section .ipad-body {
+      padding: 0 20px 20px;
+      font-size: 0.875rem;
+      line-height: 1.65;
+      color: #6E7F76;
+      text-align: left;
+    }
+
+    .ipad-section .ipad-body ol {
+      padding-left: 20px;
+      margin-top: 8px;
+    }
+
+    .ipad-section .ipad-body li {
+      margin-bottom: 6px;
+    }
+
+    /* Sign Out button — muted terracotta, consistent with neumorphic system */
+    button.sign-out-btn {
+      color: #B8867B;
+    }
+
+    button.sign-out-btn:hover {
+      color: #A06B60;
+    }
+
+    /* Focus visible outline for keyboard nav */
+    a:focus-visible,
+    button:focus-visible {
+      outline: 2px solid #8FB5A5;
+      outline-offset: 2px;
+    }
+
+    /* Footer links — adequate tap target */
+    .links a {
+      padding: 12px 0;
+      display: inline-block;
+    }
+
+    .photo-count {
+      font-size: 2.5rem;
+      font-weight: 300;
+      background: linear-gradient(135deg, #8FB5A5 0%, #7A9487 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin: 16px 0;
+      letter-spacing: -0.02em;
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="window-icon">
+      <img src="/logo.svg" alt="Okno Logo"
+        onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%238FB5A5\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3E%3Crect x=\'3\' y=\'3\' width=\'18\' height=\'18\' rx=\'2\' ry=\'2\' /%3E%3Cline x1=\'3\' y1=\'9\' x2=\'21\' y2=\'9\' /%3E%3Cline x1=\'9\' y1=\'21\' x2=\'9\' y2=\'9\' /%3E%3C/svg%3E'">
+    </div>
+    <h1>OKNO</h1>
+    <p class="tagline">A Window in Time</p>
+
+    <div id="heroContent">
+      <p class="hero-copy">
+        Your memories, always visible.<br>
+        A quiet presence on your shelf.
+      </p>
+    </div>
+
+    <div id="status" class="status">
+      <div class="loading"></div> Checking authentication...
+    </div>
+
+    <div id="actions"></div>
+
+    <div id="pickerStatus" class="picker-status"></div>
+
+    <div class="links">
+      <a href="/settings.html"><i data-lucide="settings"
+          style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;"></i>Settings</a>
+      <a href="https://github.com/samshennan/okno/issues" target="_blank" rel="noopener noreferrer"><i data-lucide="github"
+          style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;"></i>Report an issue</a>
+    </div>
+  </div>
+
+  <script>
+    // Edit this URL if you fork the repo
+    const REPO_ISSUES_URL = 'https://github.com/samshennan/okno/issues';
+
+    const statusEl = document.getElementById('status');
+    const actionsEl = document.getElementById('actions');
+    const pickerStatusEl = document.getElementById('pickerStatus');
+
+    let pickerWindow = null;
+    let pollInterval = null;
+    let pickerCountdownInterval = null;
+
+    // Picker session countdown timer
+    // Parses timeout string (e.g. "600s") and displays a live countdown
+    function startPickerCountdown(timeoutStr) {
+      // Clear any existing countdown
+      if (pickerCountdownInterval) {
+        clearInterval(pickerCountdownInterval);
+        pickerCountdownInterval = null;
+      }
+
+      // Parse timeout string (format: "600s"), default 600 seconds
+      const match = String(timeoutStr || '').match(/^(\d+)s$/);
+      let remaining = match ? parseInt(match[1], 10) : 600;
+
+      // Create countdown element
+      const el = document.createElement('div');
+      el.id = 'pickerCountdown';
+      el.style.cssText = 'font-family: inherit; font-size: 0.85rem; color: #5A6B62; margin-top: 12px; text-align: center;';
+
+      function formatTime(seconds) {
+        const m = Math.floor(seconds / 60);
+        const s = seconds % 60;
+        return m + ':' + String(s).padStart(2, '0');
+      }
+
+      function update() {
+        if (remaining <= 0) {
+          el.style.color = '#8B4444';
+          el.style.fontWeight = 'bold';
+          el.textContent = 'Session expired. Please start a new session.';
+          clearInterval(pickerCountdownInterval);
+          pickerCountdownInterval = null;
+          return;
+        }
+
+        el.textContent = 'Session expires in ' + formatTime(remaining);
+
+        if (remaining <= 60) {
+          el.style.color = '#8B4444';
+          el.style.fontWeight = 'bold';
+        }
+
+        remaining--;
+      }
+
+      // Initial render
+      update();
+
+      // Update every second
+      pickerCountdownInterval = setInterval(update, 1000);
+
+      return { element: el, interval: pickerCountdownInterval };
+    }
+
+    // Clean up picker countdown interval
+    function clearPickerCountdown() {
+      if (pickerCountdownInterval) {
+        clearInterval(pickerCountdownInterval);
+        pickerCountdownInterval = null;
+      }
+      const existing = document.getElementById('pickerCountdown');
+      if (existing) existing.remove();
+    }
+
+    // Check authentication status on load
+    async function checkAuth() {
+      try {
+        const res = await fetch('/auth/status');
+        const data = await res.json();
+
+        if (data.authenticated) {
+          // Hide hero copy when authenticated
+          document.getElementById('heroContent').style.display = 'none';
+
+          // Check if photos are cached
+          const healthRes = await fetch('/api/health');
+          const health = await healthRes.json();
+
+          if (health.cache && health.cache.totalItems > 0) {
+            statusEl.className = 'status authenticated';
+            statusEl.textContent = `${health.cache.totalItems} photos ready`;
+            actionsEl.innerHTML = `
+              <button class="primary" onclick="window.location.href='/slideshow.html'">Start Slideshow</button>
+              <br>
+              <button class="secondary" onclick="openPicker()">Change Photos</button>
+              <br><br>
+              <button class="secondary sign-out-btn" onclick="signOut()">Sign Out</button>
+            `;
+          } else {
+            statusEl.style.display = 'none';
+            actionsEl.innerHTML = `
+              <div class="onboarding-card">
+                <div class="card-title">Choose your photos</div>
+                <div class="card-body">
+                  Okno uses Google's official photo picker. You choose exactly which albums or photos to share — nothing else is visible to Okno. Your photos are cached on your own server and never sent anywhere else.
+                </div>
+              </div>
+              <button class="primary" onclick="openPicker()">Select Photos</button>
+              <br><br>
+              <details class="ipad-section">
+                <summary>Put it on the iPad</summary>
+                <div class="ipad-body">
+                  <p>Turn any iPad into a photo frame in a few steps.</p>
+                  <ol>
+                    <li>Open this page in Safari on the iPad.</li>
+                    <li>Tap the Share icon, then <strong>Add to Home Screen</strong>.</li>
+                    <li>Launch Okno from the home screen icon.</li>
+                    <li>Select your photos, then tap Start Slideshow.</li>
+                    <li>Optional: enable Guided Access to lock the iPad to Okno.</li>
+                  </ol>
+                  <p style="margin-top: 10px;">The screen stays awake automatically while the slideshow runs.</p>
+                </div>
+              </details>
+              <br>
+              <button class="secondary sign-out-btn" onclick="signOut()">Sign Out</button>
+            `;
+          }
+        } else {
+          // Safety net: server-side requireAuth already redirects to /login,
+          // but handle the edge case where this page loads without auth
+          window.location.href = '/login';
+          return;
+        }
+      } catch (error) {
+        statusEl.className = 'status error';
+        statusEl.textContent = 'Error checking authentication';
+        console.error('Auth check failed:', error);
+      }
+    }
+
+    async function openPicker() {
+      try {
+        // Clean up any previous countdown
+        clearPickerCountdown();
+
+        // Show loading state
+        pickerStatusEl.className = 'picker-status visible';
+        pickerStatusEl.innerHTML = '<div class="loading"></div> Creating picker session...';
+
+        // Create picker session
+        const res = await fetch('/api/picker/start', { method: 'POST' });
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data.error || 'Failed to create picker session');
+        }
+
+        // Detect if mobile/iPad (tabs) or desktop (popups)
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+        if (isMobile) {
+          // iPad opens picker in new tab - show instructions
+          pickerStatusEl.innerHTML = `
+            <p style="font-weight: 500; color: #4A5A52; margin-bottom: 12px;">Picker session ready</p>
+            <p style="font-size: 0.875rem; color: #6E7F76; margin-bottom: 16px; line-height: 1.6;">
+              1. Open Google Photos and select your photos.<br>
+              2. Tap Done when finished.<br>
+              3. Switch back to Okno, then tap Check for Photos.
+            </p>
+            <button class="primary" onclick="window.open('${data.pickerUrl}', '_blank')" style="margin: 0 0 8px;">Open Google Photos</button>
+            <br>
+            <button class="secondary" onclick="checkPickerComplete('${data.sessionId}')">Check for Photos</button>
+          `;
+
+          // Start countdown timer for session expiry
+          const countdown = startPickerCountdown(data.timeout);
+          pickerStatusEl.appendChild(countdown.element);
+        } else {
+          // Desktop - open popup and auto-detect close
+          pickerStatusEl.innerHTML = `
+            <p>Opening Google Photos Picker...</p>
+            <p style="font-size: 0.9rem; opacity: 0.7;">Select your photos, then close the picker window</p>
+          `;
+
+          // Start countdown timer for session expiry
+          const countdown = startPickerCountdown(data.timeout);
+          pickerStatusEl.appendChild(countdown.element);
+
+          const width = 800;
+          const height = 800;
+          const left = (screen.width - width) / 2;
+          const top = (screen.height - height) / 2;
+
+          pickerWindow = window.open(
+            data.pickerUrl,
+            'GooglePhotosPicker',
+            `width=${width},height=${height},left=${left},top=${top}`
+          );
+
+          // Start polling for completion
+          // pollInterval comes as "5s" string from Google API — parse to ms
+          const pollMs = (() => {
+            const match = String(data.pollInterval || '').match(/^(\d+)s$/);
+            return match ? parseInt(match[1]) * 1000 : 5000;
+          })();
+          startPolling(data.sessionId, pollMs);
+        }
+
+      } catch (error) {
+        clearPickerCountdown();
+        pickerStatusEl.className = 'picker-status visible';
+        pickerStatusEl.innerHTML = `
+          <div style="color: #8B4444;">✗ Error: ${error.message}</div>
+        `;
+        console.error('Picker error:', error);
+      }
+    }
+
+    function startPolling(sessionId, interval) {
+      pollInterval = setInterval(async () => {
+        try {
+          // Check if picker window was closed
+          if (pickerWindow && pickerWindow.closed) {
+            clearInterval(pollInterval);
+            clearPickerCountdown();
+            pickerStatusEl.innerHTML = '<div class="loading"></div> Fetching selected photos...';
+
+            // Retry status checks — Google may need time to finalize after window close
+            const MAX_RETRIES = 6;
+            const RETRY_DELAY = 3000;
+            let done = false;
+
+            for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+              // Wait before checking (longer initial wait for Google to finalize)
+              await new Promise(resolve => setTimeout(resolve, attempt === 1 ? 4000 : RETRY_DELAY));
+
+              const statusRes = await fetch(`/api/picker/status/${sessionId}`);
+              const status = await statusRes.json();
+              console.log(`Picker status check ${attempt}/${MAX_RETRIES}:`, status);
+
+              if (status.done) {
+                done = true;
+                break;
+              }
+
+              if (attempt < MAX_RETRIES) {
+                pickerStatusEl.innerHTML = `<div class="loading"></div> Waiting for Google to finalize... (${attempt}/${MAX_RETRIES})`;
+              }
+            }
+
+            if (done) {
+              // Photos were selected, fetch them
+              const completeRes = await fetch(`/api/picker/complete/${sessionId}`, {
+                method: 'POST'
+              });
+              const result = await completeRes.json();
+
+              if (!completeRes.ok) {
+                throw new Error(result.error || 'Failed to fetch photos');
+              }
+
+              pickerStatusEl.innerHTML = `
+                <div style="color: #8FB5A5;">✓ Success! ${result.count} photos cached</div>
+              `;
+
+              // Refresh UI after 2 seconds
+              setTimeout(() => {
+                pickerStatusEl.className = 'picker-status';
+                checkAuth();
+              }, 2000);
+            } else {
+              // Window closed without selecting photos after all retries
+              pickerStatusEl.innerHTML = `
+                <div style="opacity: 0.7;">Picker closed without selecting photos</div>
+              `;
+              setTimeout(() => {
+                pickerStatusEl.className = 'picker-status';
+              }, 3000);
+            }
+          }
+        } catch (error) {
+          clearInterval(pollInterval);
+          clearPickerCountdown();
+          pickerStatusEl.innerHTML = `
+            <div style="color: #8B4444;">✗ Error: ${error.message}</div>
+          `;
+          console.error('Polling error:', error);
+        }
+      }, interval);
+    }
+
+    // Manual check for picker completion (for iPad/mobile)
+    async function checkPickerComplete(sessionId) {
+      try {
+        clearPickerCountdown();
+        pickerStatusEl.innerHTML = '<div class="loading"></div> Checking for photos...';
+
+        // Retry status checks — Google may need time to finalize
+        const MAX_RETRIES = 6;
+        const RETRY_DELAY = 3000;
+        let done = false;
+
+        for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+          await new Promise(resolve => setTimeout(resolve, attempt === 1 ? 3000 : RETRY_DELAY));
+
+          const statusRes = await fetch(`/api/picker/status/${sessionId}`);
+          const status = await statusRes.json();
+          console.log(`Mobile picker status check ${attempt}/${MAX_RETRIES}:`, status);
+
+          if (status.done) {
+            done = true;
+            break;
+          }
+
+          if (attempt < MAX_RETRIES) {
+            pickerStatusEl.innerHTML = `<div class="loading"></div> Waiting for Google to finalize... (${attempt}/${MAX_RETRIES})`;
+          }
+        }
+
+        if (done) {
+          // Photos were selected, fetch them
+          pickerStatusEl.innerHTML = '<div class="loading"></div> Fetching selected photos...';
+
+          const completeRes = await fetch(`/api/picker/complete/${sessionId}`, {
+            method: 'POST'
+          });
+          const result = await completeRes.json();
+
+          if (!completeRes.ok) {
+            throw new Error(result.error || 'Failed to fetch photos');
+          }
+
+          pickerStatusEl.innerHTML = `
+            <div style="color: #8FB5A5;">✓ Success! ${result.count} photos cached</div>
+          `;
+
+          // Refresh UI after 2 seconds
+          setTimeout(() => {
+            pickerStatusEl.className = 'picker-status';
+            checkAuth();
+          }, 2000);
+        } else {
+          pickerStatusEl.innerHTML = `
+            <div style="opacity: 0.7;">No photos selected yet. Select photos and try again.</div>
+          `;
+          setTimeout(() => {
+            pickerStatusEl.className = 'picker-status';
+          }, 3000);
+        }
+      } catch (error) {
+        pickerStatusEl.innerHTML = `
+          <div style="color: #8B4444;">✗ Error: ${error.message}</div>
+        `;
+        console.error('Check complete error:', error);
+      }
+    }
+
+    // Sign out
+    async function signOut() {
+      if (!confirm('Are you sure you want to sign out? This will clear your session and require re-authentication.')) {
+        return;
+      }
+
+      try {
+        const res = await fetch('/auth/logout', { method: 'POST' });
+        if (res.ok) {
+          window.location.reload();
+        } else {
+          alert('Sign out failed. Please try again.');
+        }
+      } catch (error) {
+        console.error('Sign out error:', error);
+        alert('Sign out failed: ' + error.message);
+      }
+    }
+
+    // Initialize
+    checkAuth();
+
+    // Initialize Lucide icons
+    lucide.createIcons();
+  </script>
+</body>
+
+</html>

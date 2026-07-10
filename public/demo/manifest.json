@@ -1,0 +1,98 @@
+[
+  {
+    "id": "demo-01",
+    "file": "photo-01.jpg",
+    "createTime": "2019-03-15T14:30:00Z",
+    "width": 2048,
+    "height": 1365,
+    "description": "Mountain landscape"
+  },
+  {
+    "id": "demo-02",
+    "file": "photo-02.jpg",
+    "createTime": "2019-08-22T09:15:00Z",
+    "width": 2048,
+    "height": 1365,
+    "description": "Ocean beach"
+  },
+  {
+    "id": "demo-03",
+    "file": "photo-03.jpg",
+    "createTime": "2020-06-18T16:45:00Z",
+    "width": 2048,
+    "height": 1024,
+    "description": "City skyline at night"
+  },
+  {
+    "id": "demo-04",
+    "file": "photo-04.jpg",
+    "createTime": "2020-12-25T10:30:00Z",
+    "width": 1582,
+    "height": 2048,
+    "description": "Autumn forest path"
+  },
+  {
+    "id": "demo-05",
+    "file": "photo-05.jpg",
+    "createTime": "2021-04-10T08:20:00Z",
+    "width": 2048,
+    "height": 1365,
+    "description": "Cafe table with coffee"
+  },
+  {
+    "id": "demo-06",
+    "file": "photo-06.jpg",
+    "createTime": "2021-09-14T18:00:00Z",
+    "width": 2048,
+    "height": 1536,
+    "description": "Pet dog portrait"
+  },
+  {
+    "id": "demo-07",
+    "file": "photo-07.jpg",
+    "createTime": "2022-02-14T13:00:00Z",
+    "width": 2048,
+    "height": 1365,
+    "description": "Friends at dinner"
+  },
+  {
+    "id": "demo-08",
+    "file": "photo-08.jpg",
+    "createTime": "2022-07-04T19:00:00Z",
+    "width": 2048,
+    "height": 1366,
+    "description": "Street market scene"
+  },
+  {
+    "id": "demo-09",
+    "file": "photo-09.jpg",
+    "createTime": "2023-05-20T07:45:00Z",
+    "width": 1365,
+    "height": 2048,
+    "description": "Flower close-up"
+  },
+  {
+    "id": "demo-10",
+    "file": "photo-10.jpg",
+    "createTime": "2023-11-23T12:00:00Z",
+    "width": 1365,
+    "height": 2048,
+    "description": "Architectural doorway"
+  },
+  {
+    "id": "demo-11",
+    "file": "photo-11.jpg",
+    "createTime": "2024-01-01T11:00:00Z",
+    "width": 1314,
+    "height": 2048,
+    "description": "Person walking on path"
+  },
+  {
+    "id": "demo-12",
+    "file": "photo-12.jpg",
+    "createTime": "2024-08-08T15:30:00Z",
+    "width": 1638,
+    "height": 2048,
+    "description": "Tall waterfall"
+  }
+]
