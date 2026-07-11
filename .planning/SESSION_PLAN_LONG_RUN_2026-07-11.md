@@ -168,7 +168,7 @@ shown is cached under a unique key — unbounded storage on a 24/7 frame — and
 - **Verify:** `npm test` green locally + CI.
 - **Commit:** `test(server): boot-and-smoke suite for public routes and auth gating`
 
-### [ ] WP6 — On This Day count without downloading a photo
+### [x] WP6 — On This Day count without downloading a photo
 *settings.html currently fetches a full-resolution photo just to read the
 `X-Photo-OnThisDayCount` header.*
 

@@ -65,7 +65,7 @@ function start(port = 3199) {
       return json(res, state.config);
     }
     if (p === '/api/health' && req.method === 'GET') {
-      return json(res, { status: 'ok', cache: { totalItems: 12, portraitCount: 4 } });
+      return json(res, { status: 'ok', cache: { totalItems: 12, portraitCount: 4, onThisDayCount: 7 } });
     }
     if (p === '/api/health/refresh') return json(res, { ok: true });
     if (p === '/api/photo/random' || p === '/api/demo/random') {

@@ -384,6 +384,28 @@ test('settings: tapped buttons update state, turn green, and save posts the conf
   await context.close();
 });
 
+test('settings: on-this-day count comes from /api/health, not a full photo download', async () => {
+  const context = await touchContext();
+  const page = await context.newPage();
+  // other tests share the stub request log, so clear it before loading the page
+  await page.request.post(`${baseUrl}/__reset`);
+  await page.goto(`${baseUrl}/settings.html`);
+
+  // fetchOnThisDayCount() runs async during init; poll until the copy updates
+  await page.waitForFunction(
+    `document.getElementById('onThisDayDesc').textContent ===
+       '7 photos from today across all years'`,
+    null, { timeout: 3000 }
+  );
+
+  const reqs = await (await page.request.get(`${baseUrl}/__requests`)).json();
+  const photoFetches = reqs.filter((r) => r.url.startsWith('/api/photo/random'));
+  assert.equal(photoFetches.length, 0,
+    'settings page load must not download a full-resolution photo just for the count');
+
+  await context.close();
+});
+
 // ---------------------------------------------------------------------------
 // Progress bar -- manual advance while paused must not leave the bar frozen
 // ---------------------------------------------------------------------------

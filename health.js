@@ -29,6 +29,7 @@ router.get('/', (req, res) => {
         cache: {
           totalItems: 0,
           portraitCount: 0,
+          onThisDayCount: 0,
           sessionId: null,
           lastRefresh: null
         },
@@ -68,6 +69,7 @@ router.get('/', (req, res) => {
       cache: {
         totalItems: photoCache.size(userId),
         portraitCount: photoCache.getPortraitCount(userId),
+        onThisDayCount: photoCache.getOnThisDayCount(userId),
         sessionId: photoCache.getSessionId(userId) || null,
         lastRefresh: photoCache.getLastRefresh(userId) || null
       },

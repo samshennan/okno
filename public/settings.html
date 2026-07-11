@@ -813,16 +813,17 @@
     // Fetch On This Day photo count for today
     async function fetchOnThisDayCount() {
       try {
-        const res = await fetch('/api/photo/random?onThisDay=true');
+        const res = await fetch('/api/health');
         if (res.ok) {
-          const count = res.headers.get('X-Photo-OnThisDayCount');
-          if (count) {
+          const health = await res.json();
+          const count = health.cache?.onThisDayCount;
+          if (Number.isInteger(count) && count > 0) {
             document.getElementById('onThisDayDesc').textContent =
-              `${count} photo${count === '1' ? '' : 's'} from today across all years`;
+              `${count} photo${count === 1 ? '' : 's'} from today across all years`;
+          } else if (count === 0) {
+            document.getElementById('onThisDayDesc').textContent =
+              'No photos from today in your library';
           }
-        } else if (res.status === 404) {
-          document.getElementById('onThisDayDesc').textContent =
-            'No photos from today in your library';
         }
       } catch {
         // Silently fail - description stays at default
