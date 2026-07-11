@@ -86,7 +86,7 @@ backlog that session identified but did not fix.
 - **Verify:** push, then `gh run watch` → workflow green on GitHub's runner.
 - **Commit:** `ci: run UI button regression suite on every push`
 
-### [ ] WP2 — Service worker photo cache: bounded, and offline actually works
+### [x] WP2 — Service worker photo cache: bounded, and offline actually works
 *The worst standing bug: `?t=Date.now()` cache-busters mean every photo ever
 shown is cached under a unique key — unbounded storage on a 24/7 frame — and
 `caches.match(request)` never hits, so the offline fallback is dead code.*

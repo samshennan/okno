@@ -5,7 +5,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "test:ui": "node --test test/ui-buttons.test.js"
+    "test:ui": "node --test test/ui-buttons.test.js test/sw.test.js"
   },
   "keywords": [
     "google-photos",
