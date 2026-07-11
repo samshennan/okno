@@ -12,3 +12,4 @@ demo-originals/
 data/
 *.migrated
 .gstack/
+.playwright-mcp/

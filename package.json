@@ -4,7 +4,8 @@
   "description": "Google Photos digital photo frame",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "test:ui": "node --test test/ui-buttons.test.js"
   },
   "keywords": [
     "google-photos",
@@ -28,6 +29,7 @@
     "@types/better-sqlite3": "^7.6.13",
     "@types/express": "^5.0.6",
     "@types/express-session": "^1.18.2",
+    "playwright-core": "^1.49.0",
     "sharp": "^0.34.5"
   }
 }

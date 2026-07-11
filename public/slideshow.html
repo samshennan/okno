@@ -1611,6 +1611,15 @@
       progressBarEl.style.width = '0%';
     }
 
+    // Keep icon + label in sync without wiping the Lucide <svg>
+    // (textContent assignments were destroying the icon)
+    function updatePlayPauseButton() {
+      const icon = isPlaying ? 'pause' : 'play';
+      const label = isPlaying ? 'Pause' : 'Play';
+      playPauseBtn.innerHTML = `<i data-lucide="${icon}"></i> ${label}`;
+      lucide.createIcons();
+    }
+
     function startSlideshow() {
       if (intervalHandle) {
         clearInterval(intervalHandle);
@@ -1623,7 +1632,7 @@
         }
       }, intervalMs);
       isPlaying = true;
-      playPauseBtn.textContent = 'Pause';
+      updatePlayPauseButton();
       startProgressBar();
     }
 
@@ -1633,7 +1642,7 @@
         intervalHandle = null;
       }
       isPlaying = false;
-      playPauseBtn.textContent = 'Play';
+      updatePlayPauseButton();
       stopProgressBar();
     }
 
@@ -1823,10 +1832,18 @@
     // touchend fires when finger lifts; calling preventDefault() stops the
     // subsequent synthetic click from also firing (which would show then
     // immediately hide the controls on the same gesture).
+    // CRITICAL: never preventDefault() a tap that lands on a button (or the
+    // icon <svg> inside one) -- that swallows the synthetic click and the
+    // button's onclick never runs.
+    function resetControlsAutoHide() {
+      clearTimeout(hideControlsTimeout);
+      hideControlsTimeout = setTimeout(hideControls, 4000);
+    }
+
     function handleControlToggle(e) {
-      if (e.target.tagName === 'BUTTON' && controlsVisible) {
-        clearTimeout(hideControlsTimeout);
-        hideControlsTimeout = setTimeout(hideControls, 4000);
+      // closest() because presses can land on the icon <svg> inside a button
+      if (e.target.closest('button') && controlsVisible) {
+        resetControlsAutoHide();
         return;
       }
       toggleControls();
@@ -1834,15 +1851,19 @@
 
     document.body.addEventListener('touchend', (e) => {
       // Only handle single-finger taps (not pinch/swipe)
-      if (e.changedTouches.length === 1) {
-        e.preventDefault(); // Stops the synthetic click from firing
-        handleControlToggle(e);
+      if (e.changedTouches.length !== 1) return;
+      if (e.target.closest('button')) {
+        // Let the browser deliver the button's click; just keep controls up
+        if (controlsVisible) resetControlsAutoHide();
+        return;
       }
+      e.preventDefault(); // Stops the synthetic click from double-toggling
+      toggleControls();
     });
 
     // Desktop fallback (mouse click, no touch events)
     document.body.addEventListener('click', (e) => {
-      if (e.pointerType === 'touch') return; // Already handled by touchend
+      if (e.pointerType === 'touch') return; // Background taps already handled by touchend
       handleControlToggle(e);
     });
 
@@ -1856,26 +1877,17 @@
       }, 100);
     });
 
-    // Hide button and undo button: use touchend + click with stopPropagation
-    // to prevent body touchend handler (which calls preventDefault) from blocking clicks
+    // Hide button and undo button: click-only wiring. The body touchend handler
+    // leaves button taps alone, so the native click arrives on touch devices too.
+    // stopPropagation keeps the body click handler from toggling the controls.
     const hideBtnEl = document.getElementById('hideBtn');
     const undoHideBtnEl = document.getElementById('undoHideBtn');
 
-    hideBtnEl.addEventListener('touchend', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      if (!hideBtnEl.disabled) hideCurrentPhoto();
-    });
     hideBtnEl.addEventListener('click', (e) => {
       e.stopPropagation();
       if (!hideBtnEl.disabled) hideCurrentPhoto();
     });
 
-    undoHideBtnEl.addEventListener('touchend', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      undoHide();
-    });
     undoHideBtnEl.addEventListener('click', (e) => {
       e.stopPropagation();
       undoHide();
@@ -1903,7 +1915,9 @@
       } else if (e.key === 'ArrowLeft') {
         previousPhoto();
       } else if (e.key === 'Escape') {
-        exitSlideshow();
+        // In fullscreen, Esc means "leave fullscreen" (the browser handles it);
+        // only exit the slideshow when not in fullscreen
+        if (!document.fullscreenElement) exitSlideshow();
       }
     });
 
@@ -1924,16 +1938,6 @@
 
     // Initialize Lucide icons
     lucide.createIcons();
-
-    // Re-initialize icons when play/pause state changes
-    const originalTogglePlayPause = togglePlayPause;
-    window.togglePlayPause = function () {
-      originalTogglePlayPause();
-      const icon = isPlaying ? 'pause' : 'play';
-      const text = isPlaying ? ' Pause' : ' Play';
-      playPauseBtn.innerHTML = `<i data-lucide="${icon}"></i>${text}`;
-      lucide.createIcons();
-    };
   </script>
 </body>
 
