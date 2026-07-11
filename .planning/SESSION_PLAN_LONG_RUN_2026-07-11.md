@@ -149,7 +149,7 @@ shown is cached under a unique key — unbounded storage on a 24/7 frame — and
   two honest failures → revert, log blocked, move on.
 - **Commit:** `fix(ui): rapid Next no longer tears down the incoming photo`
 
-### [ ] WP5 — Real-server smoke tests
+### [x] WP5 — Real-server smoke tests
 *The stub can't catch server wiring regressions — boot the real thing.*
 
 - Sub-agent A (Explore): map `server.js` boot requirements — env vars,
