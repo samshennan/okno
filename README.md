@@ -6,6 +6,8 @@ tags: [project/okno, type/overview]
 
 # Okno
 
+[![test](https://github.com/samshennan/okno/actions/workflows/test.yml/badge.svg)](https://github.com/samshennan/okno/actions/workflows/test.yml)
+
 **Turn an old iPad into a window full of your adventures.**
 
 "Okno" is the Polish word for window.
@@ -79,6 +81,22 @@ node server.js
 ```
 
 For production: use PM2 (`ecosystem.config.js` is included) and nginx. Full instructions in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+
+---
+
+## Testing
+
+```bash
+npm test
+```
+
+Runs three suites (25 tests, Node 22+), no Google account needed — pages are exercised against a dependency-free stub server:
+
+- **UI regression** — real-browser tests for the slideshow and settings controls (touch taps, toggles, progress bar, fullscreen, rapid-Next races, accessibility)
+- **Service worker** — bounded photo cache and the offline fallback
+- **Server smoke** — boots the real `node server.js` and checks auth gating and the public demo routes
+
+The browser suites use playwright-core with an installed Chrome or Edge (no browser download; run `npx playwright install chromium` if you have neither). `npm run test:ui` runs just the browser suites. CI runs the full suite on every push.
 
 ---
 

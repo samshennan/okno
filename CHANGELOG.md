@@ -8,6 +8,27 @@ tags: [project/okno, type/changelog]
 
 All notable changes to Okno will be documented in this file.
 
+## [Unreleased]
+
+### Bug Fixes
+- Touch taps now act on every slideshow button — a body-level `touchend` `preventDefault()` was swallowing the synthesized clicks on iPad, the primary target. Buttons animated but did nothing.
+- Service worker photo cache is now bounded (50 photos, FIFO) and keyed by photo id instead of the cache-busted request URL. Previously every photo ever shown was stored under a unique never-matched key: unbounded storage growth on a 24/7 frame, and a dead offline fallback. An offline frame now keeps rotating its last ~50 photos instead of freezing.
+- Rapid Next presses no longer tear down the incoming photo. A transition's 1.5s cleanup timer could catch the *next* transition's photo in its brief preload state and remove it (skipped crossfade / blank frame); cleanups now carry a generation counter and stand down when a newer transition owns the stage.
+- Manual Next/Previous while paused resets the progress bar to 0% instead of leaving it frozen at a stale position.
+- The fullscreen button now flips to "Exit Fullscreen" while fullscreen is active (including browser-level Esc exits).
+- Buttons no longer stick in their hover state after taps on touch devices — all `:hover` rules are scoped to `@media (hover: hover)`.
+- Demo page no longer shows two crossfades ~100ms apart when a portrait's randomly-fetched companion turns out landscape; the companion is queued for the next interval instead.
+
+### Improvements
+- Settings reads the On This Day count from `/api/health` (`cache.onThisDayCount`) instead of downloading a full-resolution photo just to read a response header.
+- Accessibility: `aria-label` on the icon-only restore button and the settings toggles, `aria-pressed` state on the interval / display-mode / transition-time button groups, and the keyboard help now notes that Esc in fullscreen leaves fullscreen first.
+
+### Developer Experience
+- GitHub Actions CI runs the full test suite on every push and pull request.
+- New test coverage (25 tests total, `npm test`): browser UI regression suite (playwright-core against system Chrome/Edge, dependency-free stub server), service-worker cache/offline tests, and boot-and-smoke tests against the real server (auth gating, public demo surface, vendored assets).
+
+---
+
 ## [0.2.0] - 2026-07-10 - Reliability Hardening
 
 ### Security

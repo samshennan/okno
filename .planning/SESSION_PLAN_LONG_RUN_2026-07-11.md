@@ -194,7 +194,7 @@ shown is cached under a unique key — unbounded storage on a 24/7 frame — and
 - **Verify:** `npm test` green locally + CI.
 - **Commit:** `a11y(ui): accessible names for icon-only buttons`
 
-### [ ] WP8 — Docs & changelog housekeeping (only if session still alive)
+### [x] WP8 — Docs & changelog housekeeping (only if session still alive)
 - `CHANGELOG.md`: an Unreleased/0.2.1 section covering the 2026-07-11 touch
   fixes and every WP shipped this run (write it from `git log`, not memory).
 - `README.md`: a short Testing section (`npm test`, what it covers, the
