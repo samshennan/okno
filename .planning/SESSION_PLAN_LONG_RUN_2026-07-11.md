@@ -73,7 +73,7 @@ backlog that session identified but did not fix.
 
 ## Work packages
 
-### [ ] WP1 — CI: the suite runs on every push
+### [x] WP1 — CI: the suite runs on every push
 *Small, do first — it protects every WP after it.*
 
 - `.github/workflows/test.yml`: on push + PR, ubuntu-latest,
