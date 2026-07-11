@@ -439,6 +439,7 @@
     let isPlaying = true;
     let intervalHandle = null;
     let pendingPortrait = null; // For dual portrait pairing
+    let transitionGeneration = 0; // Bumped per transition so stale cleanup timers can bail
     let queuedPhoto = null; // Landscape companion queued for the next interval tick
 
     // Demo one-cycle tracking
@@ -808,6 +809,7 @@
     }
 
     async function showSinglePhoto(img) {
+      const generation = ++transitionGeneration;
       // STEP 1: Stop Ken Burns on ALL current photos BEFORE crossfade
       slideshowEl.querySelectorAll('.photo.kenburns').forEach(el => {
         stopKenBurns(el);
@@ -860,6 +862,8 @@
 
         // STEP 4: Clean up old elements after transition completes
         setTimeout(() => {
+          // A newer transition owns cleanup now -- let its timer do it
+          if (generation !== transitionGeneration) return;
           const oldWrappers = slideshowEl.querySelectorAll('.photo-wrapper:not(.active)');
           oldWrappers.forEach(w => teardownAndRemove(w));
           const oldPhotos = slideshowEl.querySelectorAll('.photo:not(.active)');
@@ -872,6 +876,7 @@
     }
 
     async function showDualPortraits(img1, img2) {
+      const generation = ++transitionGeneration;
       // STEP 1: Stop Ken Burns on ALL current photos BEFORE crossfade
       slideshowEl.querySelectorAll('.photo.kenburns').forEach(el => {
         stopKenBurns(el);
@@ -915,6 +920,8 @@
 
         // STEP 4: Clean up old photos after transition completes
         setTimeout(() => {
+          // A newer transition owns cleanup now -- let its timer do it
+          if (generation !== transitionGeneration) return;
           const oldPhotos = slideshowEl.querySelectorAll('.photo:not(.active)');
           oldPhotos.forEach(photo => {
             teardownAndRemove(photo);

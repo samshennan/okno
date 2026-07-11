@@ -889,6 +889,7 @@
     let currentIntervalSeconds = 30; // Default 30 seconds (matches config.js default)
     let displayMode = 'cover'; // 'cover', 'contain', or 'dual'
     let pendingPortrait = null; // For dual mode: holds first portrait photo
+    let transitionGeneration = 0; // Bumped per transition so stale cleanup timers can bail
     let portraitPairsEnabled = false; // Portrait pairs mode from config
     let onThisDayEnabled = false; // On This Day mode
     let onThisDayFallback = false; // True when OTD had no photos and we fell back to random
@@ -1436,6 +1437,7 @@
 
 
     async function showSinglePhoto(img) {
+      const generation = ++transitionGeneration;
       // Hide On This Day fallback message if visible
       const otdMsg = document.getElementById('onThisDayMessage');
       if (otdMsg) otdMsg.classList.remove('visible');
@@ -1501,6 +1503,8 @@
 
         // STEP 4: Clean up old elements after transition completes
         setTimeout(() => {
+          // A newer transition owns cleanup now -- let its timer do it
+          if (generation !== transitionGeneration) return;
           const oldWrappers = slideshowEl.querySelectorAll('.photo-wrapper:not(.active)');
           oldWrappers.forEach(w => teardownAndRemove(w));
           const oldPhotos = slideshowEl.querySelectorAll('.photo:not(.active)');
@@ -1514,6 +1518,7 @@
     }
 
     async function showDualPortraits(img1, img2) {
+      const generation = ++transitionGeneration;
       // STEP 1: Stop Ken Burns on ALL current photos BEFORE crossfade
       slideshowEl.querySelectorAll('.photo.kenburns').forEach(el => {
         stopKenBurns(el);
@@ -1562,6 +1567,8 @@
 
         // STEP 4: Clean up old photos after transition completes
         setTimeout(() => {
+          // A newer transition owns cleanup now -- let its timer do it
+          if (generation !== transitionGeneration) return;
           const oldPhotos = slideshowEl.querySelectorAll('.photo:not(.active)');
           oldPhotos.forEach(photo => {
             teardownAndRemove(photo);

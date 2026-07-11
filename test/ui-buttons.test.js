@@ -411,6 +411,77 @@ test('desktop: Next while paused snaps the progress bar back to 0%', async () =>
 });
 
 // ---------------------------------------------------------------------------
+// Transition race -- a previous transition's 1500ms cleanup timer must never
+// tear down the next transition's incoming photo while it is still in its
+// preload (not-yet-active) state
+// ---------------------------------------------------------------------------
+
+test('desktop: rapid Next presses never tear down the incoming photo', async () => {
+  const context = await browser.newContext();
+  const page = await openSlideshow(context);
+
+  const NEXT = '#controls button:nth-child(3)';
+
+  // force: true skips playwright's actionability waits (which add a variable
+  // ~400ms per click and would push the presses out of the race window); the
+  // controls are revealed first so the events land on the real visible button.
+  async function hammerNext(clicks, spacingMs) {
+    // reveal the auto-hiding controls; they stay visible for 4s, longer than
+    // any round below
+    await page.mouse.move(500, 400);
+    await page.mouse.move(520, 420);
+    for (let i = 0; i < clicks; i++) {
+      await page.click(NEXT, { force: true, timeout: 3000 });
+      if (i < clicks - 1) await page.waitForTimeout(spacingMs);
+    }
+    // let every pending 50ms/100ms/1500ms transition timer fire and settle
+    await page.waitForTimeout(2200);
+  }
+
+  async function assertSettled(label) {
+    const s = await page.evaluate(`(() => {
+      const els = document.querySelectorAll('#slideshow > .photo, #slideshow > .photo-wrapper');
+      const el = els[0] || null;
+      const img = el && (el.tagName === 'IMG' ? el : el.querySelector('img.photo'));
+      return {
+        count: els.length,
+        active: el ? el.classList.contains('active') : false,
+        opacity: el ? getComputedStyle(el).opacity : null,
+        isImg: !!img && img.tagName === 'IMG',
+        complete: img ? img.complete : null,
+        naturalWidth: img ? img.naturalWidth : null,
+        src: img ? img.src : '',
+      };
+    })()`);
+    assert.equal(s.count, 1, `${label}: exactly one settled photo element (got ${s.count})`);
+    assert.equal(s.active, true, `${label}: settled element must be .active`);
+    assert.equal(s.opacity, '1', `${label}: settled element must be fully visible (got ${s.opacity})`);
+    assert.equal(s.isImg, true, `${label}: settled element should contain the photo <img>`);
+    assert.equal(s.complete, true, `${label}: photo img must still be loaded (torn down?)`);
+    assert.ok(s.naturalWidth > 0, `${label}: photo img must have pixels (blob revoked?)`);
+    assert.ok(s.src.startsWith('blob:'), `${label}: photo src must be a live blob URL (got "${s.src.slice(0, 30)}")`);
+  }
+
+  // (a) fast hammering: several transitions overlap inside the crossfade window
+  await hammerNext(5, 250);
+  await assertSettled('5 clicks @250ms');
+
+  // (b) the real-world repro spacing: the second press's photo is appended
+  // ~1520ms after the first press's, so the first press's cleanup timer (at
+  // +1550ms: 50ms crossfade + 1500ms) fires exactly while the second press's
+  // photo is still in its ~50ms preload (not yet .active) state
+  await hammerNext(2, 1505);
+  await assertSettled('2 clicks @1505ms');
+
+  // (c) mid spacing: press N-2's cleanup fires inside press N's preload window
+  // (two gaps of ~760ms land the third append ~1520ms after the first)
+  await hammerNext(3, 742);
+  await assertSettled('3 clicks @742ms');
+
+  await context.close();
+});
+
+// ---------------------------------------------------------------------------
 // Fullscreen button -- label must track the real fullscreen state both ways
 // ---------------------------------------------------------------------------
 

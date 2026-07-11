@@ -131,7 +131,7 @@ shown is cached under a unique key — unbounded storage on a 24/7 frame — and
 - **Verify:** `npm run test:ui` green locally + CI.
 - **Commit:** `fix(ui): touch hover states, paused-next progress bar, fullscreen label`
 
-### [ ] WP4 — Rapid-Next transition race
+### [x] WP4 — Rapid-Next transition race
 *Separate WP because it touches the crossfade core — highest revert risk.*
 
 - Today: two Next presses ~1.4–1.5s apart can let the 1500ms cleanup timer
