@@ -511,11 +511,11 @@
           </div>
         </div>
         <div class="btn-group" id="intervalGroup">
-          <button data-value="10" onclick="setInterval_(10)">10s</button>
-          <button data-value="30" onclick="setInterval_(30)">30s</button>
-          <button data-value="60" onclick="setInterval_(60)">1m</button>
-          <button data-value="120" onclick="setInterval_(120)">2m</button>
-          <button data-value="300" onclick="setInterval_(300)">5m</button>
+          <button data-value="10" aria-pressed="false" onclick="setInterval_(10)">10s</button>
+          <button data-value="30" aria-pressed="false" onclick="setInterval_(30)">30s</button>
+          <button data-value="60" aria-pressed="false" onclick="setInterval_(60)">1m</button>
+          <button data-value="120" aria-pressed="false" onclick="setInterval_(120)">2m</button>
+          <button data-value="300" aria-pressed="false" onclick="setInterval_(300)">5m</button>
         </div>
       </div>
 
@@ -529,9 +529,9 @@
           </div>
         </div>
         <div class="btn-group" id="displayModeGroup">
-          <button data-value="cover" onclick="setDisplayMode_('cover')">Fill Screen</button>
-          <button data-value="contain" onclick="setDisplayMode_('contain')">Whole Photo</button>
-          <button data-value="dual" onclick="setDisplayMode_('dual')">Portrait Pairs</button>
+          <button data-value="cover" aria-pressed="false" onclick="setDisplayMode_('cover')">Fill Screen</button>
+          <button data-value="contain" aria-pressed="false" onclick="setDisplayMode_('contain')">Whole Photo</button>
+          <button data-value="dual" aria-pressed="false" onclick="setDisplayMode_('dual')">Portrait Pairs</button>
         </div>
       </div>
 
@@ -545,10 +545,10 @@
           </div>
         </div>
         <div class="btn-group" id="transitionTimeGroup">
-          <button data-value="0.5" onclick="setTransitionTime_(0.5)">0.5s</button>
-          <button data-value="1" onclick="setTransitionTime_(1)">1s</button>
-          <button data-value="2" onclick="setTransitionTime_(2)">2s</button>
-          <button data-value="3" onclick="setTransitionTime_(3)">3s</button>
+          <button data-value="0.5" aria-pressed="false" onclick="setTransitionTime_(0.5)">0.5s</button>
+          <button data-value="1" aria-pressed="false" onclick="setTransitionTime_(1)">1s</button>
+          <button data-value="2" aria-pressed="false" onclick="setTransitionTime_(2)">2s</button>
+          <button data-value="3" aria-pressed="false" onclick="setTransitionTime_(3)">3s</button>
         </div>
       </div>
     </div>
@@ -567,7 +567,7 @@
           </div>
         </div>
         <label class="toggle">
-          <input type="checkbox" id="kenBurns" onchange="settings.kenBurns = this.checked">
+          <input type="checkbox" id="kenBurns" aria-label="Ken Burns effect" onchange="settings.kenBurns = this.checked">
           <span class="toggle-slider"></span>
         </label>
       </div>
@@ -582,7 +582,7 @@
           </div>
         </div>
         <label class="toggle">
-          <input type="checkbox" id="blurredBackground" onchange="settings.blurredBackground = this.checked">
+          <input type="checkbox" id="blurredBackground" aria-label="Blurred background" onchange="settings.blurredBackground = this.checked">
           <span class="toggle-slider"></span>
         </label>
       </div>
@@ -602,7 +602,7 @@
           </div>
         </div>
         <label class="toggle">
-          <input type="checkbox" id="showPhotoDate" onchange="settings.showPhotoDate = this.checked">
+          <input type="checkbox" id="showPhotoDate" aria-label="Photo date" onchange="settings.showPhotoDate = this.checked">
           <span class="toggle-slider"></span>
         </label>
       </div>
@@ -617,7 +617,7 @@
           </div>
         </div>
         <label class="toggle">
-          <input type="checkbox" id="showClock" onchange="settings.showClock = this.checked">
+          <input type="checkbox" id="showClock" aria-label="Clock" onchange="settings.showClock = this.checked">
           <span class="toggle-slider"></span>
         </label>
       </div>
@@ -637,7 +637,7 @@
           </div>
         </div>
         <label class="toggle">
-          <input type="checkbox" id="onThisDay" onchange="settings.onThisDay = this.checked">
+          <input type="checkbox" id="onThisDay" aria-label="On This Day" onchange="settings.onThisDay = this.checked">
           <span class="toggle-slider"></span>
         </label>
       </div>
@@ -652,7 +652,7 @@
           </div>
         </div>
         <label class="toggle">
-          <input type="checkbox" id="portraitPairs" onchange="settings.portraitPairs = this.checked">
+          <input type="checkbox" id="portraitPairs" aria-label="Portrait Pairs" onchange="settings.portraitPairs = this.checked">
           <span class="toggle-slider"></span>
         </label>
       </div>
@@ -730,17 +730,23 @@
     function applySettingsToUI() {
       // Interval buttons
       document.querySelectorAll('#intervalGroup button').forEach(btn => {
-        btn.classList.toggle('active', parseInt(btn.dataset.value) === settings.interval);
+        const isActive = parseInt(btn.dataset.value) === settings.interval;
+        btn.classList.toggle('active', isActive);
+        btn.setAttribute('aria-pressed', String(isActive));
       });
 
       // Display mode buttons
       document.querySelectorAll('#displayModeGroup button').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.value === settings.displayMode);
+        const isActive = btn.dataset.value === settings.displayMode;
+        btn.classList.toggle('active', isActive);
+        btn.setAttribute('aria-pressed', String(isActive));
       });
 
       // Transition time buttons
       document.querySelectorAll('#transitionTimeGroup button').forEach(btn => {
-        btn.classList.toggle('active', parseFloat(btn.dataset.value) === settings.transitionTime);
+        const isActive = parseFloat(btn.dataset.value) === settings.transitionTime;
+        btn.classList.toggle('active', isActive);
+        btn.setAttribute('aria-pressed', String(isActive));
       });
 
       // Toggles
@@ -756,21 +762,27 @@
     function setInterval_(seconds) {
       settings.interval = seconds;
       document.querySelectorAll('#intervalGroup button').forEach(btn => {
-        btn.classList.toggle('active', parseInt(btn.dataset.value) === seconds);
+        const isActive = parseInt(btn.dataset.value) === seconds;
+        btn.classList.toggle('active', isActive);
+        btn.setAttribute('aria-pressed', String(isActive));
       });
     }
 
     function setDisplayMode_(mode) {
       settings.displayMode = mode;
       document.querySelectorAll('#displayModeGroup button').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.value === mode);
+        const isActive = btn.dataset.value === mode;
+        btn.classList.toggle('active', isActive);
+        btn.setAttribute('aria-pressed', String(isActive));
       });
     }
 
     function setTransitionTime_(seconds) {
       settings.transitionTime = seconds;
       document.querySelectorAll('#transitionTimeGroup button').forEach(btn => {
-        btn.classList.toggle('active', parseFloat(btn.dataset.value) === seconds);
+        const isActive = parseFloat(btn.dataset.value) === seconds;
+        btn.classList.toggle('active', isActive);
+        btn.setAttribute('aria-pressed', String(isActive));
       });
     }
 
@@ -881,6 +893,7 @@
             const btn = document.createElement('button');
             btn.className = 'restore-btn';
             btn.title = 'Restore photo';
+            btn.setAttribute('aria-label', 'Restore photo');
             btn.innerHTML = '<i data-lucide="eye" style="width: 14px; height: 14px;"></i>';
             btn.addEventListener('click', () => restorePhoto(item.id, el));
 

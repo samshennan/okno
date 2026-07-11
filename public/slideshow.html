@@ -813,17 +813,17 @@
   </div>
 
   <div id="intervalControls">
-    <button class="small" onclick="changeInterval(10)" data-interval="10">10s</button>
-    <button class="small" onclick="changeInterval(30)" data-interval="30">30s</button>
-    <button class="small" onclick="changeInterval(60)" data-interval="60">1m</button>
-    <button class="small" onclick="changeInterval(120)" data-interval="120">2m</button>
-    <button class="small" onclick="changeInterval(300)" data-interval="300">5m</button>
+    <button class="small" onclick="changeInterval(10)" data-interval="10" aria-pressed="false">10s</button>
+    <button class="small" onclick="changeInterval(30)" data-interval="30" aria-pressed="false">30s</button>
+    <button class="small" onclick="changeInterval(60)" data-interval="60" aria-pressed="false">1m</button>
+    <button class="small" onclick="changeInterval(120)" data-interval="120" aria-pressed="false">2m</button>
+    <button class="small" onclick="changeInterval(300)" data-interval="300" aria-pressed="false">5m</button>
   </div>
 
   <div id="displayModeControls">
-    <button class="small" onclick="setDisplayMode('contain')" data-mode="contain" title="Full photo, black bars">Whole Photo</button>
-    <button class="small" onclick="setDisplayMode('cover')" data-mode="cover" title="Zoom to fill, may crop edges">Fill Screen</button>
-    <button class="small" onclick="setDisplayMode('dual')" data-mode="dual" title="2 portraits together">Portrait Pairs</button>
+    <button class="small" onclick="setDisplayMode('contain')" data-mode="contain" aria-pressed="false" title="Full photo, black bars">Whole Photo</button>
+    <button class="small" onclick="setDisplayMode('cover')" data-mode="cover" aria-pressed="false" title="Zoom to fill, may crop edges">Fill Screen</button>
+    <button class="small" onclick="setDisplayMode('dual')" data-mode="dual" aria-pressed="false" title="2 portraits together">Portrait Pairs</button>
   </div>
 
   <div id="info">
@@ -834,7 +834,7 @@
     <kbd>Space</kbd> / <kbd>P</kbd> Play/Pause &nbsp;
     <kbd>S</kbd> / <kbd>→</kbd> Next &nbsp;
     <kbd>←</kbd> Prev &nbsp;
-    <kbd>Esc</kbd> Exit
+    <kbd>Esc</kbd> Exit (fullscreen first)
   </div>
 
   <!-- Reconnect overlay (shown on 401 / session expired) -->
@@ -1725,11 +1725,13 @@
       const buttons = document.querySelectorAll('#intervalControls button');
       buttons.forEach(btn => {
         const btnInterval = parseInt(btn.dataset.interval);
-        if (btnInterval === currentIntervalSeconds) {
+        const isActive = btnInterval === currentIntervalSeconds;
+        if (isActive) {
           btn.classList.add('active');
         } else {
           btn.classList.remove('active');
         }
+        btn.setAttribute('aria-pressed', String(isActive));
       });
     }
 
@@ -1748,11 +1750,13 @@
       const buttons = document.querySelectorAll('#displayModeControls button');
       buttons.forEach(btn => {
         const btnMode = btn.dataset.mode;
-        if (btnMode === displayMode) {
+        const isActive = btnMode === displayMode;
+        if (isActive) {
           btn.classList.add('active');
         } else {
           btn.classList.remove('active');
         }
+        btn.setAttribute('aria-pressed', String(isActive));
       });
     }
 

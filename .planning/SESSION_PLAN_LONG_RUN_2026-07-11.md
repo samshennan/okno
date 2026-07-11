@@ -183,7 +183,7 @@ shown is cached under a unique key — unbounded storage on a 24/7 frame — and
   new field/endpoint shape.
 - **Commit:** `feat(api): on-this-day count via health; settings stops downloading a photo for it`
 
-### [ ] WP7 — Accessibility pass on icon buttons
+### [x] WP7 — Accessibility pass on icon buttons
 - `aria-label` for icon-only buttons (restore buttons in settings' hidden
   grid, any others found), `aria-pressed` on the play/pause + interval +
   display-mode toggles is optional — do it only if it doesn't fight the

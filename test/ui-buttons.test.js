@@ -572,3 +572,98 @@ test('css: no :hover rules outside @media (hover: hover) on any page', async () 
     );
   }
 });
+
+// ---------------------------------------------------------------------------
+// Accessibility -- lucide stamps aria-hidden on every icon SVG, so icon-only
+// buttons need their own label, nameless toggles need aria-labels, and
+// class-toggled button groups must expose their state via aria-pressed
+// ---------------------------------------------------------------------------
+
+test('a11y: icon-only and toggle controls expose accessible names and state', async () => {
+  const context = await touchContext();
+
+  // -- settings.html: icon-only restore button + nameless toggle checkboxes
+  const settingsPage = await context.newPage();
+  await settingsPage.goto(`${baseUrl}/settings.html`);
+  // fetchHiddenPhotos() renders the grid async (stub returns 2 hidden photos)
+  await settingsPage.waitForFunction(
+    `document.querySelectorAll('.hidden-photo-item .restore-btn').length > 0`,
+    null, { timeout: 3000 }
+  );
+
+  const settingsA11y = await settingsPage.evaluate(`(() => {
+    const restoreLabels = [...document.querySelectorAll('.hidden-photo-item .restore-btn')]
+      .map((b) => b.getAttribute('aria-label'));
+    const toggleLabels = {};
+    for (const id of ['kenBurns', 'blurredBackground', 'showPhotoDate',
+                      'showClock', 'onThisDay', 'portraitPairs']) {
+      toggleLabels[id] = document.getElementById(id).getAttribute('aria-label') || '';
+    }
+    return { restoreLabels, toggleLabels };
+  })()`);
+  assert.ok(settingsA11y.restoreLabels.length > 0, 'stub should render restore buttons');
+  for (const label of settingsA11y.restoreLabels) {
+    assert.equal(label, 'Restore photo', 'icon-only restore button needs its aria-label');
+  }
+  for (const [id, label] of Object.entries(settingsA11y.toggleLabels)) {
+    assert.ok(label.trim().length > 0, `#${id} toggle checkbox needs a non-empty aria-label`);
+  }
+  await settingsPage.close();
+
+  // -- slideshow.html: main controls are text-labelled (icons are aria-hidden)
+  const page = await openSlideshow(context);
+
+  const controlNames = await page.evaluate(`(() => {
+    const buttons = [...document.querySelectorAll('#controls button'),
+                     document.getElementById('hideBtn')];
+    return buttons.map((b) => ({ id: b.id || b.textContent.trim(), text: b.textContent.trim() }));
+  })()`);
+  assert.equal(controlNames.length, 7, 'expected the 6 main controls plus #hideBtn');
+  for (const { id, text } of controlNames) {
+    assert.ok(text.length > 0, `slideshow control "${id}" must have a text label`);
+  }
+
+  // -- aria-pressed tracks the active selection in both button groups
+  const before = await page.evaluate(`(() => ({
+    interval: document.querySelector('#intervalControls button.active')?.dataset.interval,
+    mode: document.querySelector('#displayModeControls button.active')?.dataset.mode,
+  }))()`);
+  assert.ok(before.interval, 'an interval button should be active after init');
+  assert.ok(before.mode, 'a display-mode button should be active after init');
+  assert.notEqual(before.interval, '60', 'precondition: target interval must not already be active');
+  assert.notEqual(before.mode, 'contain', 'precondition: target mode must not already be active');
+
+  await page.evaluate('showControls()');
+  await page.tap('#intervalControls button[data-interval="60"]');
+  await page.waitForTimeout(150);
+  const intervalPressed = await page.evaluate(`(() => {
+    const map = {};
+    document.querySelectorAll('#intervalControls button').forEach((b) => {
+      map[b.dataset.interval] = b.getAttribute('aria-pressed');
+    });
+    return map;
+  })()`);
+  assert.equal(intervalPressed['60'], 'true', 'tapped interval button must be aria-pressed="true"');
+  assert.equal(intervalPressed[before.interval], 'false',
+    'previously active interval button must flip to aria-pressed="false"');
+
+  await page.evaluate('showControls()');
+  await page.tap('#displayModeControls button[data-mode="contain"]');
+  await page.waitForTimeout(150);
+  const modePressed = await page.evaluate(`(() => {
+    const map = {};
+    document.querySelectorAll('#displayModeControls button').forEach((b) => {
+      map[b.dataset.mode] = b.getAttribute('aria-pressed');
+    });
+    return map;
+  })()`);
+  assert.equal(modePressed['contain'], 'true', 'tapped display-mode button must be aria-pressed="true"');
+  assert.equal(modePressed[before.mode], 'false',
+    'previously active display-mode button must flip to aria-pressed="false"');
+
+  // -- keyboard help must say Esc leaves fullscreen first
+  const helpText = await page.evaluate(`document.getElementById('keyboardHelp').textContent`);
+  assert.ok(/fullscreen/i.test(helpText), 'keyboard help must mention fullscreen for Esc');
+
+  await context.close();
+});
