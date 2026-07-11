@@ -65,3 +65,34 @@ repo is public. (Not audited this session — flagging, not accusing.)
 photos.
 
 **Sam says:** _(pending)_
+
+## 6. Two-repo pipeline: staging is the source of truth, but this session
+## committed to the public repo directly
+
+Discovered during the 2026-07-11 deploy: the VPS pulls from the private
+`okno-staging` repo, and `scripts/export-public.sh` REGENERATES the public
+repo from scratch (fresh `git init`, allowlist copy). This session's 9
+commits (touch fixes + WP1–WP8) went straight to the public repo, so:
+
+- Staging was 9 commits of content behind; I ported everything back as
+  staging commit `8539e08` (verified: 25/25 tests green on the ported tree)
+  and deployed it. Repos are content-level in sync again as of tonight.
+- BUT: if `export-public.sh` is ever re-run as-is, it will (a) wipe the
+  public repo's now-real history (9 meaningful commits + green CI runs),
+  and (b) DROP `test/` and `.github/` from the export — they're not in its
+  allowlist.
+
+Options: (a) retire export-public.sh and develop in the public repo,
+syncing staging FROM public (public repo has no secrets; the sweep found
+none this session); (b) keep staging as source of truth, add `test/` +
+`.github/` + `.planning/` to the allowlist, and change the script to
+commit onto the existing public history instead of git init; (c) keep
+divergence and hand-port each session (what I did tonight — works, but
+manual and easy to forget).
+
+**Recommendation:** (a) — the public repo is now the one with CI, tests,
+and real history; staging's only unique value is `.env.production`,
+`.vps-config`, and deploy scripts, which could live in a small private
+`okno-deploy` folder/repo instead.
+
+**Sam says:** _(pending)_
