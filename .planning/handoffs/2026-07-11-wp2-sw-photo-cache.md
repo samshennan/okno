@@ -19,7 +19,11 @@
   doesn't apply to SW fetches. `test:ui` now runs both files.
 
 ## State
-- 12/12 green locally (run by orchestrator). CI watched after push.
+- 12/12 green locally (run by orchestrator). First CI run was RED: node
+  --test runs test files in parallel processes, and two concurrent Chromes
+  starved the 2-vCPU runner — two timing-sensitive ui-buttons tests failed
+  (the 3 new SW tests passed). Fix-up: `--test-concurrency=1` in test:ui so
+  files run sequentially. Second CI run green.
 
 ## Pending
 - Nothing for WP2. Design note: keying by X-Photo-Id chosen over normalized
