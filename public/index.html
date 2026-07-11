@@ -138,9 +138,11 @@
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-    .trust-signals span:hover {
-      background: rgba(143, 181, 165, 0.12);
-      transform: translateY(-2px);
+    @media (hover: hover) {
+      .trust-signals span:hover {
+        background: rgba(143, 181, 165, 0.12);
+        transform: translateY(-2px);
+      }
     }
 
     /* Neumorphic Status Cards */
@@ -191,10 +193,12 @@
         6px 6px 16px rgba(174, 174, 192, 0.4);
     }
 
-    button:hover {
-      transform: translateY(-2px);
-      box-shadow: -8px -8px 20px #FFFFFF,
-        8px 8px 20px rgba(174, 174, 192, 0.5);
+    @media (hover: hover) {
+      button:hover {
+        transform: translateY(-2px);
+        box-shadow: -8px -8px 20px #FFFFFF,
+          8px 8px 20px rgba(174, 174, 192, 0.5);
+      }
     }
 
     button:active {
@@ -224,11 +228,13 @@
       margin: 24px 6px 12px;
     }
 
-    button.primary:hover {
-      transform: translateY(-2px);
-      background: linear-gradient(145deg, #8FB5A5, #7DA594);
-      box-shadow: -8px -8px 20px rgba(255, 255, 255, 0.7),
-        8px 8px 20px rgba(143, 181, 165, 0.5);
+    @media (hover: hover) {
+      button.primary:hover {
+        transform: translateY(-2px);
+        background: linear-gradient(145deg, #8FB5A5, #7DA594);
+        box-shadow: -8px -8px 20px rgba(255, 255, 255, 0.7),
+          8px 8px 20px rgba(143, 181, 165, 0.5);
+      }
     }
 
     button.primary:active {
@@ -247,10 +253,12 @@
         4px 4px 10px rgba(174, 174, 192, 0.3);
     }
 
-    button.secondary:hover {
-      transform: translateY(-2px);
-      box-shadow: -6px -6px 14px rgba(255, 255, 255, 0.9),
-        6px 6px 14px rgba(174, 174, 192, 0.4);
+    @media (hover: hover) {
+      button.secondary:hover {
+        transform: translateY(-2px);
+        box-shadow: -6px -6px 14px rgba(255, 255, 255, 0.9),
+          6px 6px 14px rgba(174, 174, 192, 0.4);
+      }
     }
 
     button.secondary:active {
@@ -311,9 +319,11 @@
       letter-spacing: -0.01em;
     }
 
-    .links a:hover {
-      color: #8FB5A5;
-      transform: translateY(-1px);
+    @media (hover: hover) {
+      .links a:hover {
+        color: #8FB5A5;
+        transform: translateY(-1px);
+      }
     }
 
     /* Empty state onboarding card */
@@ -399,8 +409,10 @@
       color: #B8867B;
     }
 
-    button.sign-out-btn:hover {
-      color: #A06B60;
+    @media (hover: hover) {
+      button.sign-out-btn:hover {
+        color: #A06B60;
+      }
     }
 
     /* Focus visible outline for keyboard nav */

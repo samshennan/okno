@@ -112,7 +112,7 @@ shown is cached under a unique key — unbounded storage on a 24/7 frame — and
 - **Verify:** `npm run test:ui` green locally AND in CI.
 - **Commit:** `fix(sw): bounded photo cache with working offline fallback`
 
-### [ ] WP3 — Slideshow polish batch (small confirmed bugs, capped list)
+### [x] WP3 — Slideshow polish batch (small confirmed bugs, capped list)
 *Exactly these four; resist adding more.*
 
 - **3a** Sticky hover on touch: wrap every `:hover` rule in

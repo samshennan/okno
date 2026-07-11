@@ -319,8 +319,10 @@
       font-family: inherit;
     }
 
-    .cta-btn:hover {
-      transform: translateY(-1px);
+    @media (hover: hover) {
+      .cta-btn:hover {
+        transform: translateY(-1px);
+      }
     }
 
     .cta-btn:active {
@@ -339,8 +341,10 @@
       border: 1px solid rgba(255, 255, 255, 0.3);
     }
 
-    .cta-btn-secondary:hover {
-      border-color: rgba(255, 255, 255, 0.5);
+    @media (hover: hover) {
+      .cta-btn-secondary:hover {
+        border-color: rgba(255, 255, 255, 0.5);
+      }
     }
   </style>
 </head>
@@ -435,6 +439,7 @@
     let isPlaying = true;
     let intervalHandle = null;
     let pendingPortrait = null; // For dual portrait pairing
+    let queuedPhoto = null; // Landscape companion queued for the next interval tick
 
     // Demo one-cycle tracking
     let demoPhotosDisplayed = 0; // Count total displays (not unique -- random endpoint may repeat)
@@ -710,6 +715,14 @@
 
     async function loadPhoto(index) {
       try {
+        // A queued landscape companion takes this tick instead of a fresh fetch
+        if (queuedPhoto) {
+          const queued = queuedPhoto;
+          queuedPhoto = null;
+          await showSinglePhoto(queued);
+          return;
+        }
+
         const img = await createPhotoElement();
 
         if (!img) {
@@ -727,10 +740,10 @@
             await showDualPortraits(img, companion);
             return;
           } else if (companion) {
-            // Companion is landscape -- show both as singles sequentially
+            // Companion is landscape -- show it on the next interval tick
+            // (a second crossfade 100ms later looked like a glitch)
             await showSinglePhoto(img);
-            // Queue companion as next
-            setTimeout(() => showSinglePhoto(companion), 100);
+            queuedPhoto = companion;
             return;
           }
           // If companion fetch failed, show single photo

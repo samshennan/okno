@@ -383,3 +383,99 @@ test('settings: tapped buttons update state, turn green, and save posts the conf
 
   await context.close();
 });
+
+// ---------------------------------------------------------------------------
+// Progress bar -- manual advance while paused must not leave the bar frozen
+// ---------------------------------------------------------------------------
+
+test('desktop: Next while paused snaps the progress bar back to 0%', async () => {
+  const context = await browser.newContext();
+  const page = await openSlideshow(context);
+
+  // Pause (this freezes the bar at its current position)
+  await page.mouse.move(500, 400);
+  await page.click('#playPauseBtn', { timeout: 3000 });
+  assert.equal(await page.evaluate('isPlaying'), false, 'should be paused');
+
+  // Next while paused
+  await page.mouse.move(520, 420);
+  await page.click('#controls button:nth-child(3)', { timeout: 3000 });
+  await page.waitForTimeout(400); // let the photo swap settle
+
+  assert.equal(
+    await page.evaluate(`document.getElementById('progressBar').style.width`),
+    '0%', 'manual advance while paused must reset the bar, not leave it frozen'
+  );
+
+  await context.close();
+});
+
+// ---------------------------------------------------------------------------
+// Fullscreen button -- label must track the real fullscreen state both ways
+// ---------------------------------------------------------------------------
+
+test('desktop: fullscreen button label flips to Exit Fullscreen and back', async () => {
+  const context = await browser.newContext();
+  const page = await openSlideshow(context);
+
+  await page.mouse.move(500, 400);
+  await page.click('#fullscreenBtn', { timeout: 3000 });
+
+  // Label flips on the fullscreenchange event, so poll rather than sleep
+  await page.waitForFunction(
+    `document.getElementById('fullscreenBtn').textContent.includes('Exit Fullscreen')`,
+    null, { timeout: 3000 }
+  );
+  assert.equal(await page.evaluate('!!document.fullscreenElement'), true,
+    'should be in fullscreen');
+
+  // NOTE: a synthesized Esc does not trigger the browser-level fullscreen exit
+  // (only physical key presses do), so leave fullscreen programmatically
+  await page.evaluate('document.exitFullscreen()');
+  await page.waitForFunction(
+    `!document.fullscreenElement &&
+     !document.getElementById('fullscreenBtn').textContent.includes('Exit') &&
+     document.getElementById('fullscreenBtn').textContent.includes('Fullscreen')`,
+    null, { timeout: 3000 }
+  );
+
+  await context.close();
+});
+
+// ---------------------------------------------------------------------------
+// CSS regression guard -- :hover must only appear inside @media (hover: hover)
+// so iPad taps don't leave buttons stuck in their hover state
+// ---------------------------------------------------------------------------
+
+// Remove every "@media (hover: hover) { ... }" block via a balanced-brace scan
+function stripHoverMediaBlocks(css) {
+  const MARKER = '@media (hover: hover)';
+  let out = '';
+  let i = 0;
+  while (i < css.length) {
+    const start = css.indexOf(MARKER, i);
+    if (start === -1) { out += css.slice(i); break; }
+    out += css.slice(i, start);
+    let j = css.indexOf('{', start) + 1;
+    for (let depth = 1; j < css.length && depth > 0; j++) {
+      if (css[j] === '{') depth++;
+      else if (css[j] === '}') depth--;
+    }
+    i = j;
+  }
+  return out;
+}
+
+test('css: no :hover rules outside @media (hover: hover) on any page', async () => {
+  const pages = ['index.html', 'slideshow.html', 'demo.html', 'settings.html', 'login.html'];
+  for (const p of pages) {
+    const html = await (await fetch(`${baseUrl}/${p}`)).text();
+    const css = [...html.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/g)]
+      .map((m) => m[1]).join('\n');
+    assert.ok(css.length > 0, `${p}: expected an inline <style> block`);
+    assert.ok(
+      !stripHoverMediaBlocks(css).includes(':hover'),
+      `${p}: found a :hover rule outside @media (hover: hover)`
+    );
+  }
+});

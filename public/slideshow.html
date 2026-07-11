@@ -219,10 +219,12 @@
         4px 4px 10px rgba(0, 0, 0, 0.2);
     }
 
-    button:hover {
-      transform: translateY(-2px);
-      box-shadow: -6px -6px 14px rgba(255, 255, 255, 0.9),
-        6px 6px 14px rgba(0, 0, 0, 0.25);
+    @media (hover: hover) {
+      button:hover {
+        transform: translateY(-2px);
+        box-shadow: -6px -6px 14px rgba(255, 255, 255, 0.9),
+          6px 6px 14px rgba(0, 0, 0, 0.25);
+      }
     }
 
     button:active {
@@ -245,11 +247,13 @@
         4px 4px 10px rgba(0, 0, 0, 0.25);
     }
 
-    button.secondary-action:hover {
-      background: #D5D5DA;
-      transform: translateY(-2px);
-      box-shadow: -6px -6px 14px rgba(255, 255, 255, 0.7),
-        6px 6px 14px rgba(0, 0, 0, 0.3);
+    @media (hover: hover) {
+      button.secondary-action:hover {
+        background: #D5D5DA;
+        transform: translateY(-2px);
+        box-shadow: -6px -6px 14px rgba(255, 255, 255, 0.7),
+          6px 6px 14px rgba(0, 0, 0, 0.3);
+      }
     }
 
     button.secondary-action:active {
@@ -269,9 +273,11 @@
         2px 2px 6px rgba(143, 181, 165, 0.4);
     }
 
-    button.active:hover {
-      background: #7DA594;
-      transform: translateY(-1px);
+    @media (hover: hover) {
+      button.active:hover {
+        background: #7DA594;
+        transform: translateY(-1px);
+      }
     }
 
     /* Progress Bar */
@@ -601,11 +607,13 @@
       letter-spacing: -0.01em;
     }
 
-    .reconnect-button:hover {
-      transform: translateY(-2px);
-      background: linear-gradient(145deg, #8FB5A5, #7DA594);
-      box-shadow: -6px -6px 14px rgba(255, 255, 255, 0.7),
-        6px 6px 14px rgba(143, 181, 165, 0.5);
+    @media (hover: hover) {
+      .reconnect-button:hover {
+        transform: translateY(-2px);
+        background: linear-gradient(145deg, #8FB5A5, #7DA594);
+        box-shadow: -6px -6px 14px rgba(255, 255, 255, 0.7),
+          6px 6px 14px rgba(143, 181, 165, 0.5);
+      }
     }
 
     .reconnect-button:active {
@@ -654,10 +662,12 @@
       opacity: 0.5;
     }
 
-    .hide-button:not(:disabled):hover {
-      transform: translateY(-2px);
-      box-shadow: -6px -6px 14px rgba(255, 255, 255, 0.7),
-        6px 6px 14px rgba(0, 0, 0, 0.25);
+    @media (hover: hover) {
+      .hide-button:not(:disabled):hover {
+        transform: translateY(-2px);
+        box-shadow: -6px -6px 14px rgba(255, 255, 255, 0.7),
+          6px 6px 14px rgba(0, 0, 0, 0.25);
+      }
     }
 
     .hide-button:not(:disabled):active {
@@ -708,10 +718,12 @@
       text-decoration: underline;
     }
 
-    .hide-toast button:hover {
-      color: #fff;
-      transform: none;
-      box-shadow: none;
+    @media (hover: hover) {
+      .hide-toast button:hover {
+        color: #fff;
+        transform: none;
+        box-shadow: none;
+      }
     }
 
     .hide-toast button:active {
@@ -1620,6 +1632,17 @@
       lucide.createIcons();
     }
 
+    // Keep the fullscreen button in sync with the actual fullscreen state
+    // (driven by fullscreenchange so browser-level exits, e.g. Esc, update it too)
+    function updateFullscreenButton() {
+      const btn = document.getElementById('fullscreenBtn');
+      if (!btn) return;
+      const icon = document.fullscreenElement ? 'minimize' : 'maximize';
+      const label = document.fullscreenElement ? 'Exit Fullscreen' : 'Fullscreen';
+      btn.innerHTML = `<i data-lucide="${icon}"></i> ${label}`;
+      lucide.createIcons();
+    }
+
     function startSlideshow() {
       if (intervalHandle) {
         clearInterval(intervalHandle);
@@ -1659,6 +1682,9 @@
       if (isPlaying) {
         // Restart interval timer and progress bar from scratch
         startSlideshow();
+      } else {
+        // Paused: snap the bar back to 0% instead of leaving it frozen
+        resetProgressBar();
       }
     }
 
@@ -1667,6 +1693,8 @@
       loadPhoto(currentIndex);
       if (isPlaying) {
         startSlideshow();
+      } else {
+        resetProgressBar();
       }
     }
 
@@ -1920,6 +1948,10 @@
         if (!document.fullscreenElement) exitSlideshow();
       }
     });
+
+    // Keep the fullscreen button label/icon in sync with the real state,
+    // including browser-level exits (physical Esc)
+    document.addEventListener('fullscreenchange', updateFullscreenButton);
 
     window.addEventListener('beforeunload', () => {
       stopClock();

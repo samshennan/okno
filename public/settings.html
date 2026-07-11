@@ -161,10 +161,12 @@
       letter-spacing: -0.01em;
     }
 
-    .btn-group button:hover {
-      transform: translateY(-1px);
-      box-shadow: -4px -4px 10px rgba(255, 255, 255, 0.9),
-        4px 4px 10px rgba(174, 174, 192, 0.35);
+    @media (hover: hover) {
+      .btn-group button:hover {
+        transform: translateY(-1px);
+        box-shadow: -4px -4px 10px rgba(255, 255, 255, 0.9),
+          4px 4px 10px rgba(174, 174, 192, 0.35);
+      }
     }
 
     .btn-group button:active {
@@ -280,11 +282,13 @@
         4px 4px 10px rgba(143, 181, 165, 0.4);
     }
 
-    .btn-save:hover {
-      transform: translateY(-2px);
-      background: linear-gradient(145deg, #8FB5A5, #7DA594);
-      box-shadow: -6px -6px 14px rgba(255, 255, 255, 0.7),
-        6px 6px 14px rgba(143, 181, 165, 0.5);
+    @media (hover: hover) {
+      .btn-save:hover {
+        transform: translateY(-2px);
+        background: linear-gradient(145deg, #8FB5A5, #7DA594);
+        box-shadow: -6px -6px 14px rgba(255, 255, 255, 0.7),
+          6px 6px 14px rgba(143, 181, 165, 0.5);
+      }
     }
 
     .btn-save:active {
@@ -300,10 +304,12 @@
         4px 4px 10px rgba(174, 174, 192, 0.3);
     }
 
-    .btn-back:hover {
-      transform: translateY(-2px);
-      box-shadow: -6px -6px 14px rgba(255, 255, 255, 0.9),
-        6px 6px 14px rgba(174, 174, 192, 0.4);
+    @media (hover: hover) {
+      .btn-back:hover {
+        transform: translateY(-2px);
+        box-shadow: -6px -6px 14px rgba(255, 255, 255, 0.9),
+          6px 6px 14px rgba(174, 174, 192, 0.4);
+      }
     }
 
     .btn-back:active {
@@ -388,11 +394,13 @@
       letter-spacing: -0.01em;
     }
 
-    .muted-action-button:hover {
-      transform: translateY(-1px);
-      color: #A06B60;
-      box-shadow: -6px -6px 14px rgba(255, 255, 255, 0.9),
-        6px 6px 14px rgba(174, 174, 192, 0.4);
+    @media (hover: hover) {
+      .muted-action-button:hover {
+        transform: translateY(-1px);
+        color: #A06B60;
+        box-shadow: -6px -6px 14px rgba(255, 255, 255, 0.9),
+          6px 6px 14px rgba(174, 174, 192, 0.4);
+      }
     }
 
     .muted-action-button:active {
@@ -461,7 +469,14 @@
       box-shadow: none;
     }
 
-    .hidden-photo-item .restore-btn:hover,
+    @media (hover: hover) {
+      .hidden-photo-item .restore-btn:hover {
+        opacity: 1;
+        transform: none;
+        box-shadow: none;
+      }
+    }
+
     .hidden-photo-item .restore-btn:active {
       opacity: 1;
       transform: none;
