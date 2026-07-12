@@ -3,6 +3,9 @@ tokens.json
 sessions/
 logs/
 .env
+.env.*
+!.env.example
+.geminirc
 cache.json
 config.json
 .op-service-token
