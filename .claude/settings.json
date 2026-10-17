@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls -d /c/AI_LAB/01_AI_Experiments/OKNO/.planning/phases/*/)",
+      "Skill(gsd:new-milestone)",
+      "Skill(gsd:new-milestone:*)",
+      "WebFetch(domain:developers.google.com)",
+      "Skill(gsd:discuss-phase)",
+      "Skill(gsd:discuss-phase:*)",
+      "Skill(gsd:pause-work)",
+      "Skill(gsd:pause-work:*)",
+      "Bash(git stash -u -m \"stash untracked plans before pull\")"
+    ]
+  }
+}
