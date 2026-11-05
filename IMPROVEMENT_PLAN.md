@@ -4,10 +4,10 @@
 > Read this whole doc before starting any item. Do items in order unless marked independent.
 >
 > **SUPERSEDES** the 2026-07-01 IMPROVEMENT_PLAN.md that previously sat at this path. That
-> plan was ~80% private-repo work and duplicated `C:\AI_LAB\okno\IMPROVEMENT_PLAN.md` with
+> plan was ~80% private-repo work and duplicated `P:\AI_LAB\okno\IMPROVEMENT_PLAN.md` with
 > conflicting script specs. Division of labour now:
 > - **Private-side work** (VPS deploy, secret rotation, sync-script rewrite, doc sweep, npm
->   scripts) lives in `C:\AI_LAB\okno\IMPROVEMENT_PLAN.md` — referred to below as **the okno
+>   scripts) lives in `P:\AI_LAB\okno\IMPROVEMENT_PLAN.md` — referred to below as **the okno
 >   plan**. Where the old plan here conflicted with it (old "Script A" replaced
 >   `export-public.sh` in place; the okno plan's **S3** creates `scripts/sync-public.sh` and
 >   archives v1), **the okno plan wins**. Do not implement both.
@@ -17,16 +17,16 @@
 >
 > **EXECUTOR SAFETY RULES — read before touching anything**
 > 1. **This file must NEVER reach the public GitHub repo.** Until item 1 is done, run no
->    `git add`, `git add -A`, `git commit`, or push of any kind in `C:\AI_LAB\okno-public`.
-> 2. **Never edit tracked files in `C:\AI_LAB\okno-public` directly.** This repo is a build
->    artifact of `C:\AI_LAB\okno` (private). Content changes go into the private repo and
+>    `git add`, `git add -A`, `git commit`, or push of any kind in `P:\AI_LAB\okno-public`.
+> 2. **Never edit tracked files in `P:\AI_LAB\okno-public` directly.** This repo is a build
+>    artifact of `P:\AI_LAB\okno` (private). Content changes go into the private repo and
 >    flow through the sync script. Local-only infrastructure under `.git\` (info/exclude,
 >    hooks/) is the ONLY thing this plan writes here.
-> 3. **Never run `C:\AI_LAB\okno\scripts\export-public.sh` (v1).** Verified 2026-07-03: line
+> 3. **Never run `P:\AI_LAB\okno\scripts\export-public.sh` (v1).** Verified 2026-07-03: line
 >    15 is `rm -rf "$PUBLIC_ROOT"` — it deletes this repo INCLUDING `.git` (history, remote
 >    config, this plan, and the guard hooks installed by items 2–3), then re-inits with a
 >    hardcoded commit (lines 142–146). The okno plan item 6 replaces it.
-> 4. **Never run `C:\AI_LAB\okno\deploy-to-vps.sh`.** It does `apt upgrade` as root on a
+> 4. **Never run `P:\AI_LAB\okno\deploy-to-vps.sh`.** It does `apt upgrade` as root on a
 >    shared VPS. The VPS is additionally FROZEN until ~2026-07-06 (live FLIPER experiment).
 >    Nothing in THIS plan touches the VPS at all.
 > 5. The secrets-guard hook blocks agent reads/greps of `.env*` paths and commands containing
@@ -35,7 +35,7 @@
 
 ## TL;DR
 
-- okno-public is the generated public mirror of the private repo `C:\AI_LAB\okno`, pushed to
+- okno-public is the generated public mirror of the private repo `P:\AI_LAB\okno`, pushed to
   GitHub `samshennan/okno` (PUBLIC). One squashed commit `310c5fb`; local HEAD == remote HEAD
   (verified via `git ls-remote` 2026-07-03). It exists as a **job-hunt portfolio piece**.
 - **Good news, verified:** tracked tree and its single-commit history are PII-clean (sweep run
@@ -63,8 +63,8 @@
 - **What:** Okno — self-hosted Google Photos digital photo frame for an old iPad (Node 22 /
   Express 4, vanilla-JS PWA, better-sqlite3, google-auth-library, Helmet, Winston; Docker or
   PM2+nginx deploy paths). This repo is the clean public export: 58 files, allowlist-generated.
-- **Topology:** local `C:\AI_LAB\okno` (private, 243 commits) → GitHub `samshennan/okno-staging`
-  (PRIVATE, VPS pull source). Local `C:\AI_LAB\okno-public` (generated) → GitHub
+- **Topology:** local `P:\AI_LAB\okno` (private, 243 commits) → GitHub `samshennan/okno-staging`
+  (PRIVATE, VPS pull source). Local `P:\AI_LAB\okno-public` (generated) → GitHub
   `samshennan/okno` (PUBLIC). There is no third repo.
 - **State (all verified 2026-07-03/04 by direct command, not hearsay):**
   - Git: branch `main` only, no stashes, single commit `310c5fb`, `HEAD` ==
@@ -117,18 +117,18 @@ the private repo. `.git\info\exclude` is local-only and never published.
 
 **Steps (Git Bash):**
 ```bash
-echo "IMPROVEMENT_PLAN.md" >> /c/AI_LAB/okno-public/.git/info/exclude
+echo "IMPROVEMENT_PLAN.md" >> /p/AI_LAB/okno-public/.git/info/exclude
 ```
 
 **Verify:**
 ```bash
-cd /c/AI_LAB/okno-public && git status --short
+cd /p/AI_LAB/okno-public && git status --short
 ```
 Expected output: empty (the `?? IMPROVEMENT_PLAN.md` line is gone) while
-`ls /c/AI_LAB/okno-public/IMPROVEMENT_PLAN.md` still lists the file.
+`ls /p/AI_LAB/okno-public/IMPROVEMENT_PLAN.md` still lists the file.
 
 **Done when:** both checks above pass.
-**Rollback:** delete the added line from `C:\AI_LAB\okno-public\.git\info\exclude`.
+**Rollback:** delete the added line from `P:\AI_LAB\okno-public\.git\info\exclude`.
 
 ### 2. Install the pre-commit guard hook (spec G1)
 
@@ -140,14 +140,14 @@ S3 spec) survives syncs because sync-public.sh never touches `.git`. Note it wou
 a v1 `export-public.sh` run — one more reason v1 is banned (safety rule 3).
 
 **Steps:**
-1. Create `C:\AI_LAB\okno-public\.git\hooks\pre-commit` with EXACTLY the G1 source from the
+1. Create `P:\AI_LAB\okno-public\.git\hooks\pre-commit` with EXACTLY the G1 source from the
    script-candidates section below. Use the Write tool (it writes LF line endings; a CRLF
    shebang breaks Git Bash hooks). No `chmod` needed on Windows.
-2. Sanity-check syntax: `bash -n /c/AI_LAB/okno-public/.git/hooks/pre-commit` → no output, exit 0.
+2. Sanity-check syntax: `bash -n /p/AI_LAB/okno-public/.git/hooks/pre-commit` → no output, exit 0.
 
 **Verify (non-mutating dry test — uses a temp index, touches nothing real):**
 ```bash
-cd /c/AI_LAB/okno-public && bash .git/hooks/pre-commit --selftest
+cd /p/AI_LAB/okno-public && bash .git/hooks/pre-commit --selftest
 ```
 Expected output: three `SELFTEST PASS` lines (plan-block, frontmatter-block, pii-block) and
 exit 0. (`--selftest` fabricates fake staged content in a temp dir; see G1.)
@@ -166,10 +166,10 @@ exclusion, and a counts-only secret scan of `.env.example`. This one command rep
 times (2026-07-01 planning pass, 2026-07-03 scout, this session).
 
 **Steps:**
-1. Create `C:\AI_LAB\okno-public\.git\hooks\pre-push` with EXACTLY the G2 source below (Write
+1. Create `P:\AI_LAB\okno-public\.git\hooks\pre-push` with EXACTLY the G2 source below (Write
    tool, LF endings).
-2. `bash -n /c/AI_LAB/okno-public/.git/hooks/pre-push` → exit 0.
-3. Run the first audit: `cd /c/AI_LAB/okno-public && bash .git/hooks/pre-push --manual`
+2. `bash -n /p/AI_LAB/okno-public/.git/hooks/pre-push` → exit 0.
+3. Run the first audit: `cd /p/AI_LAB/okno-public && bash .git/hooks/pre-push --manual`
 
 **Verify:** step 3 prints one `PASS` line per check and final line `AUDIT PASS (6/6)`, exit 0.
 As of 2026-07-03 every underlying fact was verified true by hand, so a failure means either the
@@ -182,13 +182,13 @@ tree changed since or the hook source was mistyped — investigate before procee
 ### 4. Public metadata + CHANGELOG 0.2.0 — EDITS IN THE PRIVATE REPO
 
 > Carried forward from the superseded plan because the okno plan does not cover it. All edits
-> happen in `C:\AI_LAB\okno`; they reach this repo only via the okno plan's sync script.
+> happen in `P:\AI_LAB\okno`; they reach this repo only via the okno plan's sync script.
 
 **Pre-conditions (hard):** the okno plan's item 6 is done — `scripts/sync-public.sh` exists in
 the private repo AND its first `--dry-run` produced the expected zero-content-diff result. If
 you edit these files before that first run, you destroy that verification signal (the okno plan
 uses "zero diff except frontmatter" to prove the new sync script is correct). Check:
-`ls /c/AI_LAB/okno/scripts/sync-public.sh` exists, and the okno plan's item 6 is marked done or
+`ls /p/AI_LAB/okno/scripts/sync-public.sh` exists, and the okno plan's item 6 is marked done or
 its verify step demonstrably passed.
 
 **Why (all verified in the public snapshot 2026-07-03):**
@@ -199,14 +199,14 @@ its verify step demonstrably passed.
 - CHANGELOG ends `[0.1.1] - 2026-02-10` while the shipped code is phase-14 (`okno-v1.6`) —
   four-plus months of silence reads as abandonment, the exact opposite of the portfolio message.
 
-**Steps (in `C:\AI_LAB\okno`):**
+**Steps (in `P:\AI_LAB\okno`):**
 1. `package.json`: set `"license": "MIT"`, `"author": "Sam Shennan"`, add
    `"engines": { "node": ">=20" }`, set `"version": "0.2.0"` (default per open question 3 —
    proceed with 0.2.0 unless Sam has said otherwise).
 2. `README.md`: change the heading `## Manual install (Node 18+)` to `## Manual install (Node 20+)`.
 3. `CHANGELOG.md`: add a `## [0.2.0] - 2026-07-XX` entry summarising phases 10–14. Source
-   material: `C:\AI_LAB\okno\.planning\phases\14-public-launch\SESSION-HANDOVER.md` ("What is
-   DONE and verified", WP-A/WP-B/WP-C) and `C:\AI_LAB\okno\.planning\STATE.md` phase 10–13
+   material: `P:\AI_LAB\okno\.planning\phases\14-public-launch\SESSION-HANDOVER.md` ("What is
+   DONE and verified", WP-A/WP-B/WP-C) and `P:\AI_LAB\okno\.planning\STATE.md` phase 10–13
    notes. **LLM part:** summarise faithfully — every bullet must trace to a line in those two
    files; invent nothing; keep it to 10–20 bullets grouped under Added/Changed/Fixed/Removed
    (the feedback/Stripe removal goes under Removed).
@@ -214,14 +214,14 @@ its verify step demonstrably passed.
    with the standard Claude trailer; push to okno-staging.
 5. Publish via the okno plan's sync: `bash scripts/sync-public.sh` then `--push` (exact flags
    per the okno plan S3). The sync commit passes through this repo's new hooks — expected clean.
-6. Tag after publish: `git -C /c/AI_LAB/okno tag v0.2.0 && git -C /c/AI_LAB/okno push origin v0.2.0`,
-   then `git -C /c/AI_LAB/okno-public tag v0.2.0 && git -C /c/AI_LAB/okno-public push origin v0.2.0`.
+6. Tag after publish: `git -C /p/AI_LAB/okno tag v0.2.0 && git -C /p/AI_LAB/okno push origin v0.2.0`,
+   then `git -C /p/AI_LAB/okno-public tag v0.2.0 && git -C /p/AI_LAB/okno-public push origin v0.2.0`.
 
 **Verify:**
 ```bash
-node -e "const p=require('C:/AI_LAB/okno-public/package.json'); console.log(p.version, p.license, p.author, p.engines.node)"
-grep -m1 "^## \[0.2.0\]" /c/AI_LAB/okno-public/CHANGELOG.md
-git -C /c/AI_LAB/okno-public log --oneline | tail -1
+node -e "const p=require('P:/AI_LAB/okno-public/package.json'); console.log(p.version, p.license, p.author, p.engines.node)"
+grep -m1 "^## \[0.2.0\]" /p/AI_LAB/okno-public/CHANGELOG.md
+git -C /p/AI_LAB/okno-public log --oneline | tail -1
 ```
 Expected: `0.2.0 MIT Sam Shennan >=20`; the new changelog heading; and the last history line
 still `310c5fb feat: initial public release` (append-only history preserved). Then run item 6's
@@ -229,7 +229,7 @@ runbook.
 
 **Done when:** all three checks pass and both tags are on GitHub
 (`git ls-remote --tags origin | grep v0.2.0` in each repo).
-**Rollback:** revert the private commit, re-run sync; `git -C /c/AI_LAB/okno-public revert HEAD && git push`.
+**Rollback:** revert the private commit, re-run sync; `git -C /p/AI_LAB/okno-public revert HEAD && git push`.
 
 ### 5. Set the GitHub `homepage` field (independent, time-gated)
 
@@ -270,7 +270,7 @@ after it lands, using infrastructure items 1–3 installed.
 
 **Steps — run after EVERY sync (and after item 4's publish):**
 ```bash
-cd /c/AI_LAB/okno-public
+cd /p/AI_LAB/okno-public
 bash .git/hooks/pre-push --manual                      # full audit: expect AUDIT PASS (6/6)
 git log --oneline | tail -1                            # expect: 310c5fb feat: initial public release
 git ls-remote origin main | cut -f1                    # expect: equals `git rev-parse HEAD`
@@ -278,7 +278,7 @@ ls IMPROVEMENT_PLAN.md .git/hooks/pre-commit .git/hooks/pre-push   # expect: all
 ```
 
 **Done when:** adopted — i.e., the okno plan's executor is told (add one line to the okno
-plan's item 6 Verify section, or to `C:\AI_LAB\okno\CLAUDE.md`): "after every sync-public.sh
+plan's item 6 Verify section, or to `P:\AI_LAB\okno\CLAUDE.md`): "after every sync-public.sh
 run, execute the post-sync runbook in okno-public/IMPROVEMENT_PLAN.md item 6."
 
 ## Deterministic script candidates
@@ -292,7 +292,7 @@ later adopts cross-repo insight #2).
 Everything here is 100% mechanical — no LLM judgment anywhere. The only LLM-adjacent task in
 this whole plan is drafting the CHANGELOG prose (item 4 step 3).
 
-### G1 — `.git\hooks\pre-commit` (CREATE at `C:\AI_LAB\okno-public\.git\hooks\pre-commit`)
+### G1 — `.git\hooks\pre-commit` (CREATE at `P:\AI_LAB\okno-public\.git\hooks\pre-commit`)
 
 - **Purpose:** reject any commit in okno-public that stages (a) IMPROVEMENT_PLAN.md, (b) a
   markdown file starting with Obsidian `---` frontmatter, or (c) content matching the PII
@@ -365,7 +365,7 @@ exit 0
 - **How to verify:** `bash -n` (syntax), then `--selftest` (three PASS lines, exit 0). The real
   sync commits from the okno plan's S3 should pass through silently.
 
-### G2 — `.git\hooks\pre-push` (CREATE at `C:\AI_LAB\okno-public\.git\hooks\pre-push`)
+### G2 — `.git\hooks\pre-push` (CREATE at `P:\AI_LAB\okno-public\.git\hooks\pre-push`)
 
 - **Purpose:** (hook mode) refuse force-pushes and deletion of `main` — the public history is
   append-only by decision; (manual mode) full public-artifact audit in one command.
@@ -484,7 +484,7 @@ exit 0
 4. **Adopt the `dist/` mental model** (carried from the superseded plan — it was right): you
    never hand-edit `dist/`, you never accept changes into `dist/`, you regenerate it. Every
    confusion an agent has had about this repo dissolves under that framing. Worth one line in
-   `C:\AI_LAB\okno\CLAUDE.md` (the okno plan's insight already suggests documenting the
+   `P:\AI_LAB\okno\CLAUDE.md` (the okno plan's insight already suggests documenting the
    topology there).
 5. **The hooks pattern generalises.** Any public mirror in the lab (this is currently the only
    one, but JOBHUNT content or OPENCLAW extracts could grow one) should get the same two-file
@@ -505,12 +505,12 @@ exit 0
 
 - **No `git add -A`, commit, or push in this repo until item 1 is done.** The plan file leak
   is the single live risk today.
-- **Tracked files in `C:\AI_LAB\okno-public`** — never edit locally. All content fixes go to
-  `C:\AI_LAB\okno` and arrive via sync. The only writable paths here are `.git\info\exclude`
+- **Tracked files in `P:\AI_LAB\okno-public`** — never edit locally. All content fixes go to
+  `P:\AI_LAB\okno` and arrive via sync. The only writable paths here are `.git\info\exclude`
   and `.git\hooks\*` (items 1–3) plus this untracked plan file.
-- **`C:\AI_LAB\okno\scripts\export-public.sh` (v1)** — never execute (rm -rf of this entire
+- **`P:\AI_LAB\okno\scripts\export-public.sh` (v1)** — never execute (rm -rf of this entire
   repo including `.git`). It is replaced/archived by the okno plan item 6.
-- **`C:\AI_LAB\okno\deploy-to-vps.sh`** — never execute (root SSH, `apt upgrade` on a shared
+- **`P:\AI_LAB\okno\deploy-to-vps.sh`** — never execute (root SSH, `apt upgrade` on a shared
   box).
 - **The VPS (159.69.152.123 / Tailscale 100.81.115.98)** — frozen until ~2026-07-06 (live
   FLIPER experiment + n8n share the box). Nothing in this plan needs it; deploy work lives in
